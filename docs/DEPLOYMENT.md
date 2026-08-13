@@ -170,11 +170,22 @@ docker compose version
 
 ## Step 5 — Clone the repository
 
+> **Run these as the `deploy` user, not root.** CI logs in as `deploy`, and git refuses to
+> operate on a repository owned by someone else (*"detected dubious ownership"*). If your prompt
+> reads `root@...`, switch first with `su - deploy`.
+
 ```bash
 sudo mkdir -p /srv/trovework
 sudo chown deploy:deploy /srv/trovework
 git clone https://github.com/thiroshi832-hash/trovework-web.git /srv/trovework
 cd /srv/trovework && git checkout master
+```
+
+If you already cloned or built as root, fix the ownership before the first CI deploy:
+
+```bash
+sudo chown -R deploy:deploy /srv/trovework /srv/trovework-data
+sudo usermod -aG docker deploy
 ```
 
 **If the repo is private**, generate a read-only key on the VPS and add it as a GitHub
@@ -330,6 +341,8 @@ docker compose up -d --build web
 | `502 Bad Gateway` | Container down — `docker compose ps`, then `logs -f web` |
 | certbot fails | DNS not pointing at the VPS yet (Step 0), or port 80 blocked |
 | Deploy action fails auth | `VPS_SSH_KEY` missing header/footer lines, or public key not in `~deploy/.ssh/authorized_keys` |
+| `detected dubious ownership in repository` | Repo cloned as root; CI runs as `deploy`. Fix with `sudo chown -R deploy:deploy /srv/trovework` |
+| `permission denied` on the docker socket | `deploy` not in the `docker` group — `sudo usermod -aG docker deploy`, then reconnect |
 | Site loads over HTTP but not HTTPS | certbot didn't inject the 443 block — re-run Step 8 |
 
 ---
