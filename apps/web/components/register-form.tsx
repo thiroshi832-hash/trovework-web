@@ -197,7 +197,7 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
         </SelectInput>
       </Field>
 
-      <div className="grid gap-5 sm:grid-cols-[7fr_3fr]">
+      <div className="grid gap-5 sm:grid-cols-[6fr_4fr]">
         <Field label="State / Province" error={errors.state}>
           {useStateSelect ? (
             <SelectInput
@@ -236,7 +236,6 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
             name="postalCode"
             required
             autoComplete="postal-code"
-            placeholder="Enter your postal code"
             invalid={!!errors.postalCode}
             icon={<Hash className="h-4 w-4" />}
           />
