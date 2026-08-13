@@ -1,5 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 
 /* ================================ icons ================================= */
 
@@ -96,14 +98,6 @@ function Building({ className }: IconProps) {
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
       <rect x="5" y="4" width="9.5" height="16" rx="1.4" {...stroke} />
       <path d="M14.5 9.5H19v10.5M8 8h3.5M8 11.5h3.5M8 15h3.5" {...stroke} />
-    </svg>
-  );
-}
-
-function ChevronDown({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="m6.5 9.5 5.5 5.5 5.5-5.5" {...stroke} strokeWidth={1.9} />
     </svg>
   );
 }
@@ -227,38 +221,7 @@ function Dots({ className }: IconProps) {
   );
 }
 
-/* social */
-function SocialIcon({ path, label }: { path: string; label: string }) {
-  return (
-    <a
-      href="#"
-      aria-label={label}
-      className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white"
-    >
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden>
-        <path d={path} />
-      </svg>
-    </a>
-  );
-}
-
 /* ============================== primitives ============================== */
-
-/* `dark` means the logo sits on a dark ground, so it uses the light artwork. */
-function Logo({ dark = false }: { dark?: boolean }) {
-  return (
-    <Link href="/" className="inline-flex shrink-0 items-center">
-      <Image
-        src={dark ? "/images/logo-light.png" : "/images/logo-dark.png"}
-        alt="Trovework"
-        width={1124}
-        height={258}
-        priority
-        className="h-11 w-auto"
-      />
-    </Link>
-  );
-}
 
 /* Portraits are decorative — the person's name always sits beside them as text. */
 function Portrait({
@@ -376,20 +339,6 @@ const POSTS = [
   { tag: "GUIDES", image: "/design/blog-3.jpg", title: "Remote Work Best Practices for Clients and Freelancers", excerpt: "Tips to communicate better and deliver successful projects remotely.", date: "Aug 1, 2026", read: "6 min read" },
 ];
 
-const FOOTER_LINKS = [
-  { heading: "For Clients", links: ["Browse Freelancers", "How It Works", "Safety & Trust", "Help Center"] },
-  { heading: "For Freelancers", links: ["Create Profile", "How It Works", "Freelancer Tips", "Community"] },
-  { heading: "Company", links: ["About Us", "Blog", "Careers", "Contact Us"] },
-  { heading: "Legal", links: ["Terms of Service", "Privacy Policy", "Cookie Policy", "Acceptable Use"] },
-];
-
-const SOCIALS = [
-  { label: "X", path: "M18.9 3H21l-6.6 7.5L22 21h-6l-4.7-6.1L5.9 21H3.8l7-8L2.4 3h6.2l4.2 5.6L18.9 3Zm-1 16.2h1.2L8.2 4.7H6.9l10 14.5Z" },
-  { label: "LinkedIn", path: "M4.98 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5ZM3 9h4v12H3V9Zm7 0h3.8v1.7h.05A4.2 4.2 0 0 1 17.6 8.7c4 0 4.7 2.6 4.7 6V21h-4v-5.5c0-1.3 0-3-1.9-3s-2.1 1.4-2.1 2.9V21h-4V9Z" },
-  { label: "Facebook", path: "M13.5 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.25-1.5 1.55-1.5h1.65V3.6A22 22 0 0 0 14.3 3.5c-2.4 0-4 1.45-4 4.1v2.3H7.6V13h2.7v8h3.2Z" },
-  { label: "Instagram", path: "M12 7.4a4.6 4.6 0 1 0 0 9.2 4.6 4.6 0 0 0 0-9.2Zm0 7.6a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm5.9-7.8a1.07 1.07 0 1 1-2.15 0 1.07 1.07 0 0 1 2.15 0ZM12 4.6c2.4 0 2.7 0 3.6.05.9.04 1.5.18 2 .38.55.2 1 .5 1.45.95.45.45.75.9.95 1.45.2.5.34 1.1.38 2 .04.9.05 1.2.05 3.6s0 2.7-.05 3.6c-.04.9-.18 1.5-.38 2a4 4 0 0 1-.95 1.45c-.45.45-.9.75-1.45.95-.5.2-1.1.34-2 .38-.9.04-1.2.05-3.6.05s-2.7 0-3.6-.05c-.9-.04-1.5-.18-2-.38a4 4 0 0 1-1.45-.95 4 4 0 0 1-.95-1.45c-.2-.5-.34-1.1-.38-2C4.6 14.7 4.6 14.4 4.6 12s0-2.7.05-3.6c.04-.9.18-1.5.38-2 .2-.55.5-1 .95-1.45A4 4 0 0 1 7.43 4c.5-.2 1.1-.34 2-.38.9-.04 1.2-.05 3.6-.05Z" },
-];
-
 /* ========================= how-it-works artwork ========================== */
 
 const MOCK = "block rounded bg-slate-200/70";
@@ -495,40 +444,7 @@ function VerifiedCard({ className = "" }: { className?: string }) {
 export default function Home() {
   return (
     <div className="flex min-h-full flex-col bg-white">
-      {/* ------------------------------ header ----------------------------- */}
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-2">
-          <Logo />
-
-          <div className="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex">
-            <button type="button" className="flex items-center gap-1 hover:text-navy-800">
-              Browse Freelancers
-              <ChevronDown className="h-4 w-4" />
-            </button>
-            <a href="#how" className="hover:text-navy-800">How It Works</a>
-            <a href="#about" className="hover:text-navy-800">About Us</a>
-            <a href="#trust" className="hover:text-navy-800">Safety &amp; Trust</a>
-            <a href="#blog" className="hover:text-navy-800">Blog</a>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button type="button" className="hidden items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-navy-800 md:flex">
-              <Globe className="h-4 w-4" />
-              English
-              <ChevronDown className="h-3.5 w-3.5" />
-            </button>
-            <Link href="/login" className="hidden text-sm font-medium text-slate-600 hover:text-navy-800 sm:block">
-              Login
-            </Link>
-            <Link
-              href="/register"
-              className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
-            >
-              Register
-            </Link>
-          </div>
-        </nav>
-      </header>
+      <SiteHeader />
 
       <main className="flex-1">
         {/* ------------------------------- hero ---------------------------- */}
@@ -844,47 +760,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* ------------------------------ footer ----------------------------- */}
-      <footer className="bg-navy-900 text-slate-300">
-        <div className="mx-auto max-w-7xl px-6 py-24">
-          <div className="grid gap-10 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
-            <div>
-              <Logo dark />
-              <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">
-                A trust-first global freelance marketplace. Connect, collaborate, and get work done
-                with confidence.
-              </p>
-              <div className="mt-5 flex gap-2.5">
-                {SOCIALS.map((s) => (
-                  <SocialIcon key={s.label} path={s.path} label={s.label} />
-                ))}
-              </div>
-            </div>
-
-            {FOOTER_LINKS.map((col) => (
-              <div key={col.heading}>
-                <h3 className="text-sm font-semibold text-white">{col.heading}</h3>
-                <ul className="mt-4 space-y-2.5">
-                  {col.links.map((l) => (
-                    <li key={l}>
-                      <Link href="#" className="text-sm text-slate-400 transition hover:text-white">
-                        {l}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="border-t border-white/10">
-          <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-            <p>© 2026 Trovework. All rights reserved.</p>
-            <p>Made with ❤️ for a better freelance world.</p>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

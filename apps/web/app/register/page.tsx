@@ -45,7 +45,7 @@ export default async function RegisterPage({
 
   return (
     <div className="flex min-h-full flex-col bg-slate-50/60">
-      <SiteHeader variant="register" tagline navItems={3} />
+      <SiteHeader variant="register" navItems={3} />
 
       <main className="flex-1">
         <div className="mx-auto max-w-7xl px-6 py-8">

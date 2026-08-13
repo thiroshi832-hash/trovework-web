@@ -2,26 +2,22 @@ import Image from "next/image";
 import Link from "next/link";
 import { Star } from "@/components/icons";
 
-export function Logo({
-  dark = false,
-  tagline = false,
-}: {
-  dark?: boolean;
-  tagline?: boolean;
-}) {
+/**
+ * `dark` means the logo sits on a dark ground, so it uses the light artwork.
+ * The supplied lockups already carry the "TRUST. WORK. TOGETHER." tagline, so
+ * there is no separate tagline option.
+ */
+export function Logo({ dark = false }: { dark?: boolean }) {
   return (
-    <Link href="/" className="flex items-center gap-2">
-      <Image src="/logo-mark.png" alt="" width={32} height={32} className="h-8 w-8" priority />
-      <span className="leading-none">
-        <span className={`block text-xl font-bold tracking-tight ${dark ? "text-white" : "text-navy-800"}`}>
-          Trovework
-        </span>
-        {tagline ? (
-          <span className={`mt-0.5 block text-[7px] font-semibold tracking-[0.18em] ${dark ? "text-slate-400" : "text-slate-400"}`}>
-            TRUST. WORK. TOGETHER.
-          </span>
-        ) : null}
-      </span>
+    <Link href="/" className="inline-flex shrink-0 items-center">
+      <Image
+        src={dark ? "/images/logo-light.png" : "/images/logo-dark.png"}
+        alt="Trovework"
+        width={1124}
+        height={258}
+        priority
+        className="h-10 w-auto"
+      />
     </Link>
   );
 }

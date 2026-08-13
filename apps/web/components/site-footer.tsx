@@ -29,7 +29,7 @@ export function SlimFooter() {
     <footer className="border-t border-slate-200 bg-white">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-6 text-sm text-slate-500 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-6">
-          <Logo tagline />
+          <Logo />
           <p className="hidden text-xs sm:block">© 2026 Trovework. All rights reserved.</p>
         </div>
         <div className="flex flex-wrap items-center gap-x-7 gap-y-2 text-xs">
@@ -51,8 +51,8 @@ export function SlimFooter() {
 
 export function SiteFooter({ newsletter = false }: { newsletter?: boolean }) {
   return (
-    <footer className="bg-navy-800 text-slate-300">
-      <div className="mx-auto max-w-7xl px-6 py-14">
+    <footer className="bg-navy-900 text-slate-300">
+      <div className="mx-auto max-w-7xl px-6 py-24">
         <div
           className={`grid gap-10 ${
             newsletter ? "lg:grid-cols-[1.3fr_repeat(4,0.8fr)_1.2fr]" : "lg:grid-cols-[1.4fr_repeat(4,1fr)]"

@@ -2,12 +2,13 @@ import Link from "next/link";
 import { Logo } from "@/components/brand";
 import { ChevronDown, Globe } from "@/components/icons";
 
+/* Anchors are absolute so they still resolve from /login and /register. */
 const NAV = [
   { label: "Browse Freelancers", href: "/search", dropdown: true },
   { label: "How It Works", href: "/#how" },
+  { label: "About Us", href: "/#about" },
   { label: "Safety & Trust", href: "/#trust" },
   { label: "Blog", href: "/#blog" },
-  { label: "Help Center", href: "/help" },
 ];
 
 /**
@@ -18,17 +19,15 @@ const NAV = [
  */
 export function SiteHeader({
   variant = "default",
-  tagline = false,
   navItems = 5,
 }: {
   variant?: "default" | "register" | "login";
-  tagline?: boolean;
   navItems?: number;
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-3.5">
-        <Logo tagline={tagline} />
+      <nav className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-2">
+        <Logo />
 
         <div className="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex">
           {NAV.slice(0, navItems).map((item) =>
@@ -57,7 +56,7 @@ export function SiteHeader({
           {variant === "login" ? (
             <Link
               href="/register"
-              className="rounded-lg border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-600 transition hover:bg-brand-50"
+              className="rounded-lg border border-brand-600 px-5 py-2.5 text-sm font-semibold text-brand-600 transition hover:bg-brand-50"
             >
               Register
             </Link>
@@ -72,7 +71,7 @@ export function SiteHeader({
               </Link>
               <Link
                 href="/register"
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
+                className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
               >
                 Register
               </Link>

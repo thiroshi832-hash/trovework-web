@@ -38,7 +38,7 @@ const BENEFITS = [
 export default function LoginPage() {
   return (
     <div className="flex min-h-full flex-col bg-slate-50/60">
-      <SiteHeader variant="login" tagline navItems={3} />
+      <SiteHeader variant="login" navItems={3} />
 
       <main className="flex-1">
         <div className="mx-auto max-w-7xl px-6 py-8">
