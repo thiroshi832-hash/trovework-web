@@ -6,22 +6,27 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  /* Brand — matched to the Trovework T-mark gradient */
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-200: #bfdbfe;
-  --color-brand-300: #93c5fd;
-  --color-brand-400: #60a5fa;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #1d6af2;
-  --color-brand-700: #1a56db;
-  --color-brand-800: #1e40af;
-  --color-brand-900: #1e3a8a;
+  /* Brand — sampled from the design comp: buttons #0558f0, CTA band #0452e8 */
+  --color-brand-50: #eef4ff;
+  --color-brand-100: #dbe6fe;
+  --color-brand-200: #c0d3fd;
+  --color-brand-300: #93b2fc;
+  --color-brand-400: #5f8afa;
+  --color-brand-500: #2e66f5;
+  --color-brand-600: #0a55ee;
+  --color-brand-700: #0842c9;
+  --color-brand-800: #0a379d;
+  --color-brand-900: #0c2f7f;
 
-  /* Deep navy used for headings and the footer */
-  --color-navy-700: #12325c;
-  --color-navy-800: #0d2447;
-  --color-navy-900: #0a1b35;
+  /* Deep navy used for headings and the footer (footer sampled at #051636) */
+  --color-navy-700: #10294d;
+  --color-navy-800: #0b1c38;
+  --color-navy-900: #051636;
+
+  /* Stats band gradient, sampled left-to-right off the comp */
+  --color-stat-from: #062357;
+  --color-stat-via: #0a2f79;
+  --color-stat-to: #0340a8;
 }
 
 :root {
