@@ -1,232 +1,28 @@
-import Image from "next/image";
 import Link from "next/link";
-
-/* ================================ icons ================================= */
-
-type IconProps = { className?: string };
-
-const stroke = {
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.6,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
-};
-
-function ShieldCheck({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="M12 3 5 5.6v5c0 4.3 3 8.3 7 9.6 4-1.3 7-5.3 7-9.6v-5L12 3Z" {...stroke} />
-      <path d="m9 11.8 2.1 2.1L15.2 9.7" {...stroke} strokeWidth={1.9} />
-    </svg>
-  );
-}
-
-function Lock({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <rect x="4.8" y="10.5" width="14.4" height="9.7" rx="2.2" {...stroke} />
-      <path d="M8.2 10.5V7.9a3.8 3.8 0 0 1 7.6 0v2.6" {...stroke} />
-    </svg>
-  );
-}
-
-function ChatBubble({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="M5 5h14a1.9 1.9 0 0 1 1.9 1.9v7.6A1.9 1.9 0 0 1 19 16.4H9.6L5.6 19.6V6.9A1.9 1.9 0 0 1 7.5 5Z" {...stroke} />
-    </svg>
-  );
-}
-
-function Gift({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <rect x="4" y="9.5" width="16" height="10.5" rx="1.6" {...stroke} />
-      <path d="M4 13.2h16M12 9.5V20" {...stroke} />
-      <path d="M12 9.5S10.8 5 8.6 5a2 2 0 0 0 0 4.5Zm0 0S13.2 5 15.4 5a2 2 0 0 1 0 4.5Z" {...stroke} />
-    </svg>
-  );
-}
-
-function Check({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="m5 12.5 4.5 4.5L19 7" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function Star({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M12 3.6l2.5 5.1 5.6.8-4.1 4 1 5.6-5-2.6-5 2.6 1-5.6-4.1-4 5.6-.8L12 3.6Z" />
-    </svg>
-  );
-}
-
-function Globe({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <circle cx="12" cy="12" r="8.2" {...stroke} />
-      <path d="M3.8 12h16.4M12 3.8c2.1 2.2 3.2 5.1 3.2 8.2S14.1 18 12 20.2C9.9 18 8.8 15.1 8.8 12S9.9 6 12 3.8Z" {...stroke} />
-    </svg>
-  );
-}
-
-function Users({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <circle cx="9" cy="8.4" r="3.2" {...stroke} />
-      <path d="M3.4 19.2a5.8 5.8 0 0 1 11.2 0M16.2 5.6a3.1 3.1 0 0 1 0 5.7M17.6 19.2a5.6 5.6 0 0 0-1.9-4" {...stroke} />
-    </svg>
-  );
-}
-
-function Building({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <rect x="5" y="4" width="9.5" height="16" rx="1.4" {...stroke} />
-      <path d="M14.5 9.5H19v10.5M8 8h3.5M8 11.5h3.5M8 15h3.5" {...stroke} />
-    </svg>
-  );
-}
-
-function ChevronDown({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="m6.5 9.5 5.5 5.5 5.5-5.5" {...stroke} strokeWidth={1.9} />
-    </svg>
-  );
-}
-
-function ArrowRight({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="M4.5 12h15m-5.6-5.6L19.5 12l-5.6 5.6" {...stroke} strokeWidth={1.8} />
-    </svg>
-  );
-}
-
-function Quote({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M9.4 5.5c-3 1.6-4.7 4.1-4.7 7.4v5.6h6.2v-6H7.6c0-2 .8-3.4 2.6-4.4l-.8-2.6Zm9.3 0c-3 1.6-4.7 4.1-4.7 7.4v5.6h6.2v-6h-3.3c0-2 .8-3.4 2.6-4.4l-.8-2.6Z" />
-    </svg>
-  );
-}
-
-/* category glyphs */
-function Sparkle({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="M12 4.2 13.6 9l4.8 1.6-4.8 1.6L12 17l-1.6-4.8L5.6 10.6 10.4 9 12 4.2Z" {...stroke} />
-    </svg>
-  );
-}
-function Broom({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="M15.5 4.5 9.8 10.2M13.2 12.6 7.4 18.4a2.3 2.3 0 0 1-3.2 0 2.3 2.3 0 0 1 0-3.2l5.8-5.8M9.4 8.6l6 6" {...stroke} />
-      <path d="M14.4 7.6 17 5a1.9 1.9 0 0 1 2.7 2.7l-2.6 2.6" {...stroke} />
-    </svg>
-  );
-}
-function Wrench({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="M15.6 4.4a4.6 4.6 0 0 0-5.9 5.7l-5 5a2 2 0 0 0 2.8 2.8l5-5a4.6 4.6 0 0 0 5.7-5.9l-2.6 2.6-2.3-.4-.4-2.3 2.7-2.5Z" {...stroke} />
-    </svg>
-  );
-}
-function Book({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="M4.5 5.2h5a2.6 2.6 0 0 1 2.5 2.6v11a2 2 0 0 0-2-2H4.5V5.2Zm15 0h-5A2.6 2.6 0 0 0 12 7.8v11a2 2 0 0 1 2-2h5.5V5.2Z" {...stroke} />
-    </svg>
-  );
-}
-function Truck({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="M3.5 6.5h9.2v9.8H3.5zM12.7 10h3.6l3.2 3v3.3h-6.8z" {...stroke} />
-      <circle cx="7" cy="17.6" r="1.7" {...stroke} />
-      <circle cx="16.4" cy="17.6" r="1.7" {...stroke} />
-    </svg>
-  );
-}
-function Code({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="m8.6 8.4-4 3.6 4 3.6m6.8-7.2 4 3.6-4 3.6M13.4 5.8l-2.8 12.4" {...stroke} />
-    </svg>
-  );
-}
-function Pen({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="M15.6 4.9 19.1 8.4 8.7 18.8l-4.4.9.9-4.4L15.6 4.9Z" {...stroke} />
-      <path d="m13.6 6.9 3.5 3.5" {...stroke} />
-    </svg>
-  );
-}
-function Dots({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <circle cx="6.5" cy="12" r="1.7" />
-      <circle cx="12" cy="12" r="1.7" />
-      <circle cx="17.5" cy="12" r="1.7" />
-    </svg>
-  );
-}
-
-/* social */
-function SocialIcon({ path, label }: { path: string; label: string }) {
-  return (
-    <a
-      href="#"
-      aria-label={label}
-      className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white"
-    >
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden>
-        <path d={path} />
-      </svg>
-    </a>
-  );
-}
-
-/* ============================== primitives ============================== */
-
-function Logo({ dark = false }: { dark?: boolean }) {
-  return (
-    <Link href="/" className="flex items-center gap-2">
-      <Image src="/logo-mark.png" alt="" width={32} height={32} className="h-8 w-8" priority />
-      <span className={`text-xl font-bold tracking-tight ${dark ? "text-white" : "text-navy-800"}`}>
-        Trovework
-      </span>
-    </Link>
-  );
-}
-
-function Avatar({ initials, className = "" }: { initials: string; className?: string }) {
-  return (
-    <span
-      className={`grid place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-700 font-semibold text-white ${className}`}
-    >
-      {initials}
-    </span>
-  );
-}
-
-function Stars({ rating, className = "" }: { rating: number; className?: string }) {
-  return (
-    <span className={`flex items-center gap-0.5 text-amber-400 ${className}`} aria-label={`${rating} out of 5`}>
-      {[0, 1, 2, 3, 4].map((i) => (
-        <Star key={i} className={`h-3.5 w-3.5 ${i < Math.round(rating) ? "" : "text-slate-200"}`} />
-      ))}
-    </span>
-  );
-}
+import { Avatar, Stars } from "@/components/brand";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+import {
+  ArrowRight,
+  Book,
+  Broom,
+  ChatBubble,
+  Check,
+  Code,
+  Dots,
+  Gift,
+  Globe,
+  Lock,
+  Pen,
+  Quote,
+  ShieldCheck,
+  Sparkle,
+  Star,
+  Truck,
+  Users,
+  Wrench,
+  Building,
+} from "@/components/icons";
 
 function SectionHeading({
   title,
@@ -305,59 +101,14 @@ const POSTS = [
   { tag: "GUIDES", tone: "bg-amber-500", title: "Working Well Together: Best Practices", excerpt: "Tips to communicate better and deliver successful projects.", date: "Aug 1, 2026", read: "6 min read" },
 ];
 
-const FOOTER_LINKS = [
-  { heading: "For Clients", links: ["Browse Freelancers", "How It Works", "Safety & Trust", "Help Center"] },
-  { heading: "For Freelancers", links: ["Create Profile", "How It Works", "Freelancer Tips", "Community"] },
-  { heading: "Company", links: ["About Us", "Blog", "Careers", "Contact Us"] },
-  { heading: "Legal", links: ["Terms of Service", "Privacy Policy", "Cookie Policy", "Acceptable Use"] },
-];
 
-const SOCIALS = [
-  { label: "X", path: "M18.9 3H21l-6.6 7.5L22 21h-6l-4.7-6.1L5.9 21H3.8l7-8L2.4 3h6.2l4.2 5.6L18.9 3Zm-1 16.2h1.2L8.2 4.7H6.9l10 14.5Z" },
-  { label: "LinkedIn", path: "M4.98 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5ZM3 9h4v12H3V9Zm7 0h3.8v1.7h.05A4.2 4.2 0 0 1 17.6 8.7c4 0 4.7 2.6 4.7 6V21h-4v-5.5c0-1.3 0-3-1.9-3s-2.1 1.4-2.1 2.9V21h-4V9Z" },
-  { label: "Facebook", path: "M13.5 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.25-1.5 1.55-1.5h1.65V3.6A22 22 0 0 0 14.3 3.5c-2.4 0-4 1.45-4 4.1v2.3H7.6V13h2.7v8h3.2Z" },
-  { label: "Instagram", path: "M12 7.4a4.6 4.6 0 1 0 0 9.2 4.6 4.6 0 0 0 0-9.2Zm0 7.6a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm5.9-7.8a1.07 1.07 0 1 1-2.15 0 1.07 1.07 0 0 1 2.15 0ZM12 4.6c2.4 0 2.7 0 3.6.05.9.04 1.5.18 2 .38.55.2 1 .5 1.45.95.45.45.75.9.95 1.45.2.5.34 1.1.38 2 .04.9.05 1.2.05 3.6s0 2.7-.05 3.6c-.04.9-.18 1.5-.38 2a4 4 0 0 1-.95 1.45c-.45.45-.9.75-1.45.95-.5.2-1.1.34-2 .38-.9.04-1.2.05-3.6.05s-2.7 0-3.6-.05c-.9-.04-1.5-.18-2-.38a4 4 0 0 1-1.45-.95 4 4 0 0 1-.95-1.45c-.2-.5-.34-1.1-.38-2C4.6 14.7 4.6 14.4 4.6 12s0-2.7.05-3.6c.04-.9.18-1.5.38-2 .2-.55.5-1 .95-1.45A4 4 0 0 1 7.43 4c.5-.2 1.1-.34 2-.38.9-.04 1.2-.05 3.6-.05Z" },
-];
 
 /* ================================== page ================================= */
 
 export default function Home() {
   return (
     <div className="flex min-h-full flex-col bg-white">
-      {/* ------------------------------ header ----------------------------- */}
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-3.5">
-          <Logo />
-
-          <div className="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex">
-            <button type="button" className="flex items-center gap-1 hover:text-navy-800">
-              Browse Freelancers
-              <ChevronDown className="h-4 w-4" />
-            </button>
-            <a href="#how" className="hover:text-navy-800">How It Works</a>
-            <a href="#about" className="hover:text-navy-800">About Us</a>
-            <a href="#trust" className="hover:text-navy-800">Safety &amp; Trust</a>
-            <a href="#blog" className="hover:text-navy-800">Blog</a>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button type="button" className="hidden items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-navy-800 md:flex">
-              <Globe className="h-4 w-4" />
-              English
-              <ChevronDown className="h-3.5 w-3.5" />
-            </button>
-            <Link href="/login" className="hidden text-sm font-medium text-slate-600 hover:text-navy-800 sm:block">
-              Log in
-            </Link>
-            <Link
-              href="/signup"
-              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
-            >
-              Sign up
-            </Link>
-          </div>
-        </nav>
-      </header>
+      <SiteHeader />
 
       <main className="flex-1">
         {/* ------------------------------- hero ---------------------------- */}
@@ -670,47 +421,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* ------------------------------ footer ----------------------------- */}
-      <footer className="bg-navy-800 text-slate-300">
-        <div className="mx-auto max-w-7xl px-6 py-14">
-          <div className="grid gap-10 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
-            <div>
-              <Logo dark />
-              <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">
-                A trust-first global freelance marketplace. Connect, collaborate, and get work done
-                with confidence.
-              </p>
-              <div className="mt-5 flex gap-2.5">
-                {SOCIALS.map((s) => (
-                  <SocialIcon key={s.label} path={s.path} label={s.label} />
-                ))}
-              </div>
-            </div>
-
-            {FOOTER_LINKS.map((col) => (
-              <div key={col.heading}>
-                <h3 className="text-sm font-semibold text-white">{col.heading}</h3>
-                <ul className="mt-4 space-y-2.5">
-                  {col.links.map((l) => (
-                    <li key={l}>
-                      <Link href="#" className="text-sm text-slate-400 transition hover:text-white">
-                        {l}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="border-t border-white/10">
-          <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-            <p>© 2026 Trovework. All rights reserved.</p>
-            <p>Made with ❤️ for a better freelance world.</p>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
