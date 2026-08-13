@@ -107,7 +107,7 @@ export default async function RegisterPage({
             </div>
 
             {/* right — the form, in its own bordered panel */}
-            <div className="bg-slate-50/70 p-6 sm:p-7 lg:p-8">
+            <div className="flex items-center bg-slate-50/70 p-6 sm:p-7 lg:p-8">
               <div className="w-full rounded-2xl border border-slate-200 bg-white p-9 shadow-sm sm:p-11">
                 <h2 className="text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl lg:text-4xl">
                   Create your account

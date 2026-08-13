@@ -7,9 +7,9 @@ import { SlimFooter } from "@/components/site-footer";
 import { ChatBubble, Globe, Lock, Quote, ShieldCheck } from "@/components/icons";
 
 export const metadata: Metadata = {
-  title: "Sign in — Trovework",
+  title: "Login — Trovework",
   description:
-    "Sign in to Trovework to connect with verified freelancers and clients, and get work done with confidence.",
+    "Login to Trovework to connect with verified freelancers and clients, and get work done with confidence.",
 };
 
 const BENEFITS = [
@@ -65,7 +65,7 @@ export default function LoginPage() {
                   Welcome back to Trovework
                 </h1>
                 <p className="mt-5 max-w-md text-base leading-relaxed text-brand-100 lg:text-lg">
-                  Sign in to connect with verified freelancers and clients, and get work done with
+                  Login to connect with verified freelancers and clients, and get work done with
                   confidence.
                 </p>
 
@@ -101,15 +101,15 @@ export default function LoginPage() {
             </div>
 
             {/* right — the form, in its own bordered panel */}
-            <div className="bg-slate-50/70 p-6 sm:p-7 lg:p-8">
+            <div className="flex items-center bg-slate-50/70 p-6 sm:p-7 lg:p-8">
               <div className="w-full rounded-2xl border border-slate-200 bg-white p-9 shadow-sm sm:p-11">
                 <h2 className="text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl lg:text-4xl">
-                  Sign in to your account
+                  Login to your account
                 </h2>
                 <p className="mt-3 text-base leading-relaxed text-slate-500 lg:text-lg">
                   Don&apos;t have an account?{" "}
                   <Link href="/register" className="font-semibold text-brand-600 hover:underline">
-                    Sign up
+                    Register
                   </Link>
                 </p>
                 <div className="mt-6">

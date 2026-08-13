@@ -69,7 +69,7 @@ const CATEGORIES = [
 ];
 
 const STEPS = [
-  { title: "Create an account", body: "Sign up as a client or freelancer in just a few steps." },
+  { title: "Create an account", body: "Register as a client or freelancer in just a few steps." },
   { title: "Get verified", body: "Verify your phone and ID to unlock all features." },
   { title: "Connect & work", body: "Find the right person, start a chat, and get work done." },
 ];

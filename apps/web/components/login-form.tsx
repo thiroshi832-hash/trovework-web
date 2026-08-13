@@ -82,7 +82,7 @@ export function LoginForm() {
 
       {submitted ? (
         <PendingNotice>
-          Sign-in isn&apos;t live yet — accounts open once identity verification is in place.
+          Login isn&apos;t live yet — accounts open once identity verification is in place.
         </PendingNotice>
       ) : null}
 
@@ -90,7 +90,7 @@ export function LoginForm() {
         type="submit"
         className="w-full rounded-lg bg-brand-600 px-4 py-3.5 text-base font-semibold text-white transition hover:bg-brand-700"
       >
-        Sign in
+        Login
       </button>
 
       <Divider label="or continue with" />
@@ -102,13 +102,13 @@ export function LoginForm() {
         className="flex w-full items-center justify-center gap-2.5 rounded-lg border border-brand-500 bg-white px-4 py-3 text-base font-semibold text-brand-600 transition hover:bg-brand-50"
       >
         <Phone className="h-4 w-4" />
-        Sign in with phone
+        Login with phone
       </button>
 
       <div className="flex gap-3 rounded-lg bg-slate-50 p-3.5">
         <ShieldCheck className="h-5 w-5 shrink-0 text-brand-600" />
         <div>
-          <p className="text-base font-semibold text-navy-800">Secure sign in</p>
+          <p className="text-base font-semibold text-navy-800">Secure login</p>
           <p className="mt-0.5 text-sm leading-relaxed text-slate-500">
             We use industry-standard encryption to keep your account safe.
           </p>

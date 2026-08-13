@@ -294,7 +294,7 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
       <p className="text-center text-base text-slate-500">
         Already have an account?{" "}
         <Link href="/login" className="font-semibold text-brand-600 hover:underline">
-          Log in
+          Login
         </Link>
       </p>
     </form>

@@ -12,9 +12,9 @@ const NAV = [
 
 /**
  * `variant` controls the right-hand actions:
- *  - "default" — language, Log in, Sign up (landing)
- *  - "register" — Log in only (shown on the register page)
- *  - "login"   — Sign up only (shown on the log-in page)
+ *  - "default" — language, Login, Register (landing)
+ *  - "register" — Login only (shown on the register page)
+ *  - "login"   — Register only (shown on the login page)
  */
 export function SiteHeader({
   variant = "default",
@@ -59,22 +59,22 @@ export function SiteHeader({
               href="/register"
               className="rounded-lg border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-600 transition hover:bg-brand-50"
             >
-              Sign up
+              Register
             </Link>
           ) : variant === "register" ? (
             <Link href="/login" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
-              Log in
+              Login
             </Link>
           ) : (
             <>
               <Link href="/login" className="hidden text-sm font-medium text-slate-600 hover:text-navy-800 sm:block">
-                Log in
+                Login
               </Link>
               <Link
                 href="/register"
                 className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
               >
-                Sign up
+                Register
               </Link>
             </>
           )}
