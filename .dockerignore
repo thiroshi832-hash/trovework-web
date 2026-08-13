@@ -1,0 +1,21 @@
+# Build context is the monorepo root — keep it small and secret-free.
+**/node_modules
+**/.next
+**/out
+**/build
+**/dist
+**/coverage
+.git
+.github
+.claude
+docs
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.tsbuildinfo
+**/npm-debug.log*
+**/.DS_Store
+# user uploads must never enter an image
+storage
+secured

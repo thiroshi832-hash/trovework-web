@@ -1,0 +1,26 @@
+services:
+  web:
+    build:
+      # Context is the monorepo root so the workspace lockfile is available.
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: trovework-web:latest
+    container_name: trovework-web
+    restart: unless-stopped
+    # Bind to localhost only — nginx on the host is the sole public entry point.
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      NODE_ENV: production
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+# Added in later phases:
+#   api      — NestJS backend (also bound to 127.0.0.1)
+#   db       — PostgreSQL, with a named volume and NO published port
+#   Storage note: ID images and selfies mount to /secured on the host,
+#   outside the web root, and are never served by nginx.
