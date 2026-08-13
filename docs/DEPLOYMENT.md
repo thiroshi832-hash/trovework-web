@@ -215,6 +215,24 @@ docker compose ps
 curl -I http://127.0.0.1:3000        # expect HTTP/1.1 200 OK
 ```
 
+> **If the build fails with `Cannot find module '…linux-x64-musl.node'`** (lightningcss,
+> `@tailwindcss/oxide`, or `@next/swc`), the committed `package-lock.json` is missing Linux
+> native binaries. npm prunes the lockfile to the platform it was generated on, so a lockfile
+> written on Windows or macOS breaks the Linux Docker build.
+>
+> Regenerate it **with `node_modules` absent** — that is what makes npm resolve every platform:
+>
+> ```bash
+> # in a scratch copy holding only package.json + apps/web/package.json
+> npm install --package-lock-only --os=linux --cpu=x64 --libc=glibc
+> ```
+>
+> Verify before committing — all three must appear:
+>
+> ```bash
+> grep -c "lightningcss-linux-x64-musl\|oxide-linux-x64-musl\|swc-linux-x64-musl" package-lock.json
+> ```
+
 ---
 
 ## Step 8 — nginx + TLS

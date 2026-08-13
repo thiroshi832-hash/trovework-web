@@ -9,10 +9,15 @@
 
 # ---------- deps ----------
 FROM node:22-alpine AS deps
+# Next.js needs glibc compatibility shims on Alpine.
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/
-RUN npm ci
+# The lockfile must carry linux-musl native binaries (lightningcss, @tailwindcss/oxide,
+# @next/swc) or this fails with "Cannot find module '*.linux-x64-musl.node'". Regenerate it
+# with node_modules absent, or npm prunes the tree to the current platform only.
+RUN npm ci --include=optional
 
 # ---------- build ----------
 FROM node:22-alpine AS builder
