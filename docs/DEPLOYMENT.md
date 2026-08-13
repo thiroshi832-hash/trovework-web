@@ -59,17 +59,22 @@ chown -R deploy:deploy /home/deploy/.ssh
 ssh-keygen -t ed25519 -C "github-actions-trovework" -f ~/.ssh/trovework_deploy -N ""
 ```
 
-Copy the **public** key to the VPS:
+Now install the **public** key on the VPS. Note that `ssh-copy-id deploy@...` will **not** work
+here: the `deploy` account was created with `--disabled-password`, so there is no password to
+authenticate with. Install the key through `root` instead — run this from your local machine:
 
 ```bash
-ssh-copy-id -i ~/.ssh/trovework_deploy.pub deploy@172.86.122.122
+ssh root@172.86.122.122 "mkdir -p /home/deploy/.ssh && chmod 700 /home/deploy/.ssh && cat >> /home/deploy/.ssh/authorized_keys && chmod 600 /home/deploy/.ssh/authorized_keys && chown -R deploy:deploy /home/deploy/.ssh" < ~/.ssh/trovework_deploy.pub
 ```
 
-Verify key-only login works before locking passwords out:
+Verify key-only login works **before** locking passwords out in Step 3:
 
 ```bash
 ssh -i ~/.ssh/trovework_deploy deploy@172.86.122.122 "echo OK"
 ```
+
+If that prints `OK`, continue. If it prompts for a password, the key is not installed — the
+prompt can never succeed, so re-run the install command above rather than guessing a password.
 
 ---
 
