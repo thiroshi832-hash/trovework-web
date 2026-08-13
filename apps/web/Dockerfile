@@ -23,13 +23,15 @@ RUN npm ci --include=optional
 FROM node:22-alpine AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+# Copy the whole installed tree rather than individual node_modules paths: npm hoists to the
+# root on Linux and does not create apps/web/node_modules, so naming that path directly fails.
+COPY --from=deps /app ./
 COPY . .
 RUN npm run build --workspace=web
 
 # ---------- run ----------
 FROM node:22-alpine AS runner
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
