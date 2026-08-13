@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Trovework — Hire freelancers you can actually trust",
   description:
-    "Trovework is the trust-first freelance marketplace where every person who can contact you is ID-verified. No bots, no scammers — just verified people doing real work.",
+    "Trovework is the trust-first freelance marketplace for work of every kind — cleaning, trades, care, tutoring, driving, creative and more. Every person who can contact you is ID-verified.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

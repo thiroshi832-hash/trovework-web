@@ -120,8 +120,8 @@ export default function Home() {
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Logo />
           <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
+            <a href="#categories" className="hover:text-slate-900">Categories</a>
             <a href="#how" className="hover:text-slate-900">How it works</a>
-            <a href="#features" className="hover:text-slate-900">Features</a>
             <a href="#trust" className="hover:text-slate-900">Trust &amp; safety</a>
             <a href="#faq" className="hover:text-slate-900">FAQ</a>
           </div>
@@ -161,9 +161,9 @@ export default function Home() {
                 .
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-600">
-                Trovework is the freelance marketplace where everyone who can contact you is
-                identity-verified — face matched to a real ID. No bots, no scammers, no
-                time-wasters. Just verified people doing real work.
+                Cleaners, carpenters, tutors, drivers, designers — work of every kind. And
+                everyone who can contact you is identity-verified, face matched to a real ID.
+                No bots, no scammers, no time-wasters.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
@@ -189,16 +189,16 @@ export default function Home() {
               <div className="mx-auto w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
                 <div className="flex items-center gap-4">
                   <div className="grid h-14 w-14 place-items-center rounded-full bg-brand-100 text-lg font-bold text-brand-700">
-                    AK
+                    MR
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-900">Aiko K.</span>
+                      <span className="font-semibold text-slate-900">Marisol R.</span>
                       <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white">
                         <Check className="h-3 w-3" />
                       </span>
                     </div>
-                    <p className="text-sm text-slate-500">Brand &amp; UI Designer</p>
+                    <p className="text-sm text-slate-500">Home &amp; Office Cleaner</p>
                   </div>
                 </div>
                 <div className="mt-4 flex items-center gap-1 text-amber-400">
@@ -210,7 +210,7 @@ export default function Home() {
                   <span className="ml-1 text-sm text-slate-500">4.9 · 37 reviews</span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {["Figma", "Branding", "Webflow"].map((s) => (
+                  {["Deep cleaning", "Move-out", "Eco products"].map((s) => (
                     <span key={s} className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
                       {s}
                     </span>
@@ -263,8 +263,52 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Categories — every field of work */}
+        <section id="categories" className="mx-auto max-w-6xl px-6 py-20">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+              Work of every kind
+            </h2>
+            <p className="mt-4 text-lg text-slate-600">
+              Trovework isn&apos;t only for desk work. Whether you clean homes, fix pipes, teach
+              maths or build websites — if people hire you for it, it belongs here.
+            </p>
+          </div>
+
+          <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {[
+              { name: "Cleaning", examples: "Homes, offices, move-outs" },
+              { name: "Home repair", examples: "Carpentry, painting, tiling" },
+              { name: "Plumbing & electrical", examples: "Installs, callouts, fixes" },
+              { name: "Moving & delivery", examples: "Vans, couriers, heavy lifting" },
+              { name: "Gardening", examples: "Lawns, landscaping, trees" },
+              { name: "Care & childcare", examples: "Elder care, nannying, sitting" },
+              { name: "Tutoring", examples: "Languages, exams, music" },
+              { name: "Beauty & wellbeing", examples: "Hair, nails, massage" },
+              { name: "Cooking & catering", examples: "Events, meal prep, chefs" },
+              { name: "Driving", examples: "Chauffeur, airport, logistics" },
+              { name: "Events & trades", examples: "Setup, security, welding" },
+              { name: "Creative & digital", examples: "Design, writing, dev" },
+            ].map((c) => (
+              <div
+                key={c.name}
+                className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-brand-200 hover:bg-brand-50/40"
+              >
+                <p className="font-medium text-slate-900">{c.name}</p>
+                <p className="mt-1 text-sm text-slate-500">{c.examples}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-8 text-center text-sm text-slate-500">
+            Don&apos;t see your trade? Create a profile anyway — categories grow with our
+            freelancers.
+          </p>
+        </section>
+
         {/* How it works */}
-        <section id="how" className="mx-auto max-w-6xl px-6 py-20">
+        <section id="how" className="border-t border-slate-200 bg-white px-6 py-20">
+          <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
               Verification only when it matters
@@ -280,7 +324,7 @@ export default function Home() {
               <h3 className="text-xl font-semibold text-slate-900">For freelancers</h3>
               <ol className="mt-6 space-y-5">
                 {[
-                  ["Build your profile", "Add your headline, skills, rate, resume and portfolio."],
+                  ["Build your profile", "Describe your trade, your rates and your experience."],
                   ["Verify your ID", "Upload your ID and a selfie — our engine confirms it's really you."],
                   ["Get discovered & hired", "You become visible in search and verified clients reach out to you."],
                 ].map(([t, b], i) => (
@@ -316,6 +360,7 @@ export default function Home() {
                   </li>
                 ))}
               </ol>
+            </div>
             </div>
           </div>
         </section>
@@ -357,7 +402,7 @@ export default function Home() {
                 {
                   icon: <Search className="h-6 w-6" />,
                   title: "Search & filters",
-                  body: "Filter by category, skill, price and rating. Only verified freelancers ever appear.",
+                  body: "Filter by trade, skill, price and rating. Only verified freelancers ever appear.",
                 },
                 {
                   icon: <Star className="h-6 w-6" />,
@@ -445,7 +490,7 @@ export default function Home() {
           <div>
             <Logo />
             <p className="mt-3 max-w-xs text-sm text-slate-500">
-              A trust-first global freelance marketplace. Every user is ID-verified.
+              A trust-first global marketplace for work of every kind. Every user is ID-verified.
             </p>
           </div>
           <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-slate-500">
