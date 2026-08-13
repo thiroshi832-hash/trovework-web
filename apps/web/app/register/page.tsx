@@ -52,7 +52,7 @@ export default async function RegisterPage({
           {/* ------------------------- split card ------------------------- */}
           <div className="grid overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 lg:grid-cols-[4.5fr_5.5fr]">
             {/* left — value proposition */}
-            <div className="relative overflow-hidden bg-navy-900 px-20 py-28 sm:px-24 sm:py-32 lg:px-28 lg:py-36 xl:px-32 xl:py-44">
+            <div className="relative flex items-center overflow-hidden bg-navy-900 px-12 py-14 sm:px-14 sm:py-16 lg:px-16 lg:py-20 xl:px-20 xl:py-24">
               {/* Background artwork. Served as a CSS background rather than next/image so the
                   container has no runtime image-optimisation dependency. */}
               <div
@@ -67,7 +67,7 @@ export default async function RegisterPage({
                 className="pointer-events-none absolute inset-0 bg-gradient-to-r from-navy-900/70 via-navy-900/45 to-navy-900/10"
               />
 
-              <div className="relative">
+              <div className="relative w-full">
                 <h1 className="text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
                   Join a trusted global freelance marketplace
                 </h1>
@@ -76,7 +76,7 @@ export default async function RegisterPage({
                   smoothly, and successfully.
                 </p>
 
-                <ul className="mt-9 space-y-6">
+                <ul className="mt-8 space-y-5">
                   {BENEFITS.map((b) => (
                     <li key={b.title} className="flex gap-4">
                       <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/20">
@@ -90,7 +90,7 @@ export default async function RegisterPage({
                   ))}
                 </ul>
 
-                <figure className="mt-10 rounded-xl bg-white/10 p-5 ring-1 ring-white/15">
+                <figure className="mt-8 rounded-xl bg-white/10 p-5 ring-1 ring-white/15">
                   <Quote className="h-5 w-5 text-white/40" />
                   <blockquote className="mt-2 text-base leading-relaxed text-white/90">
                     Trovework helped me find amazing clients and grow my business with confidence.
@@ -108,7 +108,7 @@ export default async function RegisterPage({
 
             {/* right — the form, in its own bordered panel */}
             <div className="flex items-center bg-slate-50/70 p-6 sm:p-7 lg:p-8">
-              <div className="w-full rounded-2xl border border-slate-200 bg-white p-9 shadow-sm sm:p-11">
+              <div className="w-full rounded-2xl border border-slate-200 bg-white p-10 shadow-sm sm:p-12">
                 <h2 className="text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl lg:text-4xl">
                   Create your account
                 </h2>

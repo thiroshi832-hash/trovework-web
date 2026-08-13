@@ -123,7 +123,7 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
   const canSubmit = agreed && complete;
 
   return (
-    <form ref={formRef} noValidate onSubmit={handleSubmit} onChange={handleChange} className="space-y-5">
+    <form ref={formRef} noValidate onSubmit={handleSubmit} onChange={handleChange} className="space-y-4">
       <RoleSelect value={role} onChange={setRole} />
 
       <Field label="Full Name" error={errors.fullName}>
@@ -149,7 +149,7 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
         />
       </Field>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Password" error={errors.password}>
           <PasswordInput
             name="password"
@@ -197,7 +197,7 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
         </SelectInput>
       </Field>
 
-      <div className="grid gap-5 sm:grid-cols-[6fr_4fr]">
+      <div className="grid gap-4 sm:grid-cols-[6fr_4fr]">
         <Field label="State / Province" error={errors.state}>
           {useStateSelect ? (
             <SelectInput
