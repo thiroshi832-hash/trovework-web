@@ -69,10 +69,20 @@ export default async function RegisterPage({
           {/* ------------------------- split card ------------------------- */}
           <div className="grid overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 lg:grid-cols-2">
             {/* left — value proposition */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-brand-700 via-brand-800 to-navy-900 p-9 lg:p-11">
-              <div className="pointer-events-none absolute inset-0 opacity-[0.15] [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:22px_22px]" />
-              <div className="pointer-events-none absolute -right-16 top-10 h-64 w-64 rounded-full border border-white/10" />
-              <div className="pointer-events-none absolute -right-24 top-24 h-72 w-72 rounded-full border border-white/10" />
+            <div className="relative overflow-hidden bg-navy-900 p-9 lg:p-11">
+              {/* Background artwork. Served as a CSS background rather than next/image so the
+                  container has no runtime image-optimisation dependency. */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: "url('/register-panel.webp')" }}
+              />
+              {/* Readability scrim: the artwork's bright glow sits directly behind the copy, so
+                  weight it left where the text is and let the right-hand icons show through. */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-gradient-to-r from-navy-900/70 via-navy-900/45 to-navy-900/10"
+              />
 
               <div className="relative">
                 <h1 className="text-3xl font-bold leading-tight tracking-tight text-white lg:text-4xl">
