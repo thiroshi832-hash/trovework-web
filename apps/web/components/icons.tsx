@@ -171,6 +171,23 @@ export function EyeOff({ className }: IconProps) {
   );
 }
 
+export function MapPin({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path d="M12 21.2s6.4-5.4 6.4-10.4a6.4 6.4 0 1 0-12.8 0c0 5 6.4 10.4 6.4 10.4Z" {...s} />
+      <circle cx="12" cy="10.6" r="2.4" {...s} />
+    </svg>
+  );
+}
+
+export function Hash({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path d="M9.4 4.2 7.6 19.8m8.8-15.6-1.8 15.6M4.6 8.8h15m-16 6.4h15" {...s} />
+    </svg>
+  );
+}
+
 export function Briefcase({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>

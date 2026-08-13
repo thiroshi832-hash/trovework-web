@@ -1,35 +1,42 @@
 "use client";
 
 import { useId, useState, type ReactNode } from "react";
-import { Eye, EyeOff, GoogleMark, AppleMark } from "@/components/icons";
+import { Eye, EyeOff, GoogleMark } from "@/components/icons";
 
 /* ------------------------------- primitives ------------------------------ */
 
 export function Field({
   label,
+  error,
   children,
   className = "",
 }: {
   label: string;
+  error?: string;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <label className={`block ${className}`}>
-      <span className="mb-1.5 block text-sm font-medium text-navy-800">{label}</span>
+      <span className="mb-2 block text-base font-medium text-navy-800">{label}</span>
       {children}
+      {error ? <span className="mt-1.5 block text-sm text-red-600">{error}</span> : null}
     </label>
   );
 }
 
 const inputBase =
-  "w-full rounded-lg border border-slate-200 bg-white py-2.5 text-sm text-navy-800 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100";
+  "w-full rounded-lg border bg-white py-3 text-base text-navy-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400";
+
+const inputValid = "border-slate-200 focus:border-brand-500 focus:ring-brand-100";
+const inputInvalid = "border-red-400 focus:border-red-500 focus:ring-red-100";
 
 export function TextInput({
   icon,
+  invalid,
   className = "",
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & { icon?: ReactNode }) {
+}: React.InputHTMLAttributes<HTMLInputElement> & { icon?: ReactNode; invalid?: boolean }) {
   return (
     <span className="relative block">
       {icon ? (
@@ -37,15 +44,20 @@ export function TextInput({
           {icon}
         </span>
       ) : null}
-      <input {...props} className={`${inputBase} ${icon ? "pl-10" : "pl-3.5"} pr-3.5 ${className}`} />
+      <input
+        {...props}
+        aria-invalid={invalid || undefined}
+        className={`${inputBase} ${invalid ? inputInvalid : inputValid} ${icon ? "pl-10" : "pl-3.5"} pr-3.5 ${className}`}
+      />
     </span>
   );
 }
 
 export function PasswordInput({
   icon,
+  invalid,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & { icon?: ReactNode }) {
+}: React.InputHTMLAttributes<HTMLInputElement> & { icon?: ReactNode; invalid?: boolean }) {
   const [shown, setShown] = useState(false);
   return (
     <span className="relative block">
@@ -57,7 +69,8 @@ export function PasswordInput({
       <input
         {...props}
         type={shown ? "text" : "password"}
-        className={`${inputBase} ${icon ? "pl-10" : "pl-3.5"} pr-10`}
+        aria-invalid={invalid || undefined}
+        className={`${inputBase} ${invalid ? inputInvalid : inputValid} ${icon ? "pl-10" : "pl-3.5"} pr-10`}
       />
       <button
         type="button"
@@ -73,9 +86,10 @@ export function PasswordInput({
 
 export function SelectInput({
   icon,
+  invalid,
   children,
   ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement> & { icon?: ReactNode }) {
+}: React.SelectHTMLAttributes<HTMLSelectElement> & { icon?: ReactNode; invalid?: boolean }) {
   return (
     <span className="relative block">
       {icon ? (
@@ -85,7 +99,8 @@ export function SelectInput({
       ) : null}
       <select
         {...props}
-        className={`${inputBase} appearance-none ${icon ? "pl-10" : "pl-3.5"} pr-9`}
+        aria-invalid={invalid || undefined}
+        className={`${inputBase} ${invalid ? inputInvalid : inputValid} appearance-none ${icon ? "pl-10" : "pl-3.5"} pr-9`}
       >
         {children}
       </select>
@@ -139,7 +154,7 @@ export function RoleSelect({
 
   return (
     <fieldset>
-      <legend className="mb-1.5 text-sm font-medium text-navy-800">I want to join as</legend>
+      <legend className="mb-2 text-base font-medium text-navy-800">I want to join as</legend>
       <div className="grid gap-3 sm:grid-cols-2">
         {options.map((o) => {
           const selected = value === o.role;
@@ -164,8 +179,8 @@ export function RoleSelect({
                 {o.icon}
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-semibold text-navy-800">{o.title}</span>
-                <span className="mt-0.5 block text-xs leading-snug text-slate-500">{o.body}</span>
+                <span className="block text-base font-semibold text-navy-800">{o.title}</span>
+                <span className="mt-0.5 block text-sm leading-snug text-slate-500">{o.body}</span>
               </span>
               {selected ? (
                 <span className="absolute bottom-3 right-3 h-2.5 w-2.5 rounded-full bg-brand-600" />
@@ -180,24 +195,15 @@ export function RoleSelect({
 
 /* ------------------------------ social buttons ---------------------------- */
 
-export function SocialButtons({ stacked = false }: { stacked?: boolean }) {
+export function SocialButtons() {
   return (
-    <div className={`grid gap-3 ${stacked ? "" : "sm:grid-cols-2"}`}>
-      <button
-        type="button"
-        className="flex items-center justify-center gap-2.5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-navy-800 transition hover:bg-slate-50"
-      >
-        <GoogleMark className="h-4.5 w-4.5" />
-        Continue with Google
-      </button>
-      <button
-        type="button"
-        className="flex items-center justify-center gap-2.5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-navy-800 transition hover:bg-slate-50"
-      >
-        <AppleMark className="h-4.5 w-4.5" />
-        Continue with Apple
-      </button>
-    </div>
+    <button
+      type="button"
+      className="flex w-full items-center justify-center gap-2.5 rounded-lg border border-slate-200 bg-white px-4 py-3 text-base font-medium text-navy-800 transition hover:bg-slate-50"
+    >
+      <GoogleMark className="h-4.5 w-4.5" />
+      Continue with Google
+    </button>
   );
 }
 
@@ -205,7 +211,7 @@ export function Divider({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3">
       <span className="h-px flex-1 bg-slate-200" />
-      <span className="text-xs text-slate-400">{label}</span>
+      <span className="text-sm text-slate-400">{label}</span>
       <span className="h-px flex-1 bg-slate-200" />
     </div>
   );
@@ -243,7 +249,7 @@ export function PendingNotice({ children }: { children: ReactNode }) {
   return (
     <p
       role="status"
-      className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs leading-relaxed text-amber-800"
+      className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm leading-relaxed text-amber-800"
     >
       {children}
     </p>
