@@ -1,6 +1,6 @@
 # Trovework — VPS Deployment & CI/CD
 
-Target: **Ubuntu 24.04**, IP `172.86.122.122`, domain `trovework.com` / `www.trovework.com`.
+Target: **Ubuntu 24.04**, IP `172.86.122.212`, domain `trovework.com` / `www.trovework.com`.
 
 > **You run every command in this guide yourself.** All secrets — the VPS password, SSH private
 > keys, GitHub tokens — stay with you. Never paste them into a chat, an issue, or a commit.
@@ -16,7 +16,7 @@ Internet ──443──▶ nginx (host, TLS) ──▶ 127.0.0.1:3000 ──▶
 
 ## Step 0 — Confirm DNS points at the VPS
 
-Run locally. Both must return `172.86.122.122`:
+Run locally. Both must return `172.86.122.212`:
 
 ```bash
 dig +short trovework.com A; dig +short www.trovework.com A
@@ -27,8 +27,8 @@ without working DNS.** Propagation can take up to an hour.
 
 | Type | Name | Value |
 |---|---|---|
-| A | `@` | `172.86.122.122` |
-| A | `www` | `172.86.122.122` |
+| A | `@` | `172.86.122.212` |
+| A | `www` | `172.86.122.212` |
 
 ---
 
@@ -37,7 +37,7 @@ without working DNS.** Propagation can take up to an hour.
 SSH in as root once:
 
 ```bash
-ssh root@172.86.122.122
+ssh root@172.86.122.212
 ```
 
 Then, on the VPS:
@@ -64,17 +64,27 @@ here: the `deploy` account was created with `--disabled-password`, so there is n
 authenticate with. Install the key through `root` instead — run this from your local machine:
 
 ```bash
-ssh root@172.86.122.122 "mkdir -p /home/deploy/.ssh && chmod 700 /home/deploy/.ssh && cat >> /home/deploy/.ssh/authorized_keys && chmod 600 /home/deploy/.ssh/authorized_keys && chown -R deploy:deploy /home/deploy/.ssh" < ~/.ssh/trovework_deploy.pub
+ssh root@172.86.122.212 "mkdir -p /home/deploy/.ssh && chmod 700 /home/deploy/.ssh && cat >> /home/deploy/.ssh/authorized_keys && chmod 600 /home/deploy/.ssh/authorized_keys && chown -R deploy:deploy /home/deploy/.ssh" < ~/.ssh/trovework_deploy.pub
 ```
 
 Verify key-only login works **before** locking passwords out in Step 3:
 
 ```bash
-ssh -i ~/.ssh/trovework_deploy deploy@172.86.122.122 "echo OK"
+ssh -i ~/.ssh/trovework_deploy deploy@172.86.122.212 "echo OK"
 ```
 
 If that prints `OK`, continue. If it prompts for a password, the key is not installed — the
 prompt can never succeed, so re-run the install command above rather than guessing a password.
+
+> **On Windows `cmd.exe`**, `~` is not expanded and the commands above fail with
+> *"The system cannot find the path specified."* Use `%USERPROFILE%\.ssh\...` instead, or run them
+> from Git Bash / PowerShell where `~` works:
+>
+> ```
+> ssh-keygen -t ed25519 -C "github-actions-trovework" -f %USERPROFILE%\.ssh\trovework_deploy -N ""
+> ssh root@172.86.122.212 "mkdir -p /home/deploy/.ssh && chmod 700 /home/deploy/.ssh && cat >> /home/deploy/.ssh/authorized_keys && chmod 600 /home/deploy/.ssh/authorized_keys && chown -R deploy:deploy /home/deploy/.ssh" < %USERPROFILE%\.ssh\trovework_deploy.pub
+> ssh -i %USERPROFILE%\.ssh\trovework_deploy deploy@172.86.122.212 "echo OK"
+> ```
 
 ---
 
@@ -226,7 +236,7 @@ In the repo: **Settings → Secrets and variables → Actions → New repository
 
 | Secret | Value |
 |---|---|
-| `VPS_HOST` | `172.86.122.122` |
+| `VPS_HOST` | `172.86.122.212` |
 | `VPS_USER` | `deploy` |
 | `VPS_SSH_KEY` | Contents of `~/.ssh/trovework_deploy` — the **private** key |
 | `VPS_PORT` | `22` (optional) |

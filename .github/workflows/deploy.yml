@@ -2,7 +2,7 @@ name: Deploy
 
 # Deploys to the VPS on every push to master, once CI has passed.
 # Requires these repository secrets (Settings -> Secrets and variables -> Actions):
-#   VPS_HOST     e.g. 172.86.122.122
+#   VPS_HOST     e.g. 172.86.122.212
 #   VPS_USER     the deploy user (NOT root)
 #   VPS_SSH_KEY  the PRIVATE half of the deploy keypair
 #   VPS_PORT     optional, defaults to 22
