@@ -17,7 +17,7 @@ import {
 } from "@/components/auth-fields";
 import { Globe, Lock, Mail, UserIcon } from "@/components/icons";
 
-export function SignupForm({ defaultRole = "client" }: { defaultRole?: Role }) {
+export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role }) {
   const [role, setRole] = useState<Role>(defaultRole);
   const [submitted, setSubmitted] = useState(false);
 

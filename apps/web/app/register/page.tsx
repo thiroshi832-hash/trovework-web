@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Avatar } from "@/components/brand";
-import { SignupForm } from "@/components/signup-form";
+import { RegisterForm } from "@/components/register-form";
 import { SiteHeader } from "@/components/site-header";
 import { SlimFooter } from "@/components/site-footer";
 import {
@@ -52,7 +52,7 @@ const SAFETY = [
   { icon: <Headset className="h-5 w-5" />, title: "24/7 support", body: "Our team is here to help you anytime." },
 ];
 
-export default async function SignupPage({
+export default async function RegisterPage({
   searchParams,
 }: {
   searchParams: Promise<{ role?: string }>;
@@ -62,7 +62,7 @@ export default async function SignupPage({
 
   return (
     <div className="flex min-h-full flex-col bg-slate-50/60">
-      <SiteHeader variant="signup" tagline navItems={3} />
+      <SiteHeader variant="register" tagline navItems={3} />
 
       <main className="flex-1">
         <div className="mx-auto max-w-7xl px-6 py-8">
@@ -123,7 +123,7 @@ export default async function SignupPage({
                   Join thousands of professionals and businesses building great things together.
                 </p>
                 <div className="mt-6">
-                  <SignupForm defaultRole={defaultRole} />
+                  <RegisterForm defaultRole={defaultRole} />
                 </div>
               </div>
             </div>

@@ -13,7 +13,7 @@ const NAV = [
 /**
  * `variant` controls the right-hand actions:
  *  - "default" — language, Log in, Sign up (landing)
- *  - "signup"  — Log in only (shown on the sign-up page)
+ *  - "register" — Log in only (shown on the register page)
  *  - "login"   — Sign up only (shown on the log-in page)
  */
 export function SiteHeader({
@@ -21,7 +21,7 @@ export function SiteHeader({
   tagline = false,
   navItems = 5,
 }: {
-  variant?: "default" | "signup" | "login";
+  variant?: "default" | "register" | "login";
   tagline?: boolean;
   navItems?: number;
 }) {
@@ -46,7 +46,7 @@ export function SiteHeader({
         </div>
 
         <div className="flex items-center gap-3">
-          {variant !== "signup" ? (
+          {variant !== "register" ? (
             <button type="button" className="hidden items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-navy-800 md:flex">
               <Globe className="h-4 w-4" />
               English
@@ -56,12 +56,12 @@ export function SiteHeader({
 
           {variant === "login" ? (
             <Link
-              href="/signup"
+              href="/register"
               className="rounded-lg border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-600 transition hover:bg-brand-50"
             >
               Sign up
             </Link>
-          ) : variant === "signup" ? (
+          ) : variant === "register" ? (
             <Link href="/login" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
               Log in
             </Link>
@@ -71,7 +71,7 @@ export function SiteHeader({
                 Log in
               </Link>
               <Link
-                href="/signup"
+                href="/register"
                 className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
               >
                 Sign up

@@ -136,13 +136,13 @@ export default function Home() {
 
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  href="/signup?role=client"
+                  href="/register?role=client"
                   className="rounded-lg bg-brand-600 px-7 py-3 text-center text-sm font-semibold text-white transition hover:bg-brand-700"
                 >
                   I&apos;m a Client
                 </Link>
                 <Link
-                  href="/signup?role=freelancer"
+                  href="/register?role=freelancer"
                   className="rounded-lg bg-white px-7 py-3 text-center text-sm font-semibold text-brand-600 ring-1 ring-brand-200 transition hover:bg-brand-50"
                 >
                   I&apos;m a Freelancer
@@ -378,13 +378,13 @@ export default function Home() {
               </p>
               <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link
-                  href="/signup?role=client"
+                  href="/register?role=client"
                   className="rounded-lg bg-white px-7 py-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50"
                 >
                   I&apos;m a Client
                 </Link>
                 <Link
-                  href="/signup?role=freelancer"
+                  href="/register?role=freelancer"
                   className="rounded-lg bg-brand-700 px-7 py-3 text-sm font-semibold text-white ring-1 ring-white/30 transition hover:bg-brand-800"
                 >
                   I&apos;m a Freelancer
