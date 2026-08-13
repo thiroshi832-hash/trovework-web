@@ -518,13 +518,13 @@ export default function Home() {
               <ChevronDown className="h-3.5 w-3.5" />
             </button>
             <Link href="/login" className="hidden text-sm font-medium text-slate-600 hover:text-navy-800 sm:block">
-              Log in
+              Login
             </Link>
             <Link
               href="/register"
               className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
             >
-              Sign up
+              Register
             </Link>
           </div>
         </nav>
