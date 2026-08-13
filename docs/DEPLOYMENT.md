@@ -76,15 +76,37 @@ ssh -i ~/.ssh/trovework_deploy deploy@172.86.122.212 "echo OK"
 If that prints `OK`, continue. If it prompts for a password, the key is not installed — the
 prompt can never succeed, so re-run the install command above rather than guessing a password.
 
-> **On Windows `cmd.exe`**, `~` is not expanded and the commands above fail with
-> *"The system cannot find the path specified."* Use `%USERPROFILE%\.ssh\...` instead, or run them
-> from Git Bash / PowerShell where `~` works:
->
-> ```
-> ssh-keygen -t ed25519 -C "github-actions-trovework" -f %USERPROFILE%\.ssh\trovework_deploy -N ""
-> ssh root@172.86.122.212 "mkdir -p /home/deploy/.ssh && chmod 700 /home/deploy/.ssh && cat >> /home/deploy/.ssh/authorized_keys && chmod 600 /home/deploy/.ssh/authorized_keys && chown -R deploy:deploy /home/deploy/.ssh" < %USERPROFILE%\.ssh\trovework_deploy.pub
-> ssh -i %USERPROFILE%\.ssh\trovework_deploy deploy@172.86.122.212 "echo OK"
-> ```
+### Windows: use absolute paths
+
+Home-directory shorthand differs per shell, and mixing them up produces confusing
+*"No such file or directory"* errors **before** SSH ever connects:
+
+| Shell | Home shorthand | `~` works? |
+|---|---|---|
+| Git Bash | `~` | yes |
+| cmd.exe | `%USERPROFILE%` | no |
+| PowerShell | `$env:USERPROFILE` | yes |
+
+The reliable fix is to skip shorthand entirely and use an absolute path, which works everywhere:
+
+```
+ssh-keygen -t ed25519 -C "github-actions-trovework" -f C:\Users\<you>\.ssh\trovework_deploy -N ""
+ssh -i C:\Users\<you>\.ssh\trovework_deploy deploy@172.86.122.212 "echo OK"
+```
+
+To install the public key, avoid the `<` redirect too — embed the key inline so no shell has to
+resolve a path. Get the key text with `ssh-keygen -y -f <path-to-private-key>`, then:
+
+```
+ssh root@172.86.122.212 "mkdir -p /home/deploy/.ssh && chmod 700 /home/deploy/.ssh && echo 'ssh-ed25519 AAAA...your-key... github-actions-trovework' >> /home/deploy/.ssh/authorized_keys && chmod 600 /home/deploy/.ssh/authorized_keys && chown -R deploy:deploy /home/deploy/.ssh"
+```
+
+On Windows the private key also needs its ACL restricted, or OpenSSH refuses to use it:
+
+```
+icacls C:\Users\<you>\.ssh\trovework_deploy /inheritance:r
+icacls C:\Users\<you>\.ssh\trovework_deploy /grant:r "%USERNAME%:(R)"
+```
 
 ---
 
