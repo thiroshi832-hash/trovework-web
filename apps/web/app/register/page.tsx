@@ -1,0 +1,133 @@
+import type { Metadata } from "next";
+import { Avatar } from "@/components/brand";
+import { RegisterForm } from "@/components/register-form";
+import { SiteHeader } from "@/components/site-header";
+import { SlimFooter } from "@/components/site-footer";
+import {
+  ChatBubble,
+  Gift,
+  Quote,
+  ShieldCheck,
+} from "@/components/icons";
+import type { Role } from "@/components/auth-fields";
+
+export const metadata: Metadata = {
+  title: "Create your account — Trovework",
+  description:
+    "Join Trovework, the trust-first freelance marketplace where every user is ID-verified. Free to join, for work of every kind.",
+};
+
+const BENEFITS = [
+  {
+    icon: <ShieldCheck className="h-5 w-5" />,
+    title: "Verified community",
+    body: "Every user is verified to build a safer, more trustworthy marketplace.",
+  },
+  {
+    icon: <ChatBubble className="h-5 w-5" />,
+    title: "Safe communication",
+    body: "Message, share files and collaborate securely within Trovework.",
+  },
+  {
+    icon: <Gift className="h-5 w-5" />,
+    title: "Free to use",
+    body: "Create your account and explore opportunities at no cost.",
+  },
+];
+
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ role?: string }>;
+}) {
+  const { role } = await searchParams;
+  const defaultRole: Role = role === "freelancer" ? "freelancer" : "client";
+
+  return (
+    <div className="flex min-h-full flex-col bg-slate-50/60">
+      <SiteHeader variant="register" tagline navItems={3} />
+
+      <main className="flex-1">
+        <div className="mx-auto max-w-7xl px-6 py-8">
+          {/* ------------------------- split card ------------------------- */}
+          <div className="grid overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 lg:grid-cols-[4.5fr_5.5fr]">
+            {/* left — value proposition */}
+            <div className="relative overflow-hidden bg-navy-900 px-20 py-28 sm:px-24 sm:py-32 lg:px-28 lg:py-36 xl:px-32 xl:py-44">
+              {/* Background artwork. Served as a CSS background rather than next/image so the
+                  container has no runtime image-optimisation dependency. */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-cover bg-right"
+                style={{ backgroundImage: "url('/register-panel.webp')" }}
+              />
+              {/* Readability scrim: the artwork's bright glow sits directly behind the copy, so
+                  weight it left where the text is and let the right-hand icons show through. */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-gradient-to-r from-navy-900/70 via-navy-900/45 to-navy-900/10"
+              />
+
+              <div className="relative">
+                <h1 className="text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
+                  Join a trusted global freelance marketplace
+                </h1>
+                <p className="mt-5 max-w-md text-base leading-relaxed text-brand-100 lg:text-lg">
+                  Trovework connects verified clients and freelancers to get work done — safely,
+                  smoothly, and successfully.
+                </p>
+
+                <ul className="mt-9 space-y-6">
+                  {BENEFITS.map((b) => (
+                    <li key={b.title} className="flex gap-4">
+                      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/20">
+                        {b.icon}
+                      </span>
+                      <div>
+                        <h2 className="text-base font-semibold text-white">{b.title}</h2>
+                        <p className="mt-1 max-w-sm text-sm leading-relaxed text-brand-100">{b.body}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                <figure className="mt-10 rounded-xl bg-white/10 p-5 ring-1 ring-white/15">
+                  <Quote className="h-5 w-5 text-white/40" />
+                  <blockquote className="mt-2 text-base leading-relaxed text-white/90">
+                    Trovework helped me find amazing clients and grow my business with confidence.
+                  </blockquote>
+                  <figcaption className="mt-4 flex items-center gap-3">
+                    <Avatar initials="AR" className="h-9 w-9 text-[11px] ring-2 ring-white/20" />
+                    <div>
+                      <p className="text-base font-semibold text-white">Ahmed R.</p>
+                      <p className="text-sm text-brand-100">Freelance Web Developer</p>
+                    </div>
+                  </figcaption>
+                </figure>
+              </div>
+            </div>
+
+            {/* right — the form, in its own bordered panel */}
+            <div className="bg-slate-50/70 p-6 sm:p-7 lg:p-8">
+              <div className="w-full rounded-2xl border border-slate-200 bg-white p-9 shadow-sm sm:p-11">
+                <h2 className="text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl lg:text-4xl">
+                  Create your account
+                </h2>
+                <p className="mt-3 text-base leading-relaxed text-slate-500 lg:text-lg">
+                  Join thousands of professionals and businesses
+                  <br />
+                  building great things together.
+                </p>
+                <div className="mt-6">
+                  <RegisterForm defaultRole={defaultRole} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+
+      <SlimFooter />
+    </div>
+  );
+}

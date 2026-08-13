@@ -521,7 +521,7 @@ export default function Home() {
               Log in
             </Link>
             <Link
-              href="/signup"
+              href="/register"
               className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
             >
               Sign up
@@ -590,13 +590,13 @@ export default function Home() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  href="/signup?role=client"
+                  href="/register?role=client"
                   className="rounded-lg bg-brand-600 px-8 py-3 text-center text-sm font-semibold text-white transition hover:bg-brand-700"
                 >
                   I&apos;m a Client
                 </Link>
                 <Link
-                  href="/signup?role=freelancer"
+                  href="/register?role=freelancer"
                   className="rounded-lg bg-white px-8 py-3 text-center text-sm font-semibold text-brand-600 ring-1 ring-brand-300 transition hover:bg-brand-50"
                 >
                   I&apos;m a Freelancer
@@ -797,13 +797,13 @@ export default function Home() {
               </p>
               <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link
-                  href="/signup?role=client"
+                  href="/register?role=client"
                   className="rounded-lg bg-white px-8 py-3 text-sm font-semibold text-brand-600 transition hover:bg-brand-50"
                 >
                   I&apos;m a Client
                 </Link>
                 <Link
-                  href="/signup?role=freelancer"
+                  href="/register?role=freelancer"
                   className="rounded-lg px-8 py-3 text-sm font-semibold text-white ring-1 ring-white/60 transition hover:bg-white/10"
                 >
                   I&apos;m a Freelancer
