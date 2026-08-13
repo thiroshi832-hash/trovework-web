@@ -10,7 +10,7 @@ import {
   SocialButtons,
   TextInput,
 } from "@/components/auth-fields";
-import { Lock, Mail } from "@/components/icons";
+import { Lock, Mail, ShieldCheck } from "@/components/icons";
 
 type FieldName = "email" | "password";
 type Errors = Partial<Record<FieldName, string>>;
@@ -96,6 +96,15 @@ export function LoginForm() {
       <Divider label="or continue with" />
       <SocialButtons />
 
+      <div className="flex gap-3 rounded-lg bg-slate-50 p-3.5">
+        <ShieldCheck className="h-5 w-5 shrink-0 text-brand-600" />
+        <div>
+          <p className="text-base font-semibold text-navy-800">Secure login</p>
+          <p className="mt-0.5 text-sm leading-relaxed text-slate-500">
+            We use industry-standard encryption to keep your account safe.
+          </p>
+        </div>
+      </div>
     </form>
   );
 }

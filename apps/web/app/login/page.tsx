@@ -16,7 +16,7 @@ const BENEFITS = [
   {
     icon: <ShieldCheck className="h-5 w-5" />,
     title: "Trust first",
-    body: "Every user is ID-verified so you can collaborate safely.",
+    body: "Every user is verified so you can collaborate safely.",
   },
   {
     icon: <ChatBubble className="h-5 w-5" />,
