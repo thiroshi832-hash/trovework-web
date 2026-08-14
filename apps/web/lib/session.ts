@@ -18,10 +18,14 @@ export const CURRENT_CLIENT = {
   idVerified: false,
 };
 
-/** Verification state of the signed-in freelancer. */
+/**
+ * Verification state of the signed-in freelancer. idVerified is read off the
+ * profile record rather than repeated here — otherwise the dashboard could say
+ * "hidden" while the browse page lists them.
+ */
 export const FREELANCER_VERIFICATION = {
   phoneVerified: true,
-  idVerified: false,
+  idVerified: CURRENT_FREELANCER.idVerified,
   /** users.strike_count — three blocks the account (FR-M-4). */
   strikes: 1,
 };

@@ -11,10 +11,10 @@ import {
   MapPin,
   Star,
 } from "@/components/icons";
-import { FREELANCERS, freelancerBySlug, memberSince } from "@/lib/freelancers";
+import { VISIBLE_FREELANCERS, freelancerBySlug, memberSince } from "@/lib/freelancers";
 
 export function generateStaticParams() {
-  return FREELANCERS.map((f) => ({ slug: f.slug }));
+  return VISIBLE_FREELANCERS.map((f) => ({ slug: f.slug }));
 }
 
 export async function generateMetadata({
@@ -24,7 +24,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const f = freelancerBySlug(slug);
-  if (!f) return { title: "Freelancer not found — Trovework" };
+  if (!f || !f.idVerified) return { title: "Freelancer not found — Trovework" };
   return {
     title: `${f.name} — ${f.title} | Trovework`,
     description: f.blurb,
@@ -69,7 +69,9 @@ export default async function FreelancerProfile({
 }) {
   const { slug } = await params;
   const f = freelancerBySlug(slug);
-  if (!f) notFound();
+  // FR-P-3: an unverified freelancer is hidden from clients entirely, so the
+  // public profile must not exist either — not merely drop its verified tick.
+  if (!f || !f.idVerified) notFound();
 
   return (
     <div className="flex flex-1 flex-col bg-slate-50/60">
@@ -98,18 +100,24 @@ export default async function FreelancerProfile({
                     <div>
                       <div className="flex items-center gap-2">
                         <h1 className="text-2xl font-bold text-white sm:text-3xl">{f.name}</h1>
-                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-600 text-white">
-                          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" aria-hidden>
-                            <path
-                              d="m5 12.5 4.5 4.5L19 7"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="3"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </span>
+                        {f.idVerified ? (
+                          <span
+                            title="Identity verified"
+                            className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-600 text-white"
+                          >
+                            <span className="sr-only">Identity verified</span>
+                            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" aria-hidden>
+                              <path
+                                d="m5 12.5 4.5 4.5L19 7"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </span>
+                        ) : null}
                       </div>
                       <p className="mt-1.5 text-base text-brand-100">{f.title}</p>
                       <p className="mt-2.5 flex items-center gap-1.5 text-sm text-brand-100">

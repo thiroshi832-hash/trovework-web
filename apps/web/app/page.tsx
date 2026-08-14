@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Portrait } from "@/components/brand";
 import { PEOPLE } from "@/lib/people";
-import { FREELANCERS } from "@/lib/freelancers";
+import { VISIBLE_FREELANCERS as FREELANCERS } from "@/lib/freelancers";
 import type { Category } from "@/lib/categories";
 
 /* ================================ icons ================================= */
@@ -237,7 +237,11 @@ function Stars({ rating, className = "" }: { rating: number; className?: string 
 
 function VerifiedTick({ className = "h-4 w-4" }: { className?: string }) {
   return (
-    <span className={`grid shrink-0 place-items-center rounded-full bg-brand-600 text-white ${className}`}>
+    <span
+      title="Identity verified"
+      className={`grid shrink-0 place-items-center rounded-full bg-brand-600 text-white ${className}`}
+    >
+      <span className="sr-only">Identity verified</span>
       <Check className="h-[60%] w-[60%]" />
     </span>
   );
@@ -629,7 +633,7 @@ export default function Home() {
                 <Portrait src={f.photo} className="mx-auto h-28 w-28" sizes="112px" />
                 <div className="mt-4 flex items-center justify-center gap-1.5">
                   <h3 className="font-semibold text-navy-800">{f.name}</h3>
-                  <VerifiedTick />
+                  {f.idVerified ? <VerifiedTick /> : null}
                 </div>
                 <p className="mt-1 text-xs text-slate-500">{f.title}</p>
                 <div className="mt-2.5 flex items-center justify-center gap-1.5">

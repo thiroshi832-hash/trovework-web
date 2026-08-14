@@ -5,7 +5,7 @@ import { useMemo, useRef, useState } from "react";
 import { Portrait } from "@/components/brand";
 import { ChevronDown, Search, Star } from "@/components/icons";
 import { AVAILABILITY, CATEGORIES, CATEGORIES_COLLAPSED } from "@/lib/categories";
-import { FREELANCERS } from "@/lib/freelancers";
+import { VISIBLE_FREELANCERS as FREELANCERS } from "@/lib/freelancers";
 
 const ALL = "All Categories";
 const ANY_AVAILABILITY = "Anytime";
@@ -343,18 +343,24 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="text-lg font-bold text-navy-800">{f.name}</h3>
-                          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-600 text-white">
-                            <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden>
-                              <path
-                                d="m5 12.5 4.5 4.5L19 7"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </span>
+                          {f.idVerified ? (
+                            <span
+                              title="Identity verified"
+                              className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-600 text-white"
+                            >
+                              <span className="sr-only">Identity verified</span>
+                              <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden>
+                                <path
+                                  d="m5 12.5 4.5 4.5L19 7"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="3"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </span>
+                          ) : null}
                         </div>
                         <p className="mt-1 text-sm text-slate-500">{f.title}</p>
                       </div>
