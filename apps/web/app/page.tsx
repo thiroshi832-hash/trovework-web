@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Portrait } from "@/components/brand";
 import { PEOPLE } from "@/lib/people";
+import { FREELANCERS } from "@/lib/freelancers";
 
 /* ================================ icons ================================= */
 
@@ -299,13 +300,6 @@ const STATS = [
   { icon: <StarOutline className="h-7 w-7" />, value: "98%", label: "Positive Reviews" },
 ];
 
-const FREELANCERS = [
-  { photo: "/avatars/alex-morgan.jpg", name: "Alex Morgan", title: "Full Stack Developer", rating: 5.0, reviews: 22, skills: ["React", "Node.js", "TypeScript"], rate: "$40" },
-  { photo: "/avatars/sofia-martinez.jpg", name: "Sofia Martinez", title: "UI/UX Designer", rating: 4.9, reviews: 18, skills: ["Figma", "UI Design", "UX Research"], rate: "$30" },
-  { photo: "/avatars/daniel-kim.jpg", name: "Daniel Kim", title: "Content Writer", rating: 4.8, reviews: 17, skills: ["Writing", "SEO", "Blog Writing"], rate: "$20" },
-  { photo: "/avatars/olivia-brown.jpg", name: "Olivia Brown", title: "Video Editor", rating: 4.9, reviews: 21, skills: ["Premiere Pro", "After Effects", "DaVinci Resolve"], rate: "$25" },
-  { photo: "/avatars/arjun-patel.jpg", name: "Arjun Patel", title: "Digital Marketer", rating: 4.8, reviews: 25, skills: ["SEO", "Google Ads", "Analytics"], rate: "$35" },
-];
 
 /* the overlapping faces in the hero's social-proof row */
 const COMMUNITY = [1, 2, 3, 4, 5].map((n) => `/avatars/community-${n}.jpg`);
@@ -617,7 +611,7 @@ export default function Home() {
           <SectionHeading title="Featured Freelancers" action="View all freelancers" href="/search" />
           <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {FREELANCERS.map((f) => (
-              <article key={f.name} className={`relative p-6 text-center transition hover:shadow-md ${CARD}`}>
+              <article key={f.slug} className={`relative p-6 text-center transition hover:shadow-md ${CARD}`}>
                 <span className="absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-md bg-brand-50 text-brand-600">
                   <Check className="h-3 w-3" />
                 </span>
@@ -641,7 +635,7 @@ export default function Home() {
                   ))}
                 </div>
                 <p className="mt-5 text-left text-lg font-bold text-navy-800">
-                  {f.rate}
+                  ${f.rate}
                   <span className="text-xs font-medium text-slate-400"> /hr</span>
                 </p>
               </article>
