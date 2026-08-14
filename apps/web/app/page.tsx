@@ -1,5 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Portrait } from "@/components/brand";
+import { PEOPLE } from "@/lib/people";
 
 /* ================================ icons ================================= */
 
@@ -221,23 +223,6 @@ function Dots({ className }: IconProps) {
 
 /* ============================== primitives ============================== */
 
-/* Portraits are decorative — the person's name always sits beside them as text. */
-function Portrait({
-  src,
-  className = "",
-  sizes = "96px",
-}: {
-  src: string;
-  className?: string;
-  sizes?: string;
-}) {
-  return (
-    <span className={`relative block shrink-0 overflow-hidden rounded-full bg-slate-100 ${className}`}>
-      <Image src={src} alt="" fill sizes={sizes} className="object-cover" />
-    </span>
-  );
-}
-
 function Stars({ rating, className = "" }: { rating: number; className?: string }) {
   return (
     <span className={`flex items-center gap-0.5 text-amber-400 ${className}`} aria-label={`${rating} out of 5`}>
@@ -326,9 +311,9 @@ const FREELANCERS = [
 const COMMUNITY = [1, 2, 3, 4, 5].map((n) => `/avatars/community-${n}.jpg`);
 
 const TESTIMONIALS = [
-  { quote: "Trovework made it easy to find amazing talent I can trust. The verification gives me peace of mind.", photo: "/avatars/sarah-j.jpg", name: "Sarah J.", role: "Marketing Manager" },
-  { quote: "As a freelancer, I love working with serious clients here. The platform is clean, safe, and easy to use.", photo: "/avatars/michael-t.jpg", name: "Michael T.", role: "Full Stack Developer" },
-  { quote: "I found a long-term designer within days. Communication is smooth and everything just works.", photo: "/avatars/jessica-l.jpg", name: "Jessica L.", role: "Startup Founder" },
+  { ...PEOPLE.sarah, quote: "Trovework made it easy to find amazing talent I can trust. The verification gives me peace of mind." },
+  { ...PEOPLE.michael, quote: "As a freelancer, I love working with serious clients here. The platform is clean, safe, and easy to use." },
+  { ...PEOPLE.jessica, quote: "I found a long-term designer within days. Communication is smooth and everything just works." },
 ];
 
 const POSTS = [

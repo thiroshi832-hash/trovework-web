@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Avatar } from "@/components/brand";
+import { Portrait } from "@/components/brand";
+import { PEOPLE } from "@/lib/people";
 import { LoginForm } from "@/components/login-form";
 import { ChatBubble, Globe, Lock, Quote, ShieldCheck } from "@/components/icons";
 
@@ -86,10 +87,10 @@ export default function LoginPage() {
                     mind.
                   </blockquote>
                   <figcaption className="mt-4 flex items-center gap-3">
-                    <Avatar initials="SJ" className="h-9 w-9 text-[11px] ring-2 ring-white/20" />
+                    <Portrait src={PEOPLE.sarah.photo} sizes="36px" className="h-9 w-9 ring-2 ring-white/20" />
                     <div>
-                      <p className="text-base font-semibold text-white">Sarah J.</p>
-                      <p className="text-sm text-brand-100">Marketing Manager</p>
+                      <p className="text-base font-semibold text-white">{PEOPLE.sarah.name}</p>
+                      <p className="text-sm text-brand-100">{PEOPLE.sarah.role}</p>
                     </div>
                   </figcaption>
                 </figure>

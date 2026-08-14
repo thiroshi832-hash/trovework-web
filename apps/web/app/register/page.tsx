@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Avatar } from "@/components/brand";
+import { Portrait } from "@/components/brand";
+import { PEOPLE } from "@/lib/people";
 import { RegisterForm } from "@/components/register-form";
 import {
   ChatBubble,
@@ -92,10 +93,10 @@ export default async function RegisterPage({
                     Trovework helped me find amazing clients and grow my business with confidence.
                   </blockquote>
                   <figcaption className="mt-4 flex items-center gap-3">
-                    <Avatar initials="AR" className="h-9 w-9 text-[11px] ring-2 ring-white/20" />
+                    <Portrait src={PEOPLE.ahmed.photo} sizes="36px" className="h-9 w-9 ring-2 ring-white/20" />
                     <div>
-                      <p className="text-base font-semibold text-white">Ahmed R.</p>
-                      <p className="text-sm text-brand-100">Freelance Web Developer</p>
+                      <p className="text-base font-semibold text-white">{PEOPLE.ahmed.name}</p>
+                      <p className="text-sm text-brand-100">{PEOPLE.ahmed.role}</p>
                     </div>
                   </figcaption>
                 </figure>
