@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Portrait } from "@/components/brand";
 import { PEOPLE } from "@/lib/people";
 import { VISIBLE_FREELANCERS as FREELANCERS } from "@/lib/freelancers";
-import type { Category } from "@/lib/categories";
+import { CATEGORIES as ALL_CATEGORIES, type Category } from "@/lib/categories";
 
 /* ================================ icons ================================= */
 
@@ -69,37 +69,11 @@ function Star({ className }: IconProps) {
   );
 }
 
-function StarOutline({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="M12 3.6l2.5 5.1 5.6.8-4.1 4 1 5.6-5-2.6-5 2.6 1-5.6-4.1-4 5.6-.8L12 3.6Z" {...stroke} />
-    </svg>
-  );
-}
-
 function Globe({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
       <circle cx="12" cy="12" r="8.2" {...stroke} />
       <path d="M3.8 12h16.4M12 3.8c2.1 2.2 3.2 5.1 3.2 8.2S14.1 18 12 20.2C9.9 18 8.8 15.1 8.8 12S9.9 6 12 3.8Z" {...stroke} />
-    </svg>
-  );
-}
-
-function Users({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <circle cx="9" cy="8.4" r="3.2" {...stroke} />
-      <path d="M3.4 19.2a5.8 5.8 0 0 1 11.2 0M16.2 5.6a3.1 3.1 0 0 1 0 5.7M17.6 19.2a5.6 5.6 0 0 0-1.9-4" {...stroke} />
-    </svg>
-  );
-}
-
-function Building({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <rect x="5" y="4" width="9.5" height="16" rx="1.4" {...stroke} />
-      <path d="M14.5 9.5H19v10.5M8 8h3.5M8 11.5h3.5M8 15h3.5" {...stroke} />
     </svg>
   );
 }
@@ -299,13 +273,18 @@ const STEPS = [
   { title: "Connect & work", body: "Find the right person, start a chat, and get work done." },
 ];
 
+/*
+ * Claims that are true on day one. The comp carried headline user counts
+ * ("15K+ Verified Freelancers", "98% Positive Reviews") which would be false at
+ * launch, so these state what the product guarantees instead of how many people
+ * have signed up. The category count is derived, so it cannot drift.
+ */
 const STATS = [
-  { icon: <Users className="h-7 w-7" />, value: "15K+", label: "Verified Freelancers" },
-  { icon: <Building className="h-7 w-7" />, value: "8K+", label: "Happy Clients" },
-  { icon: <Globe className="h-7 w-7" />, value: "120+", label: "Countries" },
-  { icon: <StarOutline className="h-7 w-7" />, value: "98%", label: "Positive Reviews" },
+  { icon: <ShieldCheck className="h-7 w-7" />, value: "100%", label: "ID-verified members" },
+  { icon: <Gift className="h-7 w-7" />, value: "0%", label: "Commission or fees" },
+  { icon: <Briefcase className="h-7 w-7" />, value: `${ALL_CATEGORIES.length}`, label: "Fields of work" },
+  { icon: <Globe className="h-7 w-7" />, value: "Global", label: "Clients and freelancers" },
 ];
-
 
 /* the overlapping faces in the hero's social-proof row */
 const COMMUNITY = [1, 2, 3, 4, 5].map((n) => `/avatars/community-${n}.jpg`);

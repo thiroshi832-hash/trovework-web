@@ -87,6 +87,17 @@ export function SiteFooter({ newsletter = false }: { newsletter?: boolean }) {
         </div>
       </div>
 
+      {/* Required by the build spec (§10): v1 handles no money, and users must
+          be told plainly rather than left to assume the platform protects it. */}
+      <div className="border-t border-white/10">
+        <div className="mx-auto max-w-7xl px-6 py-5">
+          <p className="text-xs leading-relaxed text-slate-400">
+            Trovework verifies identity. It does not handle, hold or guarantee payment — you arrange
+            that directly with the other person.
+          </p>
+        </div>
+      </div>
+
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 Trovework. All rights reserved.</p>
