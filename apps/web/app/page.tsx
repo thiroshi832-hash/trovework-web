@@ -549,7 +549,7 @@ export default function Home() {
             {CATEGORIES.map((c) => (
               <Link
                 key={c.name}
-                href="/search"
+                href="/freelancers"
                 className={`group flex flex-col items-center gap-3.5 px-3 py-7 text-center transition hover:-translate-y-0.5 hover:ring-brand-200 ${CARD}`}
               >
                 <span className={c.muted ? "text-brand-400" : "text-brand-600"}>{c.icon}</span>
@@ -608,7 +608,7 @@ export default function Home() {
 
         {/* ------------------------ featured freelancers -------------------- */}
         <section className="mx-auto max-w-7xl px-6 py-10">
-          <SectionHeading title="Featured Freelancers" action="View all freelancers" href="/search" />
+          <SectionHeading title="Featured Freelancers" action="View all freelancers" href="/freelancers" />
           <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {FREELANCERS.map((f) => (
               <article key={f.slug} className={`relative p-6 text-center transition hover:shadow-md ${CARD}`}>

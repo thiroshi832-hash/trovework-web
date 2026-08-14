@@ -84,7 +84,7 @@ export default async function FreelancerProfile({
               />
               <div className="relative">
                 <Link
-                  href="/search"
+                  href="/freelancers"
                   className="inline-flex items-center gap-1.5 text-sm text-brand-100 transition hover:text-white"
                 >
                   <ArrowLeft className="h-4 w-4" />
