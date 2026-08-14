@@ -7,14 +7,13 @@ import { Field, PendingNotice, SelectInput, TextInput } from "@/components/auth-
 import { Check, ShieldCheck } from "@/components/icons";
 import { AVAILABILITY, CATEGORIES } from "@/lib/categories";
 import { COUNTRIES } from "@/components/auth-fields";
-import { FREELANCERS } from "@/lib/freelancers";
+import { CURRENT_FREELANCER } from "@/lib/session";
 
 const BIO_MAX = 600;
 const HEADLINE_MAX = 70;
 const SKILL_MAX = 12;
 
-/* Stands in for the signed-in freelancer until the accounts API exists. */
-const ME = FREELANCERS[0];
+const ME = CURRENT_FREELANCER;
 
 type Errors = Partial<Record<"name" | "headline" | "rate" | "bio", string>>;
 
