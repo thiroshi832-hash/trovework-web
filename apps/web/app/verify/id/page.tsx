@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IdUploadForm } from "@/components/id-upload-form";
+import { IdVerificationWizard } from "@/components/id-verification-wizard";
 import { VerifyShell } from "@/components/verify-shell";
 import { ShieldCheckSolid } from "@/components/icons";
 
@@ -43,7 +43,7 @@ export default function IdVerificationPage() {
         </>
       }
     >
-      <IdUploadForm />
+      <IdVerificationWizard />
     </VerifyShell>
   );
 }
