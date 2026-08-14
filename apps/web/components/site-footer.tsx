@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand";
-import { ChevronDown, Globe, SOCIALS } from "@/components/icons";
+import { SOCIALS } from "@/components/icons";
 
 const COLUMNS = [
   { heading: "For Clients", links: ["Browse Freelancers", "How It Works", "Safety & Trust", "Help Center"] },
@@ -20,32 +20,6 @@ function SocialLink({ path, label }: { path: string; label: string }) {
         <path d={path} />
       </svg>
     </a>
-  );
-}
-
-/** Compact single-line footer, used on the sign-up page. */
-export function SlimFooter() {
-  return (
-    <footer className="border-t border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-6 text-sm text-slate-500 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-6">
-          <Logo />
-          <p className="hidden text-xs sm:block">© 2026 Trovework. All rights reserved.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-x-7 gap-y-2 text-xs">
-          {["Terms of Service", "Privacy Policy", "Cookies Policy", "Help Center"].map((l) => (
-            <Link key={l} href="#" className="hover:text-navy-800">
-              {l}
-            </Link>
-          ))}
-          <button type="button" className="flex items-center gap-1.5 hover:text-navy-800">
-            <Globe className="h-4 w-4" />
-            English
-            <ChevronDown className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
-    </footer>
   );
 }
 

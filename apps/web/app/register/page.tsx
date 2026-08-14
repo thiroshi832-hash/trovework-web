@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Avatar } from "@/components/brand";
 import { RegisterForm } from "@/components/register-form";
-import { SiteHeader } from "@/components/site-header";
-import { SlimFooter } from "@/components/site-footer";
 import {
   ChatBubble,
   Gift,
@@ -44,9 +42,7 @@ export default async function RegisterPage({
   const defaultRole: Role = role === "freelancer" ? "freelancer" : "client";
 
   return (
-    <div className="flex min-h-full flex-col bg-slate-50/60">
-      <SiteHeader variant="register" navItems={3} />
-
+    <div className="flex flex-1 flex-col bg-slate-50/60">
       <main className="flex-1">
         <div className="mx-auto max-w-7xl px-6 py-8">
           {/* ------------------------- split card ------------------------- */}
@@ -126,8 +122,6 @@ export default async function RegisterPage({
 
         </div>
       </main>
-
-      <SlimFooter />
     </div>
   );
 }

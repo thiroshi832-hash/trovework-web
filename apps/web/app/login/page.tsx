@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Avatar } from "@/components/brand";
 import { LoginForm } from "@/components/login-form";
-import { SiteHeader } from "@/components/site-header";
-import { SlimFooter } from "@/components/site-footer";
 import { ChatBubble, Globe, Lock, Quote, ShieldCheck } from "@/components/icons";
 
 export const metadata: Metadata = {
@@ -37,9 +35,7 @@ const BENEFITS = [
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-full flex-col bg-slate-50/60">
-      <SiteHeader variant="login" navItems={3} />
-
+    <div className="flex flex-1 flex-col bg-slate-50/60">
       <main className="flex-1">
         <div className="mx-auto max-w-7xl px-6 py-8">
           {/* ------------------------- split card ------------------------- */}
@@ -120,8 +116,6 @@ export default function LoginPage() {
           </div>
         </div>
       </main>
-
-      <SlimFooter />
     </div>
   );
 }

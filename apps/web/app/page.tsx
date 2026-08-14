@@ -1,7 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
 
 /* ================================ icons ================================= */
 
@@ -443,9 +441,7 @@ function VerifiedCard({ className = "" }: { className?: string }) {
 
 export default function Home() {
   return (
-    <div className="flex min-h-full flex-col bg-white">
-      <SiteHeader />
-
+    <div className="flex flex-1 flex-col bg-white">
       <main className="flex-1">
         {/* ------------------------------- hero ---------------------------- */}
         {/*
@@ -759,8 +755,6 @@ export default function Home() {
           </div>
         </section>
       </main>
-
-      <SiteFooter />
     </div>
   );
 }
