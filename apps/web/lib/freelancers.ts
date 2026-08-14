@@ -6,6 +6,8 @@
  * Placeholder data until the profiles API exists (BUILD_PLAN phase 2/4).
  */
 
+import type { Availability, Category } from "@/lib/categories";
+
 export type Review = {
   author: string;
   role: string;
@@ -30,10 +32,12 @@ export type Freelancer = {
   /** One-line pitch on the browse cards. */
   blurb: string;
   about: string;
-  category: string;
+  category: Category;
   workCategories: string[];
   country: string;
-  memberSince: string;
+  availability: Availability;
+  /** ISO date; drives both the profile's "Member since" and the Newest sort. */
+  joined: string;
   portfolio: string[];
   /** Share of reviews at 5,4,3,2,1 stars. */
   ratingBreakdown: [number, number, number, number, number];
@@ -57,7 +61,8 @@ export const FREELANCERS: Freelancer[] = [
     category: "Web Development",
     workCategories: ["Web Development", "SaaS Development"],
     country: "United States",
-    memberSince: "Jan 2024",
+    availability: "Within 24 hours",
+    joined: "2024-01-15",
     portfolio: ["E-commerce Platform", "SaaS Dashboard", "Task Management App"],
     ratingBreakdown: [100, 0, 0, 0, 0],
     latestReview: {
@@ -84,7 +89,8 @@ export const FREELANCERS: Freelancer[] = [
     category: "Design & Creative",
     workCategories: ["Design & Creative", "Product Design"],
     country: "Spain",
-    memberSince: "Mar 2024",
+    availability: "Anytime",
+    joined: "2024-03-04",
     portfolio: ["Banking App Redesign", "Design System", "Marketing Site"],
     ratingBreakdown: [92, 8, 0, 0, 0],
     latestReview: {
@@ -111,7 +117,8 @@ export const FREELANCERS: Freelancer[] = [
     category: "Writing & Translation",
     workCategories: ["Writing & Translation", "Content Marketing"],
     country: "South Korea",
-    memberSince: "Feb 2024",
+    availability: "This week",
+    joined: "2024-02-19",
     portfolio: ["SaaS Blog Programme", "Product Launch Copy", "Newsletter Series"],
     ratingBreakdown: [85, 15, 0, 0, 0],
     latestReview: {
@@ -138,7 +145,8 @@ export const FREELANCERS: Freelancer[] = [
     category: "Video & Animation",
     workCategories: ["Video & Animation", "Motion Graphics"],
     country: "United Kingdom",
-    memberSince: "Apr 2024",
+    availability: "Anytime",
+    joined: "2024-04-22",
     portfolio: ["Brand Launch Film", "YouTube Series", "Event Recap"],
     ratingBreakdown: [90, 10, 0, 0, 0],
     latestReview: {
@@ -165,7 +173,8 @@ export const FREELANCERS: Freelancer[] = [
     category: "Marketing",
     workCategories: ["Marketing", "Growth"],
     country: "India",
-    memberSince: "May 2024",
+    availability: "Within 24 hours",
+    joined: "2024-05-08",
     portfolio: ["E-commerce Growth", "Paid Search Rebuild", "Analytics Overhaul"],
     ratingBreakdown: [84, 16, 0, 0, 0],
     latestReview: {
@@ -182,10 +191,10 @@ export function freelancerBySlug(slug: string): Freelancer | undefined {
   return FREELANCERS.find((f) => f.slug === slug);
 }
 
-export const CATEGORIES = [
-  "Web Development",
-  "Design & Creative",
-  "Writing & Translation",
-  "Marketing",
-  "Video & Animation",
-] as const;
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "2024-01-15" -> "Jan 2024". Formatted by hand so server and client agree. */
+export function memberSince(joined: string): string {
+  const [year, month] = joined.split("-");
+  return `${MONTHS[Number(month) - 1]} ${year}`;
+}

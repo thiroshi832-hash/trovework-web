@@ -7,11 +7,17 @@ export const metadata: Metadata = {
     "Search verified freelancers by skill, category, price and rating. Every profile on Trovework is ID-verified.",
 };
 
-export default function SearchPage() {
+export default async function FreelancersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}) {
+  const { category } = await searchParams;
+
   return (
     <div className="flex flex-1 flex-col bg-slate-50/60">
       <main className="flex-1">
-        <BrowseFreelancers />
+        <BrowseFreelancers initialCategory={category} />
       </main>
     </div>
   );

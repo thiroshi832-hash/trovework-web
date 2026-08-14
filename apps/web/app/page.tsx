@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Portrait } from "@/components/brand";
 import { PEOPLE } from "@/lib/people";
 import { FREELANCERS } from "@/lib/freelancers";
+import type { Category } from "@/lib/categories";
 
 /* ================================ icons ================================= */
 
@@ -276,7 +277,9 @@ const TRUST_ITEMS = [
   { icon: <Gift className="h-6 w-6" />, title: "Free to Use", body: "Join, connect, and grow without any fees." },
 ];
 
-const CATEGORIES = [
+/* Tiles link into the browse page pre-filtered. Typing `name` as Category means
+   a tile whose name drifts from the taxonomy fails the build. */
+const CATEGORIES: { icon: React.ReactNode; name: Category }[] = [
   { icon: <CodeCircle className="h-10 w-10" />, name: "Web Development" },
   { icon: <Pencil className="h-10 w-10" />, name: "Design & Creative" },
   { icon: <Document className="h-10 w-10" />, name: "Writing & Translation" },
@@ -284,7 +287,6 @@ const CATEGORIES = [
   { icon: <PlayBox className="h-10 w-10" />, name: "Video & Animation" },
   { icon: <AiSpark className="h-10 w-10" />, name: "AI Services" },
   { icon: <Briefcase className="h-10 w-10" />, name: "Business" },
-  { icon: <Dots className="h-10 w-10" />, name: "More Categories", muted: true },
 ];
 
 const STEPS = [
@@ -549,13 +551,22 @@ export default function Home() {
             {CATEGORIES.map((c) => (
               <Link
                 key={c.name}
-                href="/freelancers"
+                href={`/freelancers?category=${encodeURIComponent(c.name)}`}
                 className={`group flex flex-col items-center gap-3.5 px-3 py-7 text-center transition hover:-translate-y-0.5 hover:ring-brand-200 ${CARD}`}
               >
-                <span className={c.muted ? "text-brand-400" : "text-brand-600"}>{c.icon}</span>
+                <span className="text-brand-600">{c.icon}</span>
                 <span className="text-xs font-medium leading-tight text-navy-800">{c.name}</span>
               </Link>
             ))}
+            <Link
+              href="/freelancers"
+              className={`group flex flex-col items-center gap-3.5 px-3 py-7 text-center transition hover:-translate-y-0.5 hover:ring-brand-200 ${CARD}`}
+            >
+              <span className="text-brand-400">
+                <Dots className="h-10 w-10" />
+              </span>
+              <span className="text-xs font-medium leading-tight text-navy-800">More Categories</span>
+            </Link>
           </div>
         </section>
 

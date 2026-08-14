@@ -11,7 +11,7 @@ import {
   MapPin,
   Star,
 } from "@/components/icons";
-import { FREELANCERS, freelancerBySlug } from "@/lib/freelancers";
+import { FREELANCERS, freelancerBySlug, memberSince } from "@/lib/freelancers";
 
 export function generateStaticParams() {
   return FREELANCERS.map((f) => ({ slug: f.slug }));
@@ -145,7 +145,7 @@ export default async function FreelancerProfile({
                   </span>
                   <span className="flex items-center gap-2">
                     <CalendarCheck className="h-4 w-4 text-brand-200" />
-                    Member since {f.memberSince}
+                    Member since {memberSince(f.joined)}
                   </span>
                 </div>
               </div>
