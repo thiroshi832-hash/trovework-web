@@ -1,5 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Portrait } from "@/components/brand";
+import { PEOPLE } from "@/lib/people";
+import { FREELANCERS } from "@/lib/freelancers";
+import type { Category } from "@/lib/categories";
 
 /* ================================ icons ================================= */
 
@@ -221,23 +225,6 @@ function Dots({ className }: IconProps) {
 
 /* ============================== primitives ============================== */
 
-/* Portraits are decorative — the person's name always sits beside them as text. */
-function Portrait({
-  src,
-  className = "",
-  sizes = "96px",
-}: {
-  src: string;
-  className?: string;
-  sizes?: string;
-}) {
-  return (
-    <span className={`relative block shrink-0 overflow-hidden rounded-full bg-slate-100 ${className}`}>
-      <Image src={src} alt="" fill sizes={sizes} className="object-cover" />
-    </span>
-  );
-}
-
 function Stars({ rating, className = "" }: { rating: number; className?: string }) {
   return (
     <span className={`flex items-center gap-0.5 text-amber-400 ${className}`} aria-label={`${rating} out of 5`}>
@@ -290,7 +277,9 @@ const TRUST_ITEMS = [
   { icon: <Gift className="h-6 w-6" />, title: "Free to Use", body: "Join, connect, and grow without any fees." },
 ];
 
-const CATEGORIES = [
+/* Tiles link into the browse page pre-filtered. Typing `name` as Category means
+   a tile whose name drifts from the taxonomy fails the build. */
+const CATEGORIES: { icon: React.ReactNode; name: Category }[] = [
   { icon: <CodeCircle className="h-10 w-10" />, name: "Web Development" },
   { icon: <Pencil className="h-10 w-10" />, name: "Design & Creative" },
   { icon: <Document className="h-10 w-10" />, name: "Writing & Translation" },
@@ -298,7 +287,6 @@ const CATEGORIES = [
   { icon: <PlayBox className="h-10 w-10" />, name: "Video & Animation" },
   { icon: <AiSpark className="h-10 w-10" />, name: "AI Services" },
   { icon: <Briefcase className="h-10 w-10" />, name: "Business" },
-  { icon: <Dots className="h-10 w-10" />, name: "More Categories", muted: true },
 ];
 
 const STEPS = [
@@ -314,21 +302,14 @@ const STATS = [
   { icon: <StarOutline className="h-7 w-7" />, value: "98%", label: "Positive Reviews" },
 ];
 
-const FREELANCERS = [
-  { photo: "/avatars/alex-morgan.jpg", name: "Alex Morgan", title: "Full Stack Developer", rating: 5.0, reviews: 22, skills: ["React", "Node.js", "TypeScript"], rate: "$40" },
-  { photo: "/avatars/sofia-martinez.jpg", name: "Sofia Martinez", title: "UI/UX Designer", rating: 4.9, reviews: 18, skills: ["Figma", "UI Design", "UX Research"], rate: "$30" },
-  { photo: "/avatars/daniel-kim.jpg", name: "Daniel Kim", title: "Content Writer", rating: 4.8, reviews: 17, skills: ["Writing", "SEO", "Blog Writing"], rate: "$20" },
-  { photo: "/avatars/olivia-brown.jpg", name: "Olivia Brown", title: "Video Editor", rating: 4.9, reviews: 21, skills: ["Premiere Pro", "After Effects", "DaVinci Resolve"], rate: "$25" },
-  { photo: "/avatars/arjun-patel.jpg", name: "Arjun Patel", title: "Digital Marketer", rating: 4.8, reviews: 25, skills: ["SEO", "Google Ads", "Analytics"], rate: "$35" },
-];
 
 /* the overlapping faces in the hero's social-proof row */
 const COMMUNITY = [1, 2, 3, 4, 5].map((n) => `/avatars/community-${n}.jpg`);
 
 const TESTIMONIALS = [
-  { quote: "Trovework made it easy to find amazing talent I can trust. The verification gives me peace of mind.", photo: "/avatars/sarah-j.jpg", name: "Sarah J.", role: "Marketing Manager" },
-  { quote: "As a freelancer, I love working with serious clients here. The platform is clean, safe, and easy to use.", photo: "/avatars/michael-t.jpg", name: "Michael T.", role: "Full Stack Developer" },
-  { quote: "I found a long-term designer within days. Communication is smooth and everything just works.", photo: "/avatars/jessica-l.jpg", name: "Jessica L.", role: "Startup Founder" },
+  { ...PEOPLE.sarah, quote: "Trovework made it easy to find amazing talent I can trust. The verification gives me peace of mind." },
+  { ...PEOPLE.michael, quote: "As a freelancer, I love working with serious clients here. The platform is clean, safe, and easy to use." },
+  { ...PEOPLE.jessica, quote: "I found a long-term designer within days. Communication is smooth and everything just works." },
 ];
 
 const POSTS = [
@@ -570,13 +551,22 @@ export default function Home() {
             {CATEGORIES.map((c) => (
               <Link
                 key={c.name}
-                href="/search"
+                href={`/freelancers?category=${encodeURIComponent(c.name)}`}
                 className={`group flex flex-col items-center gap-3.5 px-3 py-7 text-center transition hover:-translate-y-0.5 hover:ring-brand-200 ${CARD}`}
               >
-                <span className={c.muted ? "text-brand-400" : "text-brand-600"}>{c.icon}</span>
+                <span className="text-brand-600">{c.icon}</span>
                 <span className="text-xs font-medium leading-tight text-navy-800">{c.name}</span>
               </Link>
             ))}
+            <Link
+              href="/freelancers"
+              className={`group flex flex-col items-center gap-3.5 px-3 py-7 text-center transition hover:-translate-y-0.5 hover:ring-brand-200 ${CARD}`}
+            >
+              <span className="text-brand-400">
+                <Dots className="h-10 w-10" />
+              </span>
+              <span className="text-xs font-medium leading-tight text-navy-800">More Categories</span>
+            </Link>
           </div>
         </section>
 
@@ -629,10 +619,10 @@ export default function Home() {
 
         {/* ------------------------ featured freelancers -------------------- */}
         <section className="mx-auto max-w-7xl px-6 py-10">
-          <SectionHeading title="Featured Freelancers" action="View all freelancers" href="/search" />
+          <SectionHeading title="Featured Freelancers" action="View all freelancers" href="/freelancers" />
           <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {FREELANCERS.map((f) => (
-              <article key={f.name} className={`relative p-6 text-center transition hover:shadow-md ${CARD}`}>
+              <article key={f.slug} className={`relative p-6 text-center transition hover:shadow-md ${CARD}`}>
                 <span className="absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-md bg-brand-50 text-brand-600">
                   <Check className="h-3 w-3" />
                 </span>
@@ -656,7 +646,7 @@ export default function Home() {
                   ))}
                 </div>
                 <p className="mt-5 text-left text-lg font-bold text-navy-800">
-                  {f.rate}
+                  ${f.rate}
                   <span className="text-xs font-medium text-slate-400"> /hr</span>
                 </p>
               </article>

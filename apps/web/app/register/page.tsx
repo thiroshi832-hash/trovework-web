@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Avatar } from "@/components/brand";
+import { Portrait } from "@/components/brand";
+import { PEOPLE } from "@/lib/people";
 import { RegisterForm } from "@/components/register-form";
 import {
-  ChatBubble,
-  Gift,
+  ChatBubbleSolid,
+  GiftSolid,
   Quote,
-  ShieldCheck,
+  ShieldCheckSolid,
 } from "@/components/icons";
 import type { Role } from "@/components/auth-fields";
 
@@ -17,17 +18,17 @@ export const metadata: Metadata = {
 
 const BENEFITS = [
   {
-    icon: <ShieldCheck className="h-5 w-5" />,
+    icon: <ShieldCheckSolid className="h-7 w-7" />,
     title: "Verified community",
     body: "Every user is verified to build a safer, more trustworthy marketplace.",
   },
   {
-    icon: <ChatBubble className="h-5 w-5" />,
+    icon: <ChatBubbleSolid className="h-7 w-7" />,
     title: "Safe communication",
     body: "Message, share files and collaborate securely within Trovework.",
   },
   {
-    icon: <Gift className="h-5 w-5" />,
+    icon: <GiftSolid className="h-7 w-7" />,
     title: "Free to use",
     body: "Create your account and explore opportunities at no cost.",
   },
@@ -75,7 +76,7 @@ export default async function RegisterPage({
                 <ul className="mt-8 space-y-5">
                   {BENEFITS.map((b) => (
                     <li key={b.title} className="flex gap-4">
-                      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/20">
+                      <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-gradient-to-br from-badge-from to-badge-to text-white shadow-[0_10px_22px_-6px_rgba(10,85,238,0.75)]">
                         {b.icon}
                       </span>
                       <div>
@@ -92,10 +93,10 @@ export default async function RegisterPage({
                     Trovework helped me find amazing clients and grow my business with confidence.
                   </blockquote>
                   <figcaption className="mt-4 flex items-center gap-3">
-                    <Avatar initials="AR" className="h-9 w-9 text-[11px] ring-2 ring-white/20" />
+                    <Portrait src={PEOPLE.ahmed.photo} sizes="36px" className="h-9 w-9 ring-2 ring-white/20" />
                     <div>
-                      <p className="text-base font-semibold text-white">Ahmed R.</p>
-                      <p className="text-sm text-brand-100">Freelance Web Developer</p>
+                      <p className="text-base font-semibold text-white">{PEOPLE.ahmed.name}</p>
+                      <p className="text-sm text-brand-100">{PEOPLE.ahmed.role}</p>
                     </div>
                   </figcaption>
                 </figure>

@@ -18,6 +18,8 @@ const nextConfig: NextConfig = {
       { source: "/join", destination: "/register", permanent: true },
       { source: "/signin", destination: "/login", permanent: true },
       { source: "/sign-in", destination: "/login", permanent: true },
+      // the browse page moved under /freelancers, alongside the profiles
+      { source: "/search", destination: "/freelancers", permanent: true },
     ];
   },
 };

@@ -22,12 +22,19 @@ export function Logo({ dark = false }: { dark?: boolean }) {
   );
 }
 
-export function Avatar({ initials, className = "" }: { initials: string; className?: string }) {
+/* Portraits are decorative — the person's name always sits beside them as text. */
+export function Portrait({
+  src,
+  className = "",
+  sizes = "96px",
+}: {
+  src: string;
+  className?: string;
+  sizes?: string;
+}) {
   return (
-    <span
-      className={`grid place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-700 font-semibold text-white ${className}`}
-    >
-      {initials}
+    <span className={`relative block shrink-0 overflow-hidden rounded-full bg-slate-100 ${className}`}>
+      <Image src={src} alt="" fill sizes={sizes} className="object-cover" />
     </span>
   );
 }

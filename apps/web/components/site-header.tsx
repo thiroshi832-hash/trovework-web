@@ -4,7 +4,7 @@ import { ChevronDown, Globe } from "@/components/icons";
 
 /* Anchors are absolute so they still resolve from /login and /register. */
 const NAV = [
-  { label: "Browse Freelancers", href: "/search", dropdown: true },
+  { label: "Browse Freelancers", href: "/freelancers" },
   { label: "How It Works", href: "/#how" },
   { label: "About Us", href: "/#about" },
   { label: "Safety & Trust", href: "/#trust" },
@@ -18,18 +18,11 @@ export function SiteHeader() {
         <Logo />
 
         <div className="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex">
-          {NAV.map((item) =>
-            item.dropdown ? (
-              <button key={item.label} type="button" className="flex items-center gap-1 hover:text-navy-800">
-                {item.label}
-                <ChevronDown className="h-4 w-4" />
-              </button>
-            ) : (
-              <Link key={item.label} href={item.href} className="hover:text-navy-800">
-                {item.label}
-              </Link>
-            ),
-          )}
+          {NAV.map((item) => (
+            <Link key={item.label} href={item.href} className="hover:text-navy-800">
+              {item.label}
+            </Link>
+          ))}
         </div>
 
         <div className="flex items-center gap-3">
