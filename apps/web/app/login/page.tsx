@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Portrait } from "@/components/brand";
 import { PEOPLE } from "@/lib/people";
 import { LoginForm } from "@/components/login-form";
-import { ChatBubble, Globe, Lock, Quote, ShieldCheck } from "@/components/icons";
+import { ChatBubbleSolid, GlobeSolid, LockSolid, Quote, ShieldCheckSolid } from "@/components/icons";
 
 export const metadata: Metadata = {
   title: "Login — Trovework",
@@ -13,22 +13,22 @@ export const metadata: Metadata = {
 
 const BENEFITS = [
   {
-    icon: <ShieldCheck className="h-5 w-5" />,
+    icon: <ShieldCheckSolid className="h-7 w-7" />,
     title: "Trust first",
     body: "Every user is verified so you can collaborate safely.",
   },
   {
-    icon: <ChatBubble className="h-5 w-5" />,
+    icon: <ChatBubbleSolid className="h-7 w-7" />,
     title: "Direct communication",
     body: "Chat directly with verified users. No middlemen.",
   },
   {
-    icon: <Globe className="h-5 w-5" />,
+    icon: <GlobeSolid className="h-7 w-7" />,
     title: "Global community",
     body: "Hire and work with people from 120+ countries.",
   },
   {
-    icon: <Lock className="h-5 w-5" />,
+    icon: <LockSolid className="h-7 w-7" />,
     title: "Privacy & security",
     body: "Your data and conversations are always protected.",
   },
@@ -69,7 +69,7 @@ export default function LoginPage() {
                 <ul className="mt-8 space-y-5">
                   {BENEFITS.map((b) => (
                     <li key={b.title} className="flex gap-4">
-                      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/20">
+                      <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-gradient-to-br from-badge-from to-badge-to text-white shadow-[0_10px_22px_-6px_rgba(10,85,238,0.75)]">
                         {b.icon}
                       </span>
                       <div>

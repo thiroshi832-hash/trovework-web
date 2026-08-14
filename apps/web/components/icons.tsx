@@ -291,3 +291,91 @@ export const SOCIALS = [
   { label: "Facebook", path: "M13.5 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.25-1.5 1.55-1.5h1.65V3.6A22 22 0 0 0 14.3 3.5c-2.4 0-4 1.45-4 4.1v2.3H7.6V13h2.7v8h3.2Z" },
   { label: "Instagram", path: "M12 7.4a4.6 4.6 0 1 0 0 9.2 4.6 4.6 0 0 0 0-9.2Zm0 7.6a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm5.9-7.8a1.07 1.07 0 1 1-2.15 0 1.07 1.07 0 0 1 2.15 0ZM12 4.6c2.4 0 2.7 0 3.6.05.9.04 1.5.18 2 .38.55.2 1 .5 1.45.95.45.45.75.9.95 1.45.2.5.34 1.1.38 2 .04.9.05 1.2.05 3.6s0 2.7-.05 3.6c-.04.9-.18 1.5-.38 2a4 4 0 0 1-.95 1.45c-.45.45-.9.75-1.45.95-.5.2-1.1.34-2 .38-.9.04-1.2.05-3.6.05s-2.7 0-3.6-.05c-.9-.04-1.5-.18-2-.38a4 4 0 0 1-1.45-.95 4 4 0 0 1-.95-1.45c-.2-.5-.34-1.1-.38-2C4.6 14.7 4.6 14.4 4.6 12s0-2.7.05-3.6c.04-.9.18-1.5.38-2 .2-.55.5-1 .95-1.45A4 4 0 0 1 7.43 4c.5-.2 1.1-.34 2-.38.9-.04 1.2-.05 3.6-.05Z" },
 ];
+
+/* ---------------------------------------------------------------------------
+   Solid variants for the auth panels' feature badges: the glyph is a filled
+   white shape with its detail punched out in the badge's blue, rather than a
+   thin stroke. `currentColor` carries the white so the badge can set it.
+   --------------------------------------------------------------------------- */
+
+/** Matches --color-badge-to, the darker end of the badge gradient. */
+const CUT = "#0a55ee";
+
+export function ShieldCheckSolid({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        d="M12 2.2 3.9 5.1v6.2c0 5.1 3.4 9.6 8.1 11 4.7-1.4 8.1-5.9 8.1-11V5.1L12 2.2Z"
+        fill="currentColor"
+      />
+      <path
+        d="m8.5 11.9 2.4 2.4 4.6-4.8"
+        fill="none"
+        stroke={CUT}
+        strokeWidth="2.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function ChatBubbleSolid({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        d="M5.4 4.4h13.2A2.4 2.4 0 0 1 21 6.8v7.6a2.4 2.4 0 0 1-2.4 2.4h-7.2l-4.5 3.4a.6.6 0 0 1-1-.5v-2.9h-.5A2.4 2.4 0 0 1 3 14.4V6.8a2.4 2.4 0 0 1 2.4-2.4Z"
+        fill="currentColor"
+      />
+      <circle cx="8.4" cy="10.6" r="1.3" fill={CUT} />
+      <circle cx="12" cy="10.6" r="1.3" fill={CUT} />
+      <circle cx="15.6" cy="10.6" r="1.3" fill={CUT} />
+    </svg>
+  );
+}
+
+export function GiftSolid({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        d="M12 8.4S10.8 3.9 8.5 3.9a2.2 2.2 0 0 0 0 4.5Zm0 0s1.2-4.5 3.5-4.5a2.2 2.2 0 0 1 0 4.5Z"
+        fill="currentColor"
+      />
+      <path d="M3.2 9h17.6v3.9H3.2z" fill="currentColor" />
+      <path d="M4.9 13.9h14.2v6.1a1.4 1.4 0 0 1-1.4 1.4H6.3a1.4 1.4 0 0 1-1.4-1.4z" fill="currentColor" />
+      <path d="M10.7 9h2.6v12.4h-2.6z" fill={CUT} />
+    </svg>
+  );
+}
+
+export function GlobeSolid({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <circle cx="12" cy="12" r="9.3" fill="currentColor" />
+      <path
+        d="M2.7 12h18.6M12 2.7c2.4 2.6 3.7 5.9 3.7 9.3s-1.3 6.7-3.7 9.3c-2.4-2.6-3.7-5.9-3.7-9.3S9.6 5.3 12 2.7Z"
+        fill="none"
+        stroke={CUT}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function LockSolid({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        d="M8.4 10.4V7.9a3.6 3.6 0 0 1 7.2 0v2.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.1"
+        strokeLinecap="round"
+      />
+      <rect x="4.3" y="10.2" width="15.4" height="10.6" rx="2.4" fill="currentColor" />
+      <circle cx="12" cy="15.5" r="1.8" fill={CUT} />
+    </svg>
+  );
+}

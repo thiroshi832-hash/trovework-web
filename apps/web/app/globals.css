@@ -23,6 +23,11 @@
   --color-navy-800: #0b1c38;
   --color-navy-900: #051636;
 
+  /* Feature-badge gradient on the auth panels, sampled top-left to
+     bottom-right off the comp */
+  --color-badge-from: #107dfc;
+  --color-badge-to: #0a55ee;
+
   /* Stats band gradient, sampled left-to-right off the comp */
   --color-stat-from: #062357;
   --color-stat-via: #0a2f79;
