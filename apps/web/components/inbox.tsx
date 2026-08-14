@@ -37,11 +37,14 @@ export function Inbox() {
     setNotice(true);
   }
 
+  // min-w-0 on both grid children: a grid item defaults to min-width:auto, and
+  // the truncating previews are white-space:nowrap, so the track would otherwise
+  // stretch to the longest message and push the page sideways.
   return (
     <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
       {/* ------------------------------ threads ----------------------------- */}
       <aside
-        className={`${showThread ? "hidden lg:block" : "block"} h-fit rounded-2xl border border-slate-200 bg-white`}
+        className={`${showThread ? "hidden lg:block" : "block"} h-fit min-w-0 rounded-2xl border border-slate-200 bg-white`}
       >
         <div className="border-b border-slate-200 p-4">
           <label className="sr-only" htmlFor="thread-search">
@@ -95,7 +98,9 @@ export function Inbox() {
 
       {/* ------------------------------- thread ----------------------------- */}
       <section
-        className={`${showThread ? "block" : "hidden lg:block"} flex min-h-[32rem] flex-col rounded-2xl border border-slate-200 bg-white`}
+        // `flex` must live inside the conditional: paired with `hidden` it is a
+        // second display value, and the pane rendered anyway on mobile.
+        className={`${showThread ? "flex" : "hidden lg:flex"} min-h-[32rem] min-w-0 flex-col rounded-2xl border border-slate-200 bg-white`}
       >
         {active ? (
           <>
