@@ -52,6 +52,20 @@ mkdir -p /home/deploy/.ssh && chmod 700 /home/deploy/.ssh
 chown -R deploy:deploy /home/deploy/.ssh
 ```
 
+> **`--disabled-password` means `deploy` cannot use `sudo`** — sudo asks for the account's own
+> password, and there isn't one. That is fine for CI (the Deploy workflow uses `docker compose`
+> via the `docker` group, never sudo) but it bites you the first time you try an admin command
+> over SSH. Give the account a sudo password now, while you are still root:
+>
+> ```bash
+> passwd deploy
+> ```
+>
+> This does **not** re-open SSH password login — `sshd` keeps `PasswordAuthentication no` from
+> Step 3, so SSH stays key-only. The password only unlocks `sudo` and the provider console. If you
+> skip this and later get locked out of sudo, your provider's **web console** (root) is the way
+> back in.
+
 ---
 
 ## Step 2 — Create the CI deploy key
