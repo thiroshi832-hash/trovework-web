@@ -30,7 +30,7 @@ The mapped requirements: FR-R-5, FR-V-6, NFR-SEC-3, and the permission matrix in
 | Search | Postgres full-text (V1) | Upgrade to Meilisearch/Elasticsearch when volume grows. |
 | Real-time chat | Socket.IO | Authenticated at connect + per-conversation authorization. |
 | File storage | Own server, foldered by location + user | ID/selfie in a secured, non-public, encrypted dir. |
-| SMS | Twilio Verify | One-time codes to block bots. |
+| ~~SMS~~ | **Dropped from v1** | Phone/SMS verification removed 2026-08-16. See section 12. |
 | Auth | JWT (access + refresh) + bcrypt | Verification state carried in claims + re-checked against DB on gated actions. |
 | Hosting | **Self-hosted VPS + CI/CD** | Docker Compose on a VPS; CI/CD pipeline for build+deploy. Own-server storage (ID images stay on our box) fits this directly. |
 
@@ -44,7 +44,6 @@ Browser (Next.js)  ──HTTPS──▶  API (NestJS REST)  ──▶  PostgreSQ
         │  WebSocket (Socket.IO)     ├──▶  Verification engine (in-house module)
         └────────────────────────────┤          face-match · OCR · liveness · manual review
                                       ├──▶  File storage (own server, foldered)
-                                      └──▶  Twilio Verify (SMS OTP)
 ```
 
 - **Client** — public profiles, search, dashboards, chat UI. Hides gated data for UX only.
@@ -81,7 +80,7 @@ Two roles chosen at sign-up. The API enforces this on **every** request:
 
 All tables carry `created_at` / `updated_at`. Types indicative.
 
-**users** — `id`(uuid PK), `email`(unique), `password_hash`(bcrypt), `role`(enum client|freelancer), `phone`(E.164), `phone_verified`(bool), `id_verified`(bool), `id_card_path`, `selfie_path`, `id_match_score`(numeric), `status`(enum active|banned|pending), `strike_count`(int, default 0).
+**users** — `id`(uuid PK), `email`(unique), `password_hash`(bcrypt), `role`(enum client|freelancer), `id_verified`(bool), `id_card_path`, `selfie_path`, `id_match_score`(numeric), `status`(enum active|banned|pending), `strike_count`(int, default 0).
 
 **freelancer_profiles** — `id`, `user_id`(FK), `display_name`, `headline`, `bio`, `category_id`(FK), `skills`(text[]/join), `hourly_rate`, `resume_path`, `is_visible`(bool — true only when `id_verified`), `contact_telegram` / `_discord` / `_whatsapp` (**GATED**).
 
@@ -146,7 +145,7 @@ Maps to FR-F-1/2/3, NFR-SEC-2, and the §10 security posture.
 Each phase produces a testable slice. The permission gate skeleton exists from Phase 1.
 
 **Phase 1 — Foundation**
-Monorepo (`apps/web`, `apps/api`, `packages/shared`); Prisma schema + first migration for all core tables; email/password signup with role choice; JWT (access+refresh) + bcrypt; Twilio phone verification; `@Verified()`/`@Role()` guard skeleton + `PermissionService` stub.
+Monorepo (`apps/web`, `apps/api`, `packages/shared`); Prisma schema + first migration for all core tables; email/password signup with role choice; JWT (access+refresh) + bcrypt; `@Verified()`/`@Role()` guard skeleton + `PermissionService` stub.
 
 **Phase 2 — Profiles & posts**
 Profile editor (name, headline, bio, category, skills, rate); resume + photo upload into the foldered storage; post CRUD; categories. Profiles default `is_visible = false`.
@@ -199,8 +198,13 @@ On-platform payments/escrow · commissions/subscriptions/paid placement · clien
 1. **ID engine models** — which face-embedding model + liveness approach are acceptable given the global-audience accuracy risk? This drives real effort and legal exposure.
 2. ~~Hosting target~~ — **DECIDED: self-hosted VPS + CI/CD.** Deploy via Docker Compose; secured file-storage dir lives on the VPS outside the web root.
 3. **Data-protection scope** — which regions at launch? Determines the retention/deletion and consent specifics.
-4. **Twilio account** — confirmed as the SMS provider (the dev doc left the cell blank but implies it elsewhere).
+4. ~~Twilio account~~ - **not needed.** Phone/SMS verification is dropped from v1
+   (decided 2026-08-16), overriding FR-A-3. ID verification becomes the only identity
+   gate. Consequence to watch: SMS was the cheap per-signup bot barrier, and ID
+   verification only triggers at the point of real interaction, so nothing blocks
+   automated registration in between. Rate limiting (NFR-SEC-4) and the anti-leak
+   scanner carry that load alone.
 
 ---
 
-*Recommended first action after sign-off: scaffold Phase 1 — monorepo, Prisma schema, auth + phone verification, and the permission-guard skeleton — so the gate exists before any feature leans on it.*
+*Recommended first action after sign-off: scaffold Phase 1 — monorepo, Prisma schema, auth, and the permission-guard skeleton — so the gate exists before any feature leans on it.*
