@@ -1,16 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import {
   Divider,
   Field,
   PasswordInput,
-  PendingNotice,
   SocialButtons,
   TextInput,
 } from "@/components/auth-fields";
 import { Lock, Mail, ShieldCheck } from "@/components/icons";
+import { ApiError, api, homeFor } from "@/lib/api";
 
 type FieldName = "email" | "password";
 type Errors = Partial<Record<FieldName, string>>;
@@ -32,19 +33,37 @@ function validate(fd: FormData): Errors {
 
 export function LoginForm() {
   const [errors, setErrors] = useState<Errors>({});
-  const [submitted, setSubmitted] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const router = useRouter();
 
-  // Auth arrives in Phase 1; the form validates but cannot sign anyone in yet.
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const found = validate(new FormData(e.currentTarget));
+    const fd = new FormData(e.currentTarget);
+
+    const found = validate(fd);
     setErrors(found);
-    setSubmitted(Object.keys(found).length === 0);
+    setFormError(null);
+    if (Object.keys(found).length) return;
+
+    setBusy(true);
+    try {
+      await api.login(String(fd.get("email")).trim(), String(fd.get("password")));
+      // The API decides where to go — /auth/me carries the role.
+      const me = await api.me();
+      router.replace(homeFor(me.role));
+      router.refresh();
+    } catch (err) {
+      setFormError(
+        err instanceof ApiError ? err.message : "Something went wrong. Please try again.",
+      );
+      setBusy(false);
+    }
   }
 
   function handleChange(e: ChangeEvent<HTMLFormElement>) {
     const name = (e.target as unknown as HTMLInputElement).name as FieldName;
-    setSubmitted(false);
+    setFormError(null);
     setErrors((prev) => (prev[name] ? { ...prev, [name]: undefined } : prev));
   }
 
@@ -80,17 +99,21 @@ export function LoginForm() {
         </div>
       </div>
 
-      {submitted ? (
-        <PendingNotice>
-          Login isn&apos;t live yet — accounts open once identity verification is in place.
-        </PendingNotice>
+      {formError ? (
+        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700">
+          {formError}
+        </p>
       ) : null}
 
       <button
         type="submit"
-        className="w-full rounded-lg bg-brand-600 px-4 py-3.5 text-base font-semibold text-white transition hover:bg-brand-700"
+        disabled={busy}
+        aria-busy={busy}
+        className={`w-full rounded-lg px-4 py-3.5 text-base font-semibold text-white transition ${
+          busy ? "cursor-not-allowed bg-slate-300" : "bg-brand-600 hover:bg-brand-700"
+        }`}
       >
-        Login
+        {busy ? "Signing you in…" : "Login"}
       </button>
 
       <Divider label="or continue with" />

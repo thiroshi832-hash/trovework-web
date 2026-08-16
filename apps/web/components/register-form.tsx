@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   COUNTRIES,
   Divider,
   Field,
   PasswordInput,
-  PendingNotice,
   RoleSelect,
   SelectInput,
   SocialButtons,
@@ -16,6 +16,7 @@ import {
 } from "@/components/auth-fields";
 import { Globe, Hash, Lock, Mail, MapPin, UserIcon } from "@/components/icons";
 import { subdivisionsFor } from "@/lib/subdivisions";
+import { ApiError, api, homeFor } from "@/lib/api";
 
 type FieldName =
   | "fullName"
@@ -89,15 +90,42 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
   // Countries we haven't listed fall back to free text so nobody is blocked.
   const useStateSelect = !country || stateOptions.length > 0;
   const [errors, setErrors] = useState<Errors>({});
-  const [submitted, setSubmitted] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const router = useRouter();
 
-  // The accounts API arrives in Phase 1; until then the form validates fully but
-  // does not create an account.
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const found = validate(new FormData(e.currentTarget));
+    const fd = new FormData(e.currentTarget);
+
+    const found = validate(fd);
     setErrors(found);
-    setSubmitted(Object.keys(found).length === 0);
+    setFormError(null);
+    if (Object.keys(found).length) return;
+
+    setBusy(true);
+    try {
+      await api.register({
+        email: String(fd.get("email")).trim(),
+        password: String(fd.get("password")),
+        fullName: String(fd.get("fullName")).trim(),
+        role,
+        country: String(fd.get("country")),
+        state: String(fd.get("state")).trim(),
+        postalCode: String(fd.get("postalCode")).trim(),
+      });
+      // The API set the session cookies; refresh so server components see them.
+      router.replace(homeFor(role));
+      router.refresh();
+    } catch (err) {
+      // A taken email belongs on the field itself; anything else is a banner.
+      if (err instanceof ApiError && err.status === 409) {
+        setErrors((prev) => ({ ...prev, email: "An account with that email already exists." }));
+      } else {
+        setFormError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      }
+      setBusy(false);
+    }
   }
 
   // Clear a field's error as soon as the user edits it, so the form stops
@@ -116,11 +144,11 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
     recomputeComplete();
 
     const name = (e.target as unknown as HTMLInputElement).name as FieldName;
-    setSubmitted(false);
+    setFormError(null);
     setErrors((prev) => (prev[name] ? { ...prev, [name]: undefined } : prev));
   }
 
-  const canSubmit = agreed && complete;
+  const canSubmit = agreed && complete && !busy;
 
   return (
     <form ref={formRef} noValidate onSubmit={handleSubmit} onChange={handleChange} className="space-y-4">
@@ -263,17 +291,17 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
         </span>
       </label>
 
-      {submitted ? (
-        <PendingNotice>
-          Accounts aren&apos;t open yet — we&apos;re still building the verification system that
-          makes Trovework trustworthy. Your details have not been saved.
-        </PendingNotice>
+      {formError ? (
+        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700">
+          {formError}
+        </p>
       ) : null}
 
       <button
         type="submit"
         disabled={!canSubmit}
         aria-disabled={!canSubmit}
+        aria-busy={busy}
         title={
           complete
             ? agreed
@@ -285,7 +313,7 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
           canSubmit ? "bg-brand-600 hover:bg-brand-700" : "cursor-not-allowed bg-slate-300"
         }`}
       >
-        Create Account
+        {busy ? "Creating your account…" : "Create Account"}
       </button>
 
       <Divider label="or continue with" />

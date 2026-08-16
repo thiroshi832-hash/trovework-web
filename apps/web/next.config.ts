@@ -22,6 +22,21 @@ const nextConfig: NextConfig = {
       { source: "/search", destination: "/freelancers", permanent: true },
     ];
   },
+  /**
+   * In production nginx routes /api to the API container before Next ever sees
+   * it. In development there is no nginx, so proxy it here — that keeps the
+   * browser on one origin, which is what lets the httpOnly auth cookies work
+   * without CORS or SameSite exceptions.
+   */
+  async rewrites() {
+    if (process.env.NODE_ENV !== "development") return [];
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${process.env.API_URL ?? "http://127.0.0.1:4000"}/api/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
