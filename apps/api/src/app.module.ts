@@ -9,6 +9,7 @@ import { PostsModule } from "./posts/posts.module";
 import { ProfilesModule } from "./profiles/profiles.module";
 import { VerificationModule } from "./verification/verification.module";
 import { ChatModule } from "./chat/chat.module";
+import { ReviewsModule } from "./reviews/reviews.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { RolesGuard } from "./auth/guards/roles.guard";
 import { VerifiedGuard } from "./auth/guards/verified.guard";
@@ -25,6 +26,7 @@ import { VerifiedGuard } from "./auth/guards/verified.guard";
     ProfilesModule,
     VerificationModule,
     ChatModule,
+    ReviewsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

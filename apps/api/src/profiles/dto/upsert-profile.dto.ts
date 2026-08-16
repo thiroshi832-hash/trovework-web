@@ -23,6 +23,9 @@ export class UpsertProfileDto {
   @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) @Max(100000)
   hourlyRate?: number;
 
+  @IsOptional() @IsString() @MaxLength(40)
+  availability?: string;
+
   // Gated contact handles. Stored on the profile, released only to verified clients.
   @IsOptional() @IsString() @MaxLength(64)
   contactTelegram?: string;

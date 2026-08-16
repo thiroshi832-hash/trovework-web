@@ -65,6 +65,8 @@ model User {
   clientConvos     Conversation[]    @relation("client")
   freelancerConvos Conversation[]    @relation("freelancer")
   messages         Message[]
+  reviewsWritten   Review[]          @relation("author")
+  reviewsReceived  Review[]          @relation("subject")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -104,6 +106,24 @@ model Message {
 
   @@index([conversationId, sentAt])
   @@map("messages")
+}
+
+/// A rating + comment one user leaves another after they've worked together
+/// (FR-RV-1). Directional and one-per-pair: a reviewer has a single review of a
+/// given counterpart. Aggregates feed profiles and search sorting (FR-RV-2).
+model Review {
+  id       String @id @default(uuid()) @db.Uuid
+  fromId   String @map("from_id") @db.Uuid
+  from     User   @relation("author", fields: [fromId], references: [id], onDelete: Cascade)
+  toId     String @map("to_id") @db.Uuid
+  to       User   @relation("subject", fields: [toId], references: [id], onDelete: Cascade)
+  rating   Int
+  comment  String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([fromId, toId])
+  @@index([toId])
+  @@map("reviews")
 }
 
 /// A one-time SMS code, hashed. One live challenge per user; issuing a new one
@@ -162,12 +182,15 @@ model FreelancerProfile {
   id          String   @id @default(uuid()) @db.Uuid
   userId      String   @unique @map("user_id") @db.Uuid
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slug        String   @unique
   displayName String   @map("display_name")
   headline    String?
   bio         String?
   category    String
   skills      String[]
   hourlyRate  Decimal? @map("hourly_rate") @db.Decimal(12, 2)
+  availability String?
+  photoPath   String?  @map("photo_path")
   resumePath  String?  @map("resume_path")
   isVisible   Boolean  @default(false) @map("is_visible")
 

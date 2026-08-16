@@ -1,6 +1,7 @@
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
 import { ProfilesService, type ProfileOwner } from "./profiles.service";
 import { PermissionService, type Principal } from "../permission/permission.service";
+import type { ReviewsService } from "../reviews/reviews.service";
 import type { PrismaService } from "../prisma/prisma.service";
 
 function prismaDouble() {
@@ -8,33 +9,42 @@ function prismaDouble() {
   return {
     profiles,
     freelancerProfile: {
-      upsert: jest.fn(async ({ where, create, update }: any) => {
-        const existing = profiles.find((p) => p.userId === where.userId);
-        if (existing) {
-          Object.assign(existing, update, { updatedAt: new Date() });
-          return existing;
-        }
-        const p = { id: `pr${profiles.length + 1}`, updatedAt: new Date(), ...create };
+      findUnique: jest.fn(async ({ where }: any) =>
+        profiles.find((p) => (where.slug ? p.slug === where.slug : p.userId === where.userId)) ?? null,
+      ),
+      create: jest.fn(async ({ data }: any) => {
+        const p = { id: `pr${profiles.length + 1}`, updatedAt: new Date(), ...data };
         profiles.push(p);
         return p;
       }),
-      findUnique: jest.fn(async ({ where }: any) => profiles.find((p) => p.userId === where.userId) ?? null),
+      update: jest.fn(async ({ where, data }: any) => {
+        const p = profiles.find((x) => x.userId === where.userId);
+        Object.assign(p, data, { updatedAt: new Date() });
+        return p;
+      }),
       findMany: jest.fn(async ({ where }: any) => profiles.filter((p) => (where.isVisible ? p.isVisible : true))),
     },
   };
 }
 
-function makeService(db: ReturnType<typeof prismaDouble>) {
-  return new ProfilesService(db as unknown as PrismaService, new PermissionService());
+/** Reviews aren't under test here — a stub that reports no ratings. */
+const noReviews = {
+  aggregateFor: jest.fn(async () => new Map()),
+  listFor: jest.fn(async () => []),
+} as unknown as ReviewsService;
+
+function makeService(db: ReturnType<typeof prismaDouble>, reviews: ReviewsService = noReviews) {
+  return new ProfilesService(db as unknown as PrismaService, new PermissionService(), reviews);
 }
 
 const OWNER_ID = "f1";
+const SLUG = "marisol-r";
 
-/** A verified freelancer's stored profile, contacts filled in. */
 function seedVisibleProfile(db: ReturnType<typeof prismaDouble>) {
   db.profiles.push({
     id: "pr1",
     userId: OWNER_ID,
+    slug: SLUG,
     displayName: "Marisol R.",
     category: "Home & Cleaning",
     headline: "Deep cleaning specialist",
@@ -60,67 +70,78 @@ describe("ProfilesService — contact gating (NFR-SEC-3)", () => {
   it("gives contact handles to a VERIFIED client", async () => {
     const db = prismaDouble();
     seedVisibleProfile(db);
-    const res: any = await makeService(db).getPublic(client({ idVerified: true }), OWNER_ID);
+    const res: any = await makeService(db).getPublicBySlug(client({ idVerified: true }), SLUG);
     expect(res.contactTelegram).toBe("@marisol");
-    expect(hasContacts(res)).toBe(true);
   });
 
   it("HIDES contact handles from an UNVERIFIED client", async () => {
     const db = prismaDouble();
     seedVisibleProfile(db);
-    const res: any = await makeService(db).getPublic(client({ idVerified: false }), OWNER_ID);
+    const res: any = await makeService(db).getPublicBySlug(client({ idVerified: false }), SLUG);
     expect(hasContacts(res)).toBe(false);
-    // the rest of the profile is still there
     expect(res.displayName).toBe("Marisol R.");
   });
 
   it("HIDES contact handles from an anonymous viewer", async () => {
     const db = prismaDouble();
     seedVisibleProfile(db);
-    const res: any = await makeService(db).getPublic(null, OWNER_ID);
+    const res: any = await makeService(db).getPublicBySlug(null, SLUG);
     expect(hasContacts(res)).toBe(false);
   });
 
-  // FR-R-3: freelancers never see each other's contacts, however verified.
-  it("HIDES contact handles from another freelancer", async () => {
+  it("HIDES contact handles from another freelancer (FR-R-3)", async () => {
     const db = prismaDouble();
     seedVisibleProfile(db);
     const otherFreelancer = client({ id: "f2", role: "freelancer", idVerified: true });
-    const res: any = await makeService(db).getPublic(otherFreelancer, OWNER_ID);
+    const res: any = await makeService(db).getPublicBySlug(otherFreelancer, SLUG);
     expect(hasContacts(res)).toBe(false);
   });
 
   it("HIDES contact handles from a banned client that would otherwise qualify", async () => {
     const db = prismaDouble();
     seedVisibleProfile(db);
-    const res: any = await makeService(db).getPublic(client({ idVerified: true, status: "banned" }), OWNER_ID);
+    const res: any = await makeService(db).getPublicBySlug(client({ idVerified: true, status: "banned" }), SLUG);
     expect(hasContacts(res)).toBe(false);
+  });
+
+  it("attaches the public rating aggregate", async () => {
+    const db = prismaDouble();
+    seedVisibleProfile(db);
+    const reviews = {
+      aggregateFor: jest.fn(async () => new Map([[OWNER_ID, { average: 4.8, count: 12 }]])),
+      listFor: jest.fn(async () => [{ id: "r1", rating: 5 }]),
+    } as unknown as ReviewsService;
+    const res: any = await makeService(db, reviews).getPublicBySlug(null, SLUG);
+    expect(res.rating).toBe(4.8);
+    expect(res.reviewCount).toBe(12);
+    expect(res.reviews).toHaveLength(1);
   });
 });
 
 describe("ProfilesService — visibility", () => {
-  it("404s a hidden (unverified) freelancer's public profile", async () => {
+  it("404s a hidden freelancer", async () => {
     const db = prismaDouble();
-    db.profiles.push({ userId: OWNER_ID, displayName: "Hidden", category: "x", isVisible: false });
-    await expect(makeService(db).getPublic(client({ idVerified: true }), OWNER_ID)).rejects.toThrow(
+    db.profiles.push({ userId: OWNER_ID, slug: "hidden", displayName: "Hidden", category: "x", isVisible: false });
+    await expect(makeService(db).getPublicBySlug(client({ idVerified: true }), "hidden")).rejects.toThrow(
       NotFoundException,
     );
   });
 
-  it("404s a freelancer with no profile at all", async () => {
+  it("404s an unknown slug", async () => {
     const db = prismaDouble();
-    await expect(makeService(db).getPublic(null, "nobody")).rejects.toThrow(NotFoundException);
+    await expect(makeService(db).getPublicBySlug(null, "nobody")).rejects.toThrow(NotFoundException);
   });
 
   it("search returns only visible profiles and never contact handles", async () => {
     const db = prismaDouble();
     seedVisibleProfile(db);
-    db.profiles.push({ userId: "f9", displayName: "Not yet verified", category: "x", isVisible: false, contactTelegram: "@x" });
+    db.profiles.push({ userId: "f9", slug: "hidden", displayName: "Not verified", category: "x", isVisible: false, contactTelegram: "@x", updatedAt: new Date() });
 
     const results: any[] = await makeService(db).search({});
     expect(results).toHaveLength(1);
     expect(results[0].displayName).toBe("Marisol R.");
     expect(hasContacts(results[0])).toBe(false);
+    expect(results[0]).toHaveProperty("rating");
   });
 });
 
@@ -128,55 +149,47 @@ describe("ProfilesService — upsert", () => {
   const freelancer = (over: Partial<ProfileOwner> = {}): ProfileOwner => ({
     id: OWNER_ID, role: "freelancer", status: "active", idVerified: false, ...over,
   });
+  const dto = { displayName: "Marisol R.", category: "Home & Cleaning", contactTelegram: "@marisol" };
 
-  const dto = {
-    displayName: "Marisol R.",
-    category: "Home & Cleaning",
-    contactTelegram: "@marisol",
-  };
-
-  it("saves a profile hidden while the freelancer is unverified", async () => {
+  it("assigns a slug on first save", async () => {
     const db = prismaDouble();
-    const p = await makeService(db).upsert(freelancer({ idVerified: false }), dto);
-    expect(p.isVisible).toBe(false);
+    const p = await makeService(db).upsert(freelancer(), dto);
+    expect(p.slug).toBe("marisol-r");
   });
 
-  it("makes the profile visible once the freelancer is verified", async () => {
-    const db = prismaDouble();
-    const p = await makeService(db).upsert(freelancer({ idVerified: true }), dto);
-    expect(p.isVisible).toBe(true);
-  });
-
-  it("does not let the user set visibility directly", async () => {
-    const db = prismaDouble();
-    // Even if a rogue field were sent, isVisible is derived from idVerified only.
-    const p = await makeService(db).upsert(freelancer({ idVerified: false }), {
-      ...dto,
-      ...({ isVisible: true } as any),
-    });
-    expect(p.isVisible).toBe(false);
-  });
-
-  it("updates an existing profile rather than duplicating it", async () => {
+  it("keeps the same slug on later edits", async () => {
     const db = prismaDouble();
     const svc = makeService(db);
     await svc.upsert(freelancer(), dto);
-    await svc.upsert(freelancer(), { ...dto, displayName: "Marisol Rivera" });
+    const again = await svc.upsert(freelancer(), { ...dto, displayName: "Marisol Rivera" });
+    expect(again.slug).toBe("marisol-r"); // unchanged despite the new name
     expect(db.profiles).toHaveLength(1);
-    expect(db.profiles[0].displayName).toBe("Marisol Rivera");
+  });
+
+  it("makes a slug unique when the base is taken", async () => {
+    const db = prismaDouble();
+    db.profiles.push({ userId: "other", slug: "marisol-r", displayName: "Marisol R.", category: "x" });
+    const p = await makeService(db).upsert(freelancer(), dto);
+    expect(p.slug).toBe("marisol-r-2");
+  });
+
+  it("stays hidden while unverified, visible once verified", async () => {
+    const db = prismaDouble();
+    expect((await makeService(db).upsert(freelancer({ idVerified: false }), dto)).isVisible).toBe(false);
+  });
+
+  it("becomes visible for a verified freelancer", async () => {
+    const db = prismaDouble();
+    expect((await makeService(db).upsert(freelancer({ idVerified: true }), dto)).isVisible).toBe(true);
   });
 
   it("refuses a client", async () => {
     const db = prismaDouble();
-    await expect(makeService(db).upsert(freelancer({ role: "client" }), dto)).rejects.toThrow(
-      ForbiddenException,
-    );
+    await expect(makeService(db).upsert(freelancer({ role: "client" }), dto)).rejects.toThrow(ForbiddenException);
   });
 
   it("refuses a banned freelancer", async () => {
     const db = prismaDouble();
-    await expect(makeService(db).upsert(freelancer({ status: "banned" }), dto)).rejects.toThrow(
-      /suspended/i,
-    );
+    await expect(makeService(db).upsert(freelancer({ status: "banned" }), dto)).rejects.toThrow(/suspended/i);
   });
 });

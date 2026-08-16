@@ -36,8 +36,8 @@ export class ProfilesController {
   }
 
   @Public()
-  @Get("freelancers/:userId")
-  getPublic(@CurrentUser() viewer: AuthedUser | undefined, @Param("userId") userId: string) {
-    return this.profiles.getPublic(viewer ?? null, userId);
+  @Get("freelancers/:slug")
+  getPublic(@CurrentUser() viewer: AuthedUser | undefined, @Param("slug") slug: string) {
+    return this.profiles.getPublicBySlug(viewer ?? null, slug);
   }
 }

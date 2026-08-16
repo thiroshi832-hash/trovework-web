@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/commo
 import type { FreelancerProfile } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { PermissionService, type Principal } from "../permission/permission.service";
+import { ReviewsService } from "../reviews/reviews.service";
 import { UpsertProfileDto } from "./dto/upsert-profile.dto";
 import { SearchDto } from "./dto/search.dto";
 
@@ -20,6 +21,7 @@ export class ProfilesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly permission: PermissionService,
+    private readonly reviews: ReviewsService,
   ) {}
 
   /* --------------------------------- write --------------------------------- */
@@ -28,13 +30,15 @@ export class ProfilesService {
     if (owner.role !== "freelancer") throw new ForbiddenException("Only freelancers have a profile.");
     if (owner.status === "banned") throw new ForbiddenException("This account has been suspended.");
 
-    // Visibility is not the user's to set — it tracks ID verification (FR-V-5).
-    // A profile can be built and saved before verification; it just stays hidden.
+    const existing = await this.prisma.freelancerProfile.findUnique({ where: { userId: owner.id } });
+
+    // Visibility tracks ID verification (FR-V-5), not something the user sets.
     const data = {
       displayName: dto.displayName,
       category: dto.category,
       headline: dto.headline ?? null,
       bio: dto.bio ?? null,
+      availability: dto.availability ?? null,
       skills: dto.skills ?? [],
       hourlyRate: dto.hourlyRate ?? null,
       contactTelegram: dto.contactTelegram ?? null,
@@ -43,14 +47,14 @@ export class ProfilesService {
       isVisible: owner.idVerified,
     };
 
-    return this.prisma.freelancerProfile.upsert({
-      where: { userId: owner.id },
-      create: { userId: owner.id, ...data },
-      update: data,
-    });
+    if (existing) {
+      return this.prisma.freelancerProfile.update({ where: { userId: owner.id }, data });
+    }
+    // Slug is set once, on first save, and never changes — links stay stable.
+    const slug = await this.uniqueSlug(dto.displayName);
+    return this.prisma.freelancerProfile.create({ data: { userId: owner.id, slug, ...data } });
   }
 
-  /** The owner always sees their own profile in full, including contacts. */
   async getMine(userId: string): Promise<FreelancerProfile> {
     const profile = await this.prisma.freelancerProfile.findUnique({ where: { userId } });
     if (!profile) throw new NotFoundException("You haven't created a profile yet.");
@@ -60,20 +64,27 @@ export class ProfilesService {
   /* --------------------------------- read ---------------------------------- */
 
   /**
-   * A public profile. Hidden freelancers 404 (they are not browsable until
-   * verified). Contact handles are attached ONLY when the viewer is a verified
-   * client — the single check that upholds NFR-SEC-3, done here on the server
-   * so the fields never reach the client app otherwise.
+   * A public profile, by slug. Hidden freelancers 404. Contact handles are
+   * attached ONLY for a verified client (NFR-SEC-3); the rating aggregate and
+   * recent reviews are public.
    */
-  async getPublic(viewer: Principal | null, ownerUserId: string) {
-    const profile = await this.prisma.freelancerProfile.findUnique({ where: { userId: ownerUserId } });
+  async getPublicBySlug(viewer: Principal | null, slug: string) {
+    const profile = await this.prisma.freelancerProfile.findUnique({ where: { slug } });
     if (!profile || !profile.isVisible) throw new NotFoundException("Freelancer not found.");
 
-    const canSeeContact = this.permission.canViewContactInfo(viewer, ownerUserId);
-    return this.shape(profile, canSeeContact);
+    const canSeeContact = this.permission.canViewContactInfo(viewer, profile.userId);
+    const [agg] = [(await this.reviews.aggregateFor([profile.userId])).get(profile.userId)];
+    const reviews = await this.reviews.listFor(profile.userId);
+
+    return {
+      ...this.shape(profile, canSeeContact),
+      rating: agg?.average ?? 0,
+      reviewCount: agg?.count ?? 0,
+      reviews,
+    };
   }
 
-  /** Search visible freelancers. Never returns contact handles (list view). */
+  /** Search visible freelancers. Never returns contact handles. */
   async search(filters: SearchDto) {
     const take = filters.take ?? 20;
     const profiles = await this.prisma.freelancerProfile.findMany({
@@ -99,22 +110,49 @@ export class ProfilesService {
             }
           : {}),
       },
-      orderBy: { updatedAt: "desc" },
       take,
       skip: filters.skip ?? 0,
     });
 
-    return profiles.map((p) => this.shape(p, false));
+    const agg = await this.reviews.aggregateFor(profiles.map((p) => p.userId));
+    const withRatings = profiles.map((p) => ({
+      ...this.shape(p, false),
+      rating: agg.get(p.userId)?.average ?? 0,
+      reviewCount: agg.get(p.userId)?.count ?? 0,
+    }));
+
+    // Rating feeds sort order (FR-RV-2); recency breaks ties.
+    withRatings.sort(
+      (a, b) => b.rating - a.rating || +new Date(b.updatedAt) - +new Date(a.updatedAt),
+    );
+    return withRatings;
   }
 
   /* -------------------------------- internals ------------------------------ */
 
-  /** Returns the profile with contact handles stripped unless allowed. This is
-   *  a deny-by-default shaper: the fields are removed unless `withContact`. */
   private shape(profile: FreelancerProfile, withContact: boolean) {
     if (withContact) return profile;
     const copy: Record<string, unknown> = { ...profile };
     for (const f of CONTACT_FIELDS) delete copy[f];
-    return copy;
+    return copy as FreelancerProfile;
+  }
+
+  /** slugify(displayName), with a numeric suffix if that slug is taken. */
+  private async uniqueSlug(displayName: string): Promise<string> {
+    const base =
+      displayName
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[^\w\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-")
+        .slice(0, 40) || "freelancer";
+
+    let candidate = base;
+    for (let n = 2; ; n++) {
+      const taken = await this.prisma.freelancerProfile.findUnique({ where: { slug: candidate } });
+      if (!taken) return candidate;
+      candidate = `${base}-${n}`;
+    }
   }
 }

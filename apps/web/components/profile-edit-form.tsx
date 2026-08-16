@@ -95,6 +95,7 @@ export function ProfileEditForm() {
         category,
         headline: headline.trim() || undefined,
         bio: bio.trim() || undefined,
+        availability,
         skills,
         hourlyRate: Number(rate),
         contactTelegram: telegram.trim() || undefined,
