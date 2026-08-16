@@ -200,6 +200,19 @@ export const api = {
 
   /* ------------------------------- admin --------------------------------- */
   admin: {
+    verifications: {
+      list: () => request<unknown[]>("/api/admin/verifications"),
+      approve: (id: string) => request<void>(`/api/admin/verifications/${id}/approve`, { method: "POST" }),
+      reject: (id: string, note?: string) =>
+        request<void>(`/api/admin/verifications/${id}/reject`, {
+          method: "POST",
+          body: JSON.stringify({ note }),
+        }),
+    },
+    violations: () => request<unknown[]>("/api/admin/violations"),
+    blockedPosts: () => request<unknown[]>("/api/admin/posts/blocked"),
+    bannedUsers: () => request<unknown[]>("/api/admin/users/banned"),
+    reinstate: (userId: string) => request<void>(`/api/admin/users/${userId}/reinstate`, { method: "POST" }),
     categories: {
       list: () => request<Category[]>("/api/admin/categories"),
       create: (input: { name: string; slug?: string; sortOrder?: number; isActive?: boolean }) =>
