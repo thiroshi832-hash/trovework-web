@@ -267,7 +267,7 @@ cd /srv/trovework
 cat > .env <<EOF
 POSTGRES_USER=trovework
 POSTGRES_DB=trovework
-POSTGRES_PASSWORD=$(openssl rand -base64 36)
+POSTGRES_PASSWORD=$(openssl rand -hex 32)
 JWT_ACCESS_SECRET=$(openssl rand -base64 48)
 JWT_REFRESH_SECRET=$(openssl rand -base64 48)
 WEB_ORIGIN=https://trovework.com
@@ -285,6 +285,26 @@ chmod 600 .env
 
 The two JWT secrets must differ. Rotating either one invalidates every existing session, which
 is exactly what you want if you suspect a leak.
+
+> **The database password uses `-hex`, not `-base64`, on purpose.** It is embedded in
+> `DATABASE_URL`, and base64 can emit `/`, `+` and `=`. A `/` ends the authority part of a URL, so
+> `postgresql://user:pa/ss@db:5432/...` leaves no parsable port and Prisma dies at boot with
+> `P1013: invalid port number in database URL`. Hex is 0-9a-f only — equally strong at 256 bits,
+> and URL-safe by construction. The JWT secrets are plain env values, never parsed as a URL, so
+> base64 is fine for those.
+>
+> If you already created the volume with a base64 password, the password inside Postgres and the
+> one in `.env` are now different — Postgres only reads `POSTGRES_PASSWORD` when it first
+> initialises its data directory. Before there is any real data, the quickest fix is to discard the
+> volume and start again:
+>
+> ```bash
+> sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(openssl rand -hex 32)|" .env
+> docker compose down -v      # -v drops the database volume. Harmless now; destroys data later.
+> docker compose up -d --build
+> ```
+>
+> Once the platform holds real accounts, use `ALTER USER` inside psql instead — never `down -v`.
 
 ---
 
@@ -458,6 +478,8 @@ docker compose exec db pg_dump -U trovework trovework > ~/trovework-$(date +%F).
 | api exits at boot with a config error | `.env` missing or incomplete (Step 7). Compose fails loudly by design rather than defaulting a password |
 | api logs `Can't reach database server` | db not healthy yet — `docker compose ps`, `logs -f db` |
 | Login works, then every request is 401 | Cookies not reaching the API. Check nginx passes `/api/` through and that the site is on HTTPS: the cookies are `Secure` outside development |
+| api restarts with `P1013 invalid port number` | A `/`, `+` or `=` in `POSTGRES_PASSWORD` breaking `DATABASE_URL`. Regenerate with `openssl rand -hex 32` (see Step 7) |
+| api logs `password authentication failed` | `.env` password no longer matches the one baked into the db volume on first init |
 | `relation "users" does not exist` | Migrations never ran — `docker compose run --rm api npx prisma migrate deploy --schema apps/api/prisma/schema.prisma` |
 | certbot fails | DNS not pointing at the VPS yet (Step 0), or port 80 blocked |
 | Deploy action fails auth | `VPS_SSH_KEY` missing header/footer lines, or public key not in `~deploy/.ssh/authorized_keys` |
