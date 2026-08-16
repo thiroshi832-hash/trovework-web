@@ -14,7 +14,7 @@ const NAV = [
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
-      <nav className="mx-auto flex max-w-page items-center justify-between gap-6 px-6 py-2">
+      <nav className="mx-auto flex max-w-page items-center justify-between gap-6 px-6 py-4">
         <Logo />
 
         <div className="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex">
