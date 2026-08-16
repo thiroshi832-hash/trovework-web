@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Portrait } from "@/components/brand";
 import { ArrowRight, Check, ShieldCheck } from "@/components/icons";
-import type { Conversation } from "@/lib/conversations";
 
 /* Shared chrome for both dashboards, so they read as one product. */
 
@@ -151,34 +150,3 @@ export function VerificationCard({
   );
 }
 
-export function ThreadList({ threads }: { threads: Conversation[] }) {
-  if (threads.length === 0) {
-    return <p className="text-sm text-slate-500">No conversations yet.</p>;
-  }
-  return (
-    <ul className="divide-y divide-slate-100">
-      {threads.map((t) => (
-        <li key={t.id} className="flex items-center gap-4 py-3.5 first:pt-0 last:pb-0">
-          <Portrait src={t.withPhoto} sizes="40px" className="h-10 w-10" />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <p className="truncate text-sm font-semibold text-navy-800">{t.withName}</p>
-              <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[0.625rem] font-medium text-slate-500">
-                {t.withRole}
-              </span>
-            </div>
-            <p className="mt-0.5 truncate text-sm text-slate-500">{t.lastMessage}</p>
-          </div>
-          <div className="shrink-0 text-right">
-            <p className="text-xs text-slate-400">{t.when}</p>
-            {t.unread > 0 ? (
-              <span className="mt-1 inline-grid h-5 min-w-5 place-items-center rounded-full bg-brand-600 px-1.5 text-[0.6875rem] font-semibold text-white">
-                {t.unread}
-              </span>
-            ) : null}
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
