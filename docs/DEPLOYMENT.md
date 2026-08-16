@@ -133,6 +133,39 @@ sudo systemctl restart ssh
 > Keep your current root session open until you've confirmed `deploy` login works — otherwise a
 > typo locks you out.
 
+Once this is applied, **password login stops working entirely** — that is the point. From here on
+the only way in is the key:
+
+```bash
+ssh -i ~/.ssh/trovework_deploy deploy@172.86.122.212
+```
+
+Worth an alias in `~/.ssh/config` so it is one word:
+
+```bash
+printf 'Host trovework
+  HostName 172.86.122.212
+  User deploy
+  IdentityFile ~/.ssh/trovework_deploy
+' >> ~/.ssh/config
+# then simply:  ssh trovework
+```
+
+### Keep a second way in
+
+That one key file is now the only route to the server. If it is lost, no password and no root
+login can rescue you. Close that risk two ways:
+
+1. **Find your VPS provider's web console / VNC** before you need it. It bypasses SSH entirely and
+   is the real recovery path.
+2. **Add a personal key separate from the CI key.** `trovework_deploy` lives in GitHub Actions
+   secrets; if it ever has to be rotated you do not want that to cut off your own access too.
+
+   ```bash
+   ssh-keygen -t ed25519 -C "personal" -f ~/.ssh/trovework_personal -N ""
+   ssh trovework "cat >> ~/.ssh/authorized_keys" < ~/.ssh/trovework_personal.pub
+   ```
+
 Firewall:
 
 ```bash
