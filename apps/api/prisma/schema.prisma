@@ -62,12 +62,48 @@ model User {
   idVerifications  IdVerification[]  @relation("subject")
   reviewedIdChecks IdVerification[]  @relation("reviewer")
   phoneChallenge   PhoneChallenge?
+  clientConvos     Conversation[]    @relation("client")
+  freelancerConvos Conversation[]    @relation("freelancer")
+  messages         Message[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([role])
   @@map("users")
+}
+
+/// A chat thread. Always exactly one verified client and one freelancer — the
+/// pair is unique, and two freelancers can never share one (FR-C-2, enforced in
+/// the service since the schema alone can't express "different roles").
+model Conversation {
+  id           String    @id @default(uuid()) @db.Uuid
+  clientId     String    @map("client_id") @db.Uuid
+  client       User      @relation("client", fields: [clientId], references: [id], onDelete: Cascade)
+  freelancerId String    @map("freelancer_id") @db.Uuid
+  freelancer   User      @relation("freelancer", fields: [freelancerId], references: [id], onDelete: Cascade)
+  messages     Message[]
+  lastMessageAt DateTime? @map("last_message_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@unique([clientId, freelancerId])
+  @@index([clientId])
+  @@index([freelancerId])
+  @@map("conversations")
+}
+
+/// One chat message. senderId is always one of the conversation's two parties.
+model Message {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @map("conversation_id") @db.Uuid
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String       @map("sender_id") @db.Uuid
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body           String
+  sentAt         DateTime     @default(now()) @map("sent_at")
+
+  @@index([conversationId, sentAt])
+  @@map("messages")
 }
 
 /// A one-time SMS code, hashed. One live challenge per user; issuing a new one
