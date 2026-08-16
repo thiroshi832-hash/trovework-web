@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Field, PendingNotice, SelectInput, TextInput } from "@/components/auth-fields";
+import { Field, SelectInput, TextInput } from "@/components/auth-fields";
 import { Lock, ShieldCheck } from "@/components/icons";
 import { CATEGORIES } from "@/lib/categories";
 import { LEAK_LABEL, scanForContact, segment } from "@/lib/contact-scan";
 import type { Post } from "@/lib/posts";
+import { ApiError, api, type PostWriteResult } from "@/lib/api";
 
 const TITLE_MAX = 90;
 const BODY_MAX = 1200;
@@ -17,7 +19,11 @@ export function PostEditor({ post }: { post?: Post }) {
   const [category, setCategory] = useState<string>(post?.category ?? CATEGORIES[0]);
   const [priceFrom, setPriceFrom] = useState(post?.priceFrom ? String(post.priceFrom) : "");
   const [errors, setErrors] = useState<Partial<Record<"title" | "description", string>>>({});
-  const [saved, setSaved] = useState<"draft" | "published" | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  // The server's verdict — authoritative, may block even if the client preview passed.
+  const [blocked, setBlocked] = useState<PostWriteResult["blocked"] | null>(null);
+  const router = useRouter();
 
   // Scan title and body together — the server scans the whole post.
   const leaks = useMemo(() => scanForContact(description), [description]);
@@ -35,10 +41,38 @@ export function PostEditor({ post }: { post?: Post }) {
     return Object.keys(next).length === 0;
   }
 
-  function submit(as: "draft" | "published") {
+  async function submit(as: "draft" | "published") {
     if (!validate()) return;
     if (as === "published" && wouldBlock) return;
-    setSaved(as);
+
+    setBusy(true);
+    setFormError(null);
+    setBlocked(null);
+    const payload = {
+      title: title.trim(),
+      description: description.trim(),
+      category,
+      priceFrom: priceFrom.trim() ? Number(priceFrom) : undefined,
+      status: as === "published" ? "active" : "draft",
+    };
+    try {
+      const result = post?.id
+        ? await api.posts.update(post.id, payload)
+        : await api.posts.create(payload);
+
+      if (result.blocked) {
+        // The server caught contact info the client preview missed. Surface its
+        // message (including the strike count) rather than silently succeeding.
+        setBlocked(result.blocked);
+        setBusy(false);
+        return;
+      }
+      router.replace("/dashboard/freelancer");
+      router.refresh();
+    } catch (err) {
+      setFormError(err instanceof ApiError ? err.message : "Couldn't save your post. Try again.");
+      setBusy(false);
+    }
   }
 
   const section = "rounded-2xl border border-slate-200 bg-white p-6 sm:p-8";
@@ -178,12 +212,18 @@ export function PostEditor({ post }: { post?: Post }) {
         </div>
       </section>
 
-      {saved ? (
-        <PendingNotice>
-          Nothing was saved — the posts API does not exist yet. This would have been stored as
-          {saved === "draft" ? " a draft" : " an active post"}, after the server ran the same check
-          again, which is the one that counts.
-        </PendingNotice>
+      {blocked ? (
+        <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5">
+          <p className="text-sm font-semibold text-red-900">
+            {blocked.banned ? "Your account has been suspended" : `Post blocked — strike ${blocked.strikeCount} of 3`}
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-red-800">{blocked.message}</p>
+        </div>
+      ) : null}
+      {formError ? (
+        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {formError}
+        </p>
       ) : null}
 
       <div className="flex flex-wrap items-center justify-end gap-3">
@@ -196,18 +236,19 @@ export function PostEditor({ post }: { post?: Post }) {
         <button
           type="button"
           onClick={() => submit("draft")}
-          className="rounded-lg border border-slate-200 px-6 py-3 text-sm font-semibold text-navy-800 transition hover:bg-slate-50"
+          disabled={busy}
+          className="rounded-lg border border-slate-200 px-6 py-3 text-sm font-semibold text-navy-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Save draft
         </button>
         <button
           type="button"
           onClick={() => submit("published")}
-          disabled={wouldBlock}
+          disabled={wouldBlock || busy}
           title={wouldBlock ? "Remove the contact details first" : undefined}
           className="rounded-lg bg-brand-600 px-8 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
         >
-          {post ? "Save and publish" : "Publish post"}
+          {busy ? "Saving…" : post ? "Save and publish" : "Publish post"}
         </button>
       </div>
     </form>

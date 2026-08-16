@@ -70,6 +70,26 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+/** Like request(), but for multipart uploads — never sets a JSON Content-Type,
+ *  so the browser can add the multipart boundary itself. */
+async function upload<T>(path: string, form: FormData): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(path, { method: "POST", body: form, credentials: "include" });
+  } catch {
+    throw new ApiError(0, "Could not reach Trovework. Check your connection and try again.");
+  }
+  if (res.status === 204) return undefined as T;
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    if (res.status === 429) throw new ApiError(429, "Too many attempts. Wait a minute and try again.");
+    if (res.status === 413) throw new ApiError(413, "Those files are too large. Use images under 8MB.");
+    if (res.status >= 500) throw new ApiError(res.status, "Something went wrong on our side. Please try again.");
+    throw new ApiError(res.status, readMessage(body, "Something went wrong. Please try again."));
+  }
+  return body as T;
+}
+
 export interface RegisterInput {
   email: string;
   password: string;
@@ -96,7 +116,62 @@ export const api = {
   logout: () => request<void>("/api/auth/logout", { method: "POST" }),
 
   me: () => request<SessionUser>("/api/auth/me"),
+
+  /* ------------------------------- profile ------------------------------- */
+  profile: {
+    getMine: () => request<unknown>("/api/profile/me"),
+    upsert: (input: Record<string, unknown>) =>
+      request<unknown>("/api/profile", { method: "PUT", body: JSON.stringify(input) }),
+  },
+
+  /* ------------------------------- posts --------------------------------- */
+  posts: {
+    listMine: () => request<unknown[]>("/api/posts/mine"),
+    create: (input: Record<string, unknown>) =>
+      request<PostWriteResult>("/api/posts", { method: "POST", body: JSON.stringify(input) }),
+    update: (id: string, input: Record<string, unknown>) =>
+      request<PostWriteResult>(`/api/posts/${id}`, { method: "PUT", body: JSON.stringify(input) }),
+    remove: (id: string) => request<void>(`/api/posts/${id}`, { method: "DELETE" }),
+  },
+
+  /* ---------------------------- verification ----------------------------- */
+  verify: {
+    requestPhone: (phone: string) =>
+      request<{ sent: true }>("/api/verify/phone/request", {
+        method: "POST",
+        body: JSON.stringify({ phone }),
+      }),
+    confirmPhone: (code: string) =>
+      request<{ phoneVerified: true }>("/api/verify/phone/confirm", {
+        method: "POST",
+        body: JSON.stringify({ code }),
+      }),
+    /** form must carry: idFront, selfie (required), idBack (optional), fullName, dob, idNumber */
+    submitId: (form: FormData) => upload<{ status: string; message: string }>("/api/verify/id", form),
+  },
+
+  /* -------------------------------- chat --------------------------------- */
+  chat: {
+    start: (freelancerId: string) =>
+      request<{ id: string }>("/api/conversations", {
+        method: "POST",
+        body: JSON.stringify({ freelancerId }),
+      }),
+    list: () => request<unknown[]>("/api/conversations"),
+    messages: (id: string) => request<unknown[]>(`/api/conversations/${id}/messages`),
+    send: (id: string, body: string) =>
+      request<unknown>(`/api/conversations/${id}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ body }),
+      }),
+  },
 };
+
+/** What POST/PUT /api/posts returns — a blocked post carries the scanner verdict. */
+export interface PostWriteResult {
+  post: { id: string; status: "active" | "blocked" | "draft"; blockedReason: string | null };
+  blocked?: { detectedText: string; strikeCount: number; banned: boolean; message: string };
+}
 
 /** Where a user lands after authenticating. */
 export function homeFor(role: SessionUser["role"]): string {

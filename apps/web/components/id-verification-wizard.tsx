@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Field, PendingNotice, TextInput } from "@/components/auth-fields";
+import { Field, TextInput } from "@/components/auth-fields";
 import { ArrowLeft, Check, IdUpload, ShieldCheck } from "@/components/icons";
+import { ApiError, api } from "@/lib/api";
 
 const STEPS = ["Upload ID", "Take Selfie", "Your Info", "Review"] as const;
 const IMAGE_TYPES = ["image/jpeg", "image/png"];
@@ -212,6 +213,37 @@ export function IdVerificationWizard() {
   const [errors, setErrors] = useState<Partial<Record<keyof Info, string>>>({});
   const [fileError, setFileError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [resultMessage, setResultMessage] = useState<string>("");
+
+  /** Shots hold data URLs; the API needs real files. Convert back to Blobs. */
+  async function shotToBlob(shot: Shot): Promise<Blob> {
+    return (await fetch(shot.url)).blob();
+  }
+
+  async function handleSubmit() {
+    if (!idFront || !selfie) return;
+    setBusy(true);
+    setFormError(null);
+    try {
+      const form = new FormData();
+      form.append("idFront", await shotToBlob(idFront), idFront.name);
+      form.append("selfie", await shotToBlob(selfie), selfie.name);
+      if (idBack) form.append("idBack", await shotToBlob(idBack), idBack.name);
+      form.append("fullName", info.fullName.trim());
+      form.append("dob", info.dob);
+      form.append("idNumber", info.idNumber.trim());
+
+      const res = await api.verify.submitId(form);
+      setResultMessage(res.message);
+      setSubmitted(true);
+    } catch (err) {
+      setFormError(err instanceof ApiError ? err.message : "Couldn't submit your documents. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const selfieInput = useRef<HTMLInputElement>(null);
   const video = useRef<HTMLVideoElement>(null);
@@ -314,12 +346,11 @@ export function IdVerificationWizard() {
           within a few minutes.
         </p>
 
-        <div className="mx-auto mt-7 max-w-md text-left">
-          <PendingNotice>
-            Nothing was submitted — the verification API does not exist yet, so your document and
-            selfie never left this page.
-          </PendingNotice>
-        </div>
+        {resultMessage ? (
+          <div className="mx-auto mt-7 max-w-md rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm leading-relaxed text-amber-800">
+            {resultMessage}
+          </div>
+        ) : null}
 
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
@@ -617,13 +648,20 @@ export function IdVerificationWizard() {
         ) : (
           <button
             type="button"
-            onClick={() => setSubmitted(true)}
-            className="rounded-lg bg-brand-600 px-9 py-3 text-base font-semibold text-white transition hover:bg-brand-700"
+            onClick={handleSubmit}
+            disabled={busy}
+            className="rounded-lg bg-brand-600 px-9 py-3 text-base font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            Submit for verification
+            {busy ? "Submitting…" : "Submit for verification"}
           </button>
         )}
       </div>
+
+      {formError ? (
+        <p role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {formError}
+        </p>
+      ) : null}
     </div>
   );
 }

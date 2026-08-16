@@ -2,8 +2,10 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Portrait } from "@/components/brand";
-import { Field, PendingNotice, SelectInput, TextInput } from "@/components/auth-fields";
+import { Field, SelectInput, TextInput } from "@/components/auth-fields";
+import { ApiError, api } from "@/lib/api";
 import { Check, ShieldCheck } from "@/components/icons";
 import { AVAILABILITY, CATEGORIES } from "@/lib/categories";
 import { COUNTRIES } from "@/components/auth-fields";
@@ -53,7 +55,10 @@ export function ProfileEditForm() {
   const [resume, setResume] = useState<File | null>(null);
   const [errors, setErrors] = useState<Errors>({});
   const [saved, setSaved] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const resumeInput = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   function addSkill() {
     const s = skillDraft.trim();
@@ -74,11 +79,35 @@ export function ProfileEditForm() {
     return next;
   }
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const next = validate();
     setErrors(next);
-    setSaved(Object.keys(next).length === 0);
+    setSaved(false);
+    setFormError(null);
+    if (Object.keys(next).length) return;
+
+    setBusy(true);
+    try {
+      // resume upload is a separate endpoint (not built yet); text fields save here.
+      await api.profile.upsert({
+        displayName: name.trim(),
+        category,
+        headline: headline.trim() || undefined,
+        bio: bio.trim() || undefined,
+        skills,
+        hourlyRate: Number(rate),
+        contactTelegram: telegram.trim() || undefined,
+        contactDiscord: discord.trim() || undefined,
+        contactWhatsapp: whatsapp.trim() || undefined,
+      });
+      setSaved(true);
+      router.refresh();
+    } catch (err) {
+      setFormError(err instanceof ApiError ? err.message : "Couldn't save your profile. Try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const section = "rounded-2xl border border-slate-200 bg-white p-6 sm:p-8";
@@ -363,10 +392,14 @@ export function ProfileEditForm() {
       </section>
 
       {saved ? (
-        <PendingNotice>
-          Nothing was saved — the profiles API does not exist yet, so this form has nowhere to write.
-          Your changes stay on this page only.
-        </PendingNotice>
+        <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+          Profile saved.
+        </p>
+      ) : null}
+      {formError ? (
+        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {formError}
+        </p>
       ) : null}
 
       <div className="flex flex-wrap items-center justify-end gap-3">
@@ -378,10 +411,13 @@ export function ProfileEditForm() {
         </Link>
         <button
           type="submit"
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-8 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
+          disabled={busy}
+          className={`inline-flex items-center gap-2 rounded-lg px-8 py-3 text-sm font-semibold text-white transition ${
+            busy ? "cursor-not-allowed bg-slate-300" : "bg-brand-600 hover:bg-brand-700"
+          }`}
         >
           <Check className="h-5 w-5" />
-          Save changes
+          {busy ? "Saving…" : "Save changes"}
         </button>
       </div>
     </form>
