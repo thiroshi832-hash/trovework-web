@@ -66,25 +66,60 @@ export function ProfileEditForm() {
 
   return (
     <form noValidate onSubmit={onSubmit} className="space-y-6">
-      {/* Until ID verification passes the API keeps is_visible = false, so the
-          profile is not in search at all. Say so plainly rather than implying
-          the form alone publishes it. */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+      {/* Both verifications gate publishing: nothing goes live until phone and
+          identity are confirmed. ID verification is also what flips
+          is_visible = true, putting the profile into search. */}
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
         <div className="flex gap-3">
           <ShieldCheck className="h-6 w-6 shrink-0 text-amber-600" />
           <div>
-            <p className="text-sm font-semibold text-amber-900">Your profile is hidden</p>
+            <p className="text-sm font-semibold text-amber-900">Your profile is not live yet</p>
             <p className="mt-1 text-sm leading-relaxed text-amber-800">
-              Freelancer profiles stay out of search results until identity verification passes.
+              Verify your phone and your identity before you can publish your profile or
+              any post.
             </p>
           </div>
         </div>
-        <Link
-          href="/verify/id"
-          className="shrink-0 rounded-lg bg-amber-600 px-5 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-amber-700"
-        >
-          Verify my identity
-        </Link>
+
+        <ol className="mt-5 space-y-3">
+          {[
+            {
+              step: 1,
+              title: "Verify your phone",
+              body: "Confirms a real person is behind the profile. Required to publish.",
+              href: "/verify/phone",
+              cta: "Verify phone",
+            },
+            {
+              step: 2,
+              title: "Verify your identity",
+              body: "Face and document match. Required to publish, and what puts you in search results.",
+              href: "/verify/id",
+              cta: "Verify identity",
+            },
+          ].map((g) => (
+            <li
+              key={g.step}
+              className="flex flex-col gap-3 rounded-xl bg-white/70 p-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="flex gap-3">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-amber-600 text-xs font-bold text-white">
+                  {g.step}
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-amber-900">{g.title}</p>
+                  <p className="mt-0.5 text-sm leading-relaxed text-amber-800">{g.body}</p>
+                </div>
+              </div>
+              <Link
+                href={g.href}
+                className="shrink-0 rounded-lg bg-amber-600 px-5 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-amber-700"
+              >
+                {g.cta}
+              </Link>
+            </li>
+          ))}
+        </ol>
       </div>
 
       {/* ------------------------------- basics ------------------------------ */}
