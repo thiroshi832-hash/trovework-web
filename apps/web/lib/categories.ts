@@ -2,23 +2,26 @@
  * The category taxonomy, defined once. The landing page shows a curated few as
  * tiles; the browse page lists them all in its filter sidebar.
  */
+// Trovework is for work of ANY field, not only tech (SRS §1.2). In-person
+// trades and services lead — that's where "is this person verified?" matters
+// most — with digital and knowledge work as part of the mix, not the whole.
 export const CATEGORIES = [
-  "Web Development",
-  "Mobile Development",
+  "Home & Cleaning",
+  "Repairs & Trades",
+  "Moving & Delivery",
+  "Gardening & Outdoor",
+  "Care & Wellbeing",
+  "Beauty & Hair",
+  "Tutoring & Lessons",
+  "Cooking & Catering",
+  "Events & Photography",
+  "Driving & Transport",
   "Design & Creative",
   "Writing & Translation",
+  "Web & Software",
   "Marketing",
-  "Video & Animation",
-  "AI Services",
-  "Data & Analytics",
-  "Business",
-  "Music & Audio",
-  "Photography",
-  "Engineering & Architecture",
-  "Finance & Accounting",
-  "Legal",
-  "Admin & Customer Support",
-  "Education & Tutoring",
+  "Business & Admin",
+  "Finance & Legal",
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
