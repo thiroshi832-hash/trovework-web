@@ -1,11 +1,64 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Portrait } from "@/components/brand";
 import { ChevronDown, Search, Star } from "@/components/icons";
 import { AVAILABILITY, CATEGORIES, CATEGORIES_COLLAPSED } from "@/lib/categories";
-import { VISIBLE_FREELANCERS as FREELANCERS } from "@/lib/freelancers";
+import { api } from "@/lib/api";
+
+/** The card's view shape, adapted from an API profile row. */
+type Freelancer = {
+  slug: string;
+  name: string;
+  title: string;
+  blurb: string;
+  category: string;
+  allSkills: string[];
+  skills: string[];
+  rate: number;
+  rating: number;
+  reviews: number;
+  availability: string;
+  photo: string | null;
+  idVerified: boolean;
+  joined: string;
+};
+
+function initialsOf(name: string): string {
+  return name.split(/\s+/).map((p) => p[0] ?? "").join("").slice(0, 2).toUpperCase() || "?";
+}
+
+/** Fallback avatar for a freelancer who hasn't uploaded a photo yet. */
+function InitialsAvatar({ name, className = "" }: { name: string; className?: string }) {
+  return (
+    <span
+      className={`grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-700 font-semibold text-white ${className}`}
+    >
+      {initialsOf(name)}
+    </span>
+  );
+}
+
+function adapt(r: Record<string, unknown>): Freelancer {
+  const skills = (r.skills as string[] | undefined) ?? [];
+  return {
+    slug: String(r.slug ?? ""),
+    name: String(r.displayName ?? ""),
+    title: (r.headline as string | null) ?? "",
+    blurb: (r.bio as string | null) ?? "",
+    category: String(r.category ?? ""),
+    allSkills: skills,
+    skills: skills.slice(0, 4),
+    rate: Number(r.hourlyRate ?? 0),
+    rating: Number(r.rating ?? 0),
+    reviews: Number(r.reviewCount ?? 0),
+    availability: (r.availability as string | null) ?? "",
+    photo: (r.photoPath as string | null) ?? null,
+    idVerified: true, // search only returns verified (visible) freelancers
+    joined: String(r.createdAt ?? r.updatedAt ?? ""),
+  };
+}
 
 const ALL = "All Categories";
 const ANY_AVAILABILITY = "Anytime";
@@ -67,16 +120,43 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
   const [sort, setSort] = useState<Sort>("Newest");
   const resultsRef = useRef<HTMLDivElement>(null);
 
+  // The verified freelancers come from the API. All the filtering below still
+  // runs client-side over this set, so the sidebar stays instant.
+  const [freelancers, setFreelancers] = useState<Freelancer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    api
+      .freelancers.search()
+      .then((rows) => {
+        if (live) setFreelancers((rows as Record<string, unknown>[]).map(adapt));
+      })
+      .catch(() => {
+        if (live) setLoadError(true);
+      })
+      .finally(() => {
+        if (live) setLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+
   const set = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
 
-  const skills = useMemo(() => [...new Set(FREELANCERS.flatMap((f) => f.allSkills))].sort(), []);
+  const skills = useMemo(
+    () => [...new Set(freelancers.flatMap((f) => f.allSkills))].sort(),
+    [freelancers],
+  );
 
   /** Per-category totals, so empty categories are visibly empty before you click. */
   const counts = useMemo(() => {
     const out: Record<string, number> = {};
-    for (const f of FREELANCERS) out[f.category] = (out[f.category] ?? 0) + 1;
+    for (const f of freelancers) out[f.category] = (out[f.category] ?? 0) + 1;
     return out;
-  }, []);
+  }, [freelancers]);
 
   // A blank field means "no bound" — 0 is a real bound, so `||` would be wrong here.
   const min = filters.min.trim() === "" ? 0 : Number(filters.min);
@@ -88,7 +168,7 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
     const lo = Number.isNaN(min) ? 0 : min;
     const hi = Number.isNaN(max) ? Infinity : max;
 
-    const matched = FREELANCERS.filter((f) => {
+    const matched = freelancers.filter((f) => {
       if (filters.category !== ALL && f.category !== filters.category) return false;
       if (filters.skill && !f.allSkills.includes(filters.skill)) return false;
       if (f.rate < lo || f.rate > hi) return false;
@@ -109,7 +189,7 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
     if (sort === "Lowest price") ordered.sort((a, b) => a.rate - b.rate);
     if (sort === "Highest price") ordered.sort((a, b) => b.rate - a.rate);
     return ordered;
-  }, [filters, search, sort, min, max]);
+  }, [freelancers, filters, search, sort, min, max]);
 
   const activeCount =
     (filters.category !== ALL ? 1 : 0) +
@@ -181,7 +261,7 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
             <ul className="mt-3 space-y-1">
               {[ALL, ...shownCategories].map((c) => {
                 const on = filters.category === c;
-                const count = c === ALL ? FREELANCERS.length : counts[c] ?? 0;
+                const count = c === ALL ? freelancers.length : counts[c] ?? 0;
                 return (
                   <li key={c}>
                     <button
@@ -327,16 +407,44 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
         {/* ------------------------------ results ---------------------------- */}
         <div ref={resultsRef} className="scroll-mt-24">
           <p role="status" className="mb-4 text-sm text-slate-500">
-            <span className="font-semibold text-navy-800">{results.length}</span>{" "}
-            {results.length === 1 ? "freelancer" : "freelancers"}
-            {filters.category !== ALL ? ` in ${filters.category}` : ""}
+            {loading ? (
+              "Loading freelancers…"
+            ) : (
+              <>
+                <span className="font-semibold text-navy-800">{results.length}</span>{" "}
+                {results.length === 1 ? "freelancer" : "freelancers"}
+                {filters.category !== ALL ? ` in ${filters.category}` : ""}
+              </>
+            )}
           </p>
 
+          {loadError ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+              We couldn&apos;t load freelancers just now. Refresh to try again.
+            </div>
+          ) : loading ? (
+            <div className="space-y-5">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-40 animate-pulse rounded-xl border border-slate-200 bg-slate-50" />
+              ))}
+            </div>
+          ) : results.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-10 text-center">
+              <p className="font-semibold text-navy-800">No freelancers match your filters yet</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Try widening your search, or check back soon as more people get verified.
+              </p>
+            </div>
+          ) : (
           <div className="space-y-5">
             {results.map((f) => (
               <article key={f.slug} className="rounded-xl border border-slate-200 bg-white p-6">
                 <div className="flex flex-col gap-5 sm:flex-row">
-                  <Portrait src={f.photo} sizes="96px" className="h-24 w-24" />
+                  {f.photo ? (
+                    <Portrait src={f.photo} sizes="96px" className="h-24 w-24" />
+                  ) : (
+                    <InitialsAvatar name={f.name} className="h-24 w-24 text-2xl" />
+                  )}
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -420,6 +528,7 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
               </div>
             ) : null}
           </div>
+          )}
 
           {/* Pagination is presentational until the search API can page results. */}
           {results.length > 0 ? (

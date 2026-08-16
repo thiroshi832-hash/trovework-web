@@ -124,6 +124,18 @@ export const api = {
       request<unknown>("/api/profile", { method: "PUT", body: JSON.stringify(input) }),
   },
 
+  /* ---------------------------- freelancers ------------------------------ */
+  freelancers: {
+    /** Public browse. `qs` may carry category, skill, q, minPrice, maxPrice, take, skip. */
+    search: (qs?: Record<string, string | number | undefined>) => {
+      const params = new URLSearchParams();
+      for (const [k, v] of Object.entries(qs ?? {})) if (v != null && v !== "") params.set(k, String(v));
+      const suffix = params.toString() ? `?${params.toString()}` : "";
+      return request<unknown[]>(`/api/freelancers${suffix}`);
+    },
+    getBySlug: (slug: string) => request<unknown>(`/api/freelancers/${slug}`),
+  },
+
   /* ------------------------------- posts --------------------------------- */
   posts: {
     listMine: () => request<unknown[]>("/api/posts/mine"),
