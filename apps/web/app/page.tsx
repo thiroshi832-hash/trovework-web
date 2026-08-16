@@ -187,6 +187,18 @@ function Briefcase({ className }: IconProps) {
   );
 }
 
+function Crown({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        d="M2.9 8.3a.85.85 0 0 1 1.35-.68L7.7 10.2l3.55-5.55a.9.9 0 0 1 1.5 0L16.3 10.2l3.45-2.58a.85.85 0 0 1 1.35.68l-1.5 8.1H4.4Z"
+        fill="currentColor"
+      />
+      <rect x="4.2" y="18" width="15.6" height="2.5" rx="1.25" fill="currentColor" />
+    </svg>
+  );
+}
+
 function Dots({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
@@ -609,8 +621,14 @@ export default function Home() {
           <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {FREELANCERS.map((f) => (
               <article key={f.slug} className={`relative p-6 text-center transition hover:shadow-md ${CARD}`}>
-                <span className="absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-md bg-brand-50 text-brand-600">
-                  <Check className="h-3 w-3" />
+                {/* The section is "Featured", and the verified tick already sits
+                    beside the name — so this badge says something different. */}
+                <span
+                  title="Featured freelancer"
+                  className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-white shadow-sm shadow-amber-500/30"
+                >
+                  <span className="sr-only">Featured freelancer</span>
+                  <Crown className="h-4 w-4" />
                 </span>
                 <Portrait src={f.photo} className="mx-auto h-28 w-28" sizes="112px" />
                 <div className="mt-4 flex items-center justify-center gap-1.5">
