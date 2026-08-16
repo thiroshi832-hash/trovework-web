@@ -357,16 +357,10 @@ function StepCreateAccount() {
 function StepGetVerified() {
   return (
     <div className="relative w-full max-w-[17rem]">
-      {/* An ID card: banded header, portrait photo, data lines and a signature
-          strip — this step is about the document, not a profile. */}
-      <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200/80">
-        <div className="flex items-center gap-2 bg-brand-600 px-3.5 py-2.5">
-          <span className="h-2 w-12 rounded-full bg-white/80" />
-          <span className="ml-auto h-2 w-6 rounded-full bg-white/40" />
-        </div>
-
-        <div className="flex gap-3.5 p-3.5">
-          <span className="grid h-20 w-16 shrink-0 place-items-center overflow-hidden rounded-md bg-slate-200/70 text-slate-400 ring-1 ring-slate-300/70">
+      {/* An ID card: square photo, the fields beside it, and a signature strip. */}
+      <div className="overflow-hidden rounded-xl bg-white p-3.5 shadow-sm ring-1 ring-slate-200/80">
+        <div className="flex gap-3.5">
+          <span className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-md bg-brand-100 text-brand-500">
             <SilhouetteFill />
           </span>
           <div className="flex-1 space-y-2.5 pt-1">
@@ -377,7 +371,7 @@ function StepGetVerified() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 px-3.5 pb-3.5">
+        <div className="mt-3.5 flex items-center gap-2">
           <span className="h-4 w-9 shrink-0 rounded bg-slate-100" />
           <span className={`${MOCK} h-1.5 flex-1`} />
         </div>
