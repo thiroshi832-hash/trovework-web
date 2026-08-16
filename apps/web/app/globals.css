@@ -39,6 +39,10 @@
 }
 
 :root {
+  /* py-4 (2rem total) + the h-10 logo (2.5rem) + the 1px bottom border.
+     Expressed in rem so it tracks the root-size change above. */
+  --header-h: calc(4.5rem + 1px);
+
   --background: #ffffff;
   --foreground: #0d2447;
 }

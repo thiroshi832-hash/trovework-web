@@ -412,7 +412,7 @@ export default function Home() {
           The photo is a background layer rather than an <img> so the headline
           can run over its left edge. It starts at 46% and bleeds off the right.
         */}
-        <section className="relative overflow-hidden bg-white lg:min-h-[41.67vw]">
+        <section className="relative overflow-hidden bg-white lg:min-h-[calc(100vh-var(--header-h))]">
           <div
             aria-hidden
             className="absolute inset-y-0 right-0 hidden w-[54%] bg-[url('/images/hero.jpg')] bg-cover bg-[position:38%_center] [-webkit-mask-image:linear-gradient(to_right,transparent,#000_26%)] [mask-image:linear-gradient(to_right,transparent,#000_26%)] lg:block"
@@ -424,7 +424,7 @@ export default function Home() {
             {/* vertical offset tracks the photo (whose height is 41.67vw, set by
                 its locked aspect ratio) rather than this container, so the card
                 stays on the picture at every desktop width */}
-            <VerifiedCard className="absolute right-6 top-[calc(37.1vw_-_16rem)] hidden w-[14.5rem] min-h-[16rem] lg:flex" />
+            <VerifiedCard className="absolute bottom-[12%] right-6 hidden w-[14.5rem] min-h-[16rem] lg:flex" />
             <div>
               <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-brand-700 ring-1 ring-brand-100">
                 <span className="grid h-4 w-4 place-items-center rounded-full bg-brand-600 text-white">
