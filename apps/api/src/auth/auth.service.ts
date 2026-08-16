@@ -25,11 +25,34 @@ export interface TokenPair {
 
 @Injectable()
 export class AuthService {
+  /** Emails that should always be admins, from ADMIN_EMAILS (comma-separated). */
+  private readonly adminEmails: Set<string>;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
-  ) {}
+  ) {
+    this.adminEmails = new Set(
+      (this.config.get<string>("ADMIN_EMAILS", "") ?? "")
+        .split(",")
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean),
+    );
+  }
+
+  /**
+   * Bootstraps admins without a chicken-and-egg problem: an email listed in
+   * ADMIN_EMAILS is promoted to admin on login/register, since registration
+   * itself only allows client/freelancer. Returns the effective role. The
+   * env list is the source of truth — a DB role is never *demoted* here, so
+   * removing an email doesn't strip an existing admin (do that deliberately).
+   */
+  private async ensureAdminRole(userId: string, email: string, role: string): Promise<string> {
+    if (role === "admin" || !this.adminEmails.has(email.toLowerCase())) return role;
+    await this.prisma.user.update({ where: { id: userId }, data: { role: "admin" } });
+    return "admin";
+  }
 
   /* ------------------------------ registration ----------------------------- */
 
@@ -55,7 +78,8 @@ export class AuthService {
       },
     });
 
-    return { userId: user.id, ...(await this.issueTokens(user.id, user.role, false, false)) };
+    const role = await this.ensureAdminRole(user.id, user.email, user.role);
+    return { userId: user.id, ...(await this.issueTokens(user.id, role, false, false)) };
   }
 
   /* --------------------------------- login --------------------------------- */
@@ -73,9 +97,10 @@ export class AuthService {
     if (!user || !ok) throw new UnauthorizedException("Email or password is incorrect.");
     if (user.status === "banned") throw new UnauthorizedException("This account has been suspended.");
 
+    const role = await this.ensureAdminRole(user.id, user.email, user.role);
     return {
       userId: user.id,
-      ...(await this.issueTokens(user.id, user.role, user.phoneVerified, user.idVerified)),
+      ...(await this.issueTokens(user.id, role, user.phoneVerified, user.idVerified)),
     };
   }
 

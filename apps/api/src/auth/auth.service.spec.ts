@@ -11,10 +11,11 @@ const CONFIG: Record<string, string> = {
   REFRESH_TOKEN_TTL: "7d",
 };
 
-function makeService(prisma: Partial<PrismaService>) {
+function makeService(prisma: Partial<PrismaService>, adminEmails = "") {
+  const cfg: Record<string, string> = { ...CONFIG, ADMIN_EMAILS: adminEmails };
   const config = {
-    get: (k: string, d?: string) => CONFIG[k] ?? d,
-    getOrThrow: (k: string) => CONFIG[k],
+    get: (k: string, d?: string) => cfg[k] ?? d,
+    getOrThrow: (k: string) => cfg[k],
   } as unknown as ConfigService;
   return new AuthService(prisma as PrismaService, new JwtService(), config);
 }
@@ -33,6 +34,11 @@ function prismaDouble() {
       create: jest.fn(async ({ data }: any) => {
         const u = { id: `u${users.length + 1}`, phoneVerified: false, idVerified: false, status: "active", ...data };
         users.push(u);
+        return u;
+      }),
+      update: jest.fn(async ({ where, data }: any) => {
+        const u = users.find((x) => x.id === where.id);
+        Object.assign(u, data);
         return u;
       }),
     },
@@ -218,5 +224,38 @@ describe("AuthService", () => {
     it("throws on nonsense", () => {
       expect(() => svc.ttlToMs("soon")).toThrow();
     });
+  });
+});
+
+describe("AuthService — admin bootstrap", () => {
+  it("promotes an ADMIN_EMAILS address to admin on login", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any, "marisol@example.com, boss@trovework.com");
+    await svc.register({ ...REGISTRATION });
+    const res = await svc.login({ email: "marisol@example.com", password: REGISTRATION.password });
+    expect(res).toHaveProperty("accessToken");
+    expect(db.users[0].role).toBe("admin");
+  });
+
+  it("leaves a non-listed user's role untouched", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any, "someone-else@trovework.com");
+    await svc.register({ ...REGISTRATION });
+    await svc.login({ email: "marisol@example.com", password: REGISTRATION.password });
+    expect(db.users[0].role).toBe("freelancer");
+  });
+
+  it("promotes at registration when the email is listed", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any, "marisol@example.com");
+    await svc.register({ ...REGISTRATION });
+    expect(db.users[0].role).toBe("admin");
+  });
+
+  it("is case-insensitive on the email match", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any, "MARISOL@EXAMPLE.COM");
+    await svc.register({ ...REGISTRATION });
+    expect(db.users[0].role).toBe("admin");
   });
 });

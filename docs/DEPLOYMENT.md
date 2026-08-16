@@ -287,9 +287,15 @@ POSTGRES_PASSWORD=$(openssl rand -hex 32)
 JWT_ACCESS_SECRET=$(openssl rand -base64 48)
 JWT_REFRESH_SECRET=$(openssl rand -base64 48)
 WEB_ORIGIN=https://trovework.com
+ADMIN_EMAILS=you@yourdomain.com
 EOF
 chmod 600 .env
 ```
+
+`ADMIN_EMAILS` is a comma-separated list of addresses that become admins automatically on login —
+this is how you get the first admin, since registration only creates clients and freelancers.
+Register normally with that email, then log in: you're now an admin and can approve ID
+verifications. Removing an email here does not demote an existing admin.
 
 > **Create this as the `deploy` user, not root.** With `chmod 600` the file is readable only by
 > its owner, and CI logs in as `deploy` — a root-owned `.env` makes the automated deploy fail with
