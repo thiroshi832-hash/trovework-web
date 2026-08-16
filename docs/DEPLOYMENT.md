@@ -221,9 +221,11 @@ cd /srv/trovework && git checkout master
 If you already cloned or built as root, fix the ownership before the first CI deploy:
 
 ```bash
-sudo chown -R deploy:deploy /srv/trovework /srv/trovework-data
+sudo chown -R deploy:deploy /srv/trovework
 sudo usermod -aG docker deploy
 ```
+
+(`/srv/trovework-data` does not exist yet — Step 6 creates it and sets its ownership there.)
 
 **If the repo is private**, generate a read-only key on the VPS and add it as a GitHub
 *deploy key* (Settings → Deploy keys → Add, read-only):
