@@ -275,6 +275,14 @@ EOF
 chmod 600 .env
 ```
 
+> **Create this as the `deploy` user, not root.** With `chmod 600` the file is readable only by
+> its owner, and CI logs in as `deploy` — a root-owned `.env` makes the automated deploy fail with
+> `POSTGRES_PASSWORD not set` even though the file is right there. If you already made it as root:
+>
+> ```bash
+> sudo chown deploy:deploy /srv/trovework/.env
+> ```
+
 The two JWT secrets must differ. Rotating either one invalidates every existing session, which
 is exactly what you want if you suspect a leak.
 
