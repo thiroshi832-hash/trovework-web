@@ -26,7 +26,7 @@ function SocialLink({ path, label }: { path: string; label: string }) {
 export function SiteFooter({ newsletter = false }: { newsletter?: boolean }) {
   return (
     <footer className="bg-navy-900 text-slate-300">
-      <div className="mx-auto max-w-page px-6 py-24">
+      <div className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-24">
         <div
           className={`grid gap-10 ${
             newsletter ? "lg:grid-cols-[1.3fr_repeat(4,0.8fr)_1.2fr]" : "lg:grid-cols-[1.4fr_repeat(4,1fr)]"
@@ -88,7 +88,7 @@ export function SiteFooter({ newsletter = false }: { newsletter?: boolean }) {
       </div>
 
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-page flex-col gap-2 px-6 py-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-page flex-col gap-2 px-6 lg:px-10 xl:px-16 py-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 Trovework. All rights reserved.</p>
           <p>Made with ❤️ for a better freelance world.</p>
         </div>

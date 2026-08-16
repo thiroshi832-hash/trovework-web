@@ -23,6 +23,20 @@
   --color-navy-800: #0b1c38;
   --color-navy-900: #051636;
 
+  /* Type scale, ~10% above Tailwind's default. Only the text tokens move, so
+     spacing, icons and avatars keep the sizes already agreed. Line heights are
+     the stock ratios, restated so they follow the larger sizes. */
+  --text-xs: 0.8125rem;   --text-xs--line-height: 1.35;
+  --text-sm: 0.9375rem;   --text-sm--line-height: 1.45;
+  --text-base: 1.0625rem; --text-base--line-height: 1.55;
+  --text-lg: 1.25rem;     --text-lg--line-height: 1.5;
+  --text-xl: 1.375rem;    --text-xl--line-height: 1.4;
+  --text-2xl: 1.625rem;   --text-2xl--line-height: 1.3;
+  --text-3xl: 2.0625rem;  --text-3xl--line-height: 1.2;
+  --text-4xl: 2.5rem;     --text-4xl--line-height: 1.12;
+  --text-5xl: 3.25rem;    --text-5xl--line-height: 1.05;
+  --text-6xl: 4rem;       --text-6xl--line-height: 1;
+
   /* Page container. Wider than Tailwind's 7xl (80rem/1280px), which left too
      much empty margin on large displays. */
   --container-page: 1600px;

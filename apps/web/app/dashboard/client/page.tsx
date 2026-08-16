@@ -32,7 +32,7 @@ export default function ClientDashboard() {
   return (
     <div className="flex flex-1 flex-col bg-slate-50/60">
       <main className="flex-1">
-        <div className="mx-auto max-w-page px-6 py-8">
+        <div className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-8">
           <DashboardHeader name={me.name} photo={me.photo} role="Client">
             <Link
               href="/freelancers"

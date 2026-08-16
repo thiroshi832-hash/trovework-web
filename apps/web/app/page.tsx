@@ -418,7 +418,7 @@ export default function Home() {
             className="absolute inset-y-0 right-0 hidden w-[54%] bg-[url('/images/hero.jpg')] bg-cover bg-[position:38%_center] [-webkit-mask-image:linear-gradient(to_right,transparent,#000_26%)] [mask-image:linear-gradient(to_right,transparent,#000_26%)] lg:block"
           />
 
-          <div className="relative mx-auto grid w-full max-w-page items-stretch gap-10 px-6 py-12 lg:flex-1 lg:grid-cols-2 lg:py-16">
+          <div className="relative mx-auto grid w-full max-w-page items-stretch gap-10 px-6 lg:px-10 xl:px-16 py-12 lg:flex-1 lg:grid-cols-2 lg:py-16">
             {/* Sits at the foot of the photo, level with the social proof on the
                 left, and its right edge lines up with the trust bar below. */}
             <VerifiedCard className="absolute bottom-16 right-6 hidden w-[14.5rem] min-h-[16rem] lg:flex" />
@@ -511,7 +511,7 @@ export default function Home() {
         </section>
 
         {/* ---------------------------- trust bar --------------------------- */}
-        <section id="trust" className="mx-auto max-w-page px-6 pb-4 pt-8">
+        <section id="trust" className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 pb-4 pt-8">
           <div className={`grid ${CARD} rounded-2xl sm:grid-cols-2 lg:grid-cols-4`}>
             {TRUST_ITEMS.map((t, i) => (
               <div
@@ -531,7 +531,7 @@ export default function Home() {
         </section>
 
         {/* ---------------------------- categories -------------------------- */}
-        <section id="categories" className="mx-auto max-w-page px-6 py-14">
+        <section id="categories" className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-14">
           <SectionHeading title="Popular Categories" action="View all categories" />
           <div className="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8">
             {CATEGORIES.map((c) => (
@@ -558,7 +558,7 @@ export default function Home() {
 
         {/* --------------------------- how it works ------------------------- */}
         <section id="how" className="bg-white py-14">
-          <div className="mx-auto max-w-page px-6">
+          <div className="mx-auto max-w-page px-6 lg:px-10 xl:px-16">
             <div className="text-center">
               <h2 className="text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl">How It Works</h2>
               <p className="mt-2.5 text-sm text-slate-500">Get started in three simple steps</p>
@@ -586,7 +586,7 @@ export default function Home() {
         </section>
 
         {/* ------------------------------ stats ----------------------------- */}
-        <section className="mx-auto max-w-page px-6 py-12">
+        <section className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-12">
           <div className="grid gap-10 rounded-2xl bg-gradient-to-r from-stat-from via-stat-via to-stat-to px-8 py-14 sm:grid-cols-2 lg:grid-cols-4">
             {STATS.map((s, i) => (
               <div
@@ -604,7 +604,7 @@ export default function Home() {
         </section>
 
         {/* ------------------------ featured freelancers -------------------- */}
-        <section className="mx-auto max-w-page px-6 py-10">
+        <section className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-10">
           <SectionHeading title="Featured Freelancers" action="View all freelancers" href="/freelancers" />
           <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {FREELANCERS.map((f) => (
@@ -641,7 +641,7 @@ export default function Home() {
         </section>
 
         {/* --------------------------- testimonials ------------------------- */}
-        <section className="mx-auto max-w-page px-6 py-14">
+        <section className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-14">
           <h2 className="text-center text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl">
             What Our Users Say
           </h2>
@@ -663,7 +663,7 @@ export default function Home() {
         </section>
 
         {/* ------------------------------- CTA ------------------------------ */}
-        <section className="mx-auto max-w-page px-6 py-8">
+        <section className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-8">
           <div className="relative overflow-hidden rounded-2xl bg-brand-600 px-8 py-20 text-center">
             {/* dotted world map, as in the comp: the Americas at the left edge,
                 Europe/Africa/Asia/Oceania at the right, the Atlantic left open
@@ -702,7 +702,7 @@ export default function Home() {
         </section>
 
         {/* ------------------------------- blog ----------------------------- */}
-        <section id="blog" className="mx-auto max-w-page px-6 py-14">
+        <section id="blog" className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-14">
           <SectionHeading title="Latest from the Blog" action="View all articles" href="/blog" />
           <div className="mt-7 grid gap-6 md:grid-cols-3">
             {POSTS.map((p) => (
