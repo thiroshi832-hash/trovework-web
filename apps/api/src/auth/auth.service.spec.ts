@@ -11,22 +11,59 @@ const CONFIG: Record<string, string> = {
   REFRESH_TOKEN_TTL: "7d",
 };
 
+const sentEmails: Array<{ email: string; resetUrl: string }> = [];
+const emailProvider = {
+  sendPasswordReset: jest.fn(async (email: string, resetUrl: string) => {
+    sentEmails.push({ email, resetUrl });
+  }),
+};
+
 function makeService(prisma: Partial<PrismaService>, adminEmails = "") {
   const cfg: Record<string, string> = { ...CONFIG, ADMIN_EMAILS: adminEmails };
   const config = {
     get: (k: string, d?: string) => cfg[k] ?? d,
     getOrThrow: (k: string) => cfg[k],
   } as unknown as ConfigService;
-  return new AuthService(prisma as PrismaService, new JwtService(), config);
+  return new AuthService(prisma as PrismaService, new JwtService(), config, emailProvider as any);
 }
+
+beforeEach(() => {
+  sentEmails.length = 0;
+  emailProvider.sendPasswordReset.mockClear();
+});
 
 /** Minimal in-memory stand-ins for the two tables auth touches. */
 function prismaDouble() {
   const users: any[] = [];
   const tokens: any[] = [];
+  const resets: any[] = [];
   return {
     users,
     tokens,
+    resets,
+    // resetPassword runs an array of operations in one $transaction; our doubles
+    // already return promises, so awaiting them all reproduces the behaviour.
+    $transaction: jest.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
+    passwordResetToken: {
+      create: jest.fn(async ({ data }: any) => {
+        const r = { id: `pr${resets.length + 1}`, usedAt: null, ...data };
+        resets.push(r);
+        return r;
+      }),
+      findUnique: jest.fn(async ({ where }: any) => resets.find((r) => r.tokenHash === where.tokenHash) ?? null),
+      update: jest.fn(async ({ where, data }: any) => {
+        const r = resets.find((x) => x.id === where.id);
+        Object.assign(r, data);
+        return r;
+      }),
+      updateMany: jest.fn(async ({ where, data }: any) => {
+        resets
+          .filter((r) => r.userId === where.userId)
+          .filter((r) => (where.usedAt === null ? r.usedAt === null : true))
+          .forEach((r) => Object.assign(r, data));
+        return { count: 0 };
+      }),
+    },
     user: {
       findUnique: jest.fn(async ({ where }: any) =>
         users.find((u) => (where.email ? u.email === where.email : u.id === where.id)) ?? null,
@@ -224,6 +261,87 @@ describe("AuthService", () => {
     it("throws on nonsense", () => {
       expect(() => svc.ttlToMs("soon")).toThrow();
     });
+  });
+});
+
+describe("AuthService — password reset", () => {
+  it("emails a reset link with a token when the address exists", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await svc.register({ ...REGISTRATION });
+
+    await svc.requestPasswordReset("marisol@example.com");
+    expect(emailProvider.sendPasswordReset).toHaveBeenCalledTimes(1);
+    expect(sentEmails[0].email).toBe("marisol@example.com");
+    expect(sentEmails[0].resetUrl).toMatch(/\/reset-password\?token=.+/);
+    expect(db.resets).toHaveLength(1);
+    expect(db.resets[0].tokenHash).toHaveLength(64); // sha256 hex, not the raw token
+  });
+
+  it("stays silent for an unknown address (no enumeration)", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await expect(svc.requestPasswordReset("ghost@example.com")).resolves.toBeUndefined();
+    expect(emailProvider.sendPasswordReset).not.toHaveBeenCalled();
+    expect(db.resets).toHaveLength(0);
+  });
+
+  it("invalidates an earlier unused token when a new one is requested", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await svc.register({ ...REGISTRATION });
+
+    await svc.requestPasswordReset("marisol@example.com");
+    await svc.requestPasswordReset("marisol@example.com");
+    const usable = db.resets.filter((r: any) => r.usedAt === null);
+    expect(usable).toHaveLength(1);
+  });
+
+  it("sets the new password and kills existing sessions", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    const { refreshToken } = await svc.register({ ...REGISTRATION });
+
+    await svc.requestPasswordReset("marisol@example.com");
+    const token = new URL(sentEmails[0].resetUrl).searchParams.get("token")!;
+    await svc.resetPassword(token, "brandnew2027");
+
+    // old refresh token is dead
+    await expect(svc.refresh(refreshToken)).rejects.toThrow(UnauthorizedException);
+    // old password no longer works, new one does
+    await expect(
+      svc.login({ email: "marisol@example.com", password: REGISTRATION.password }),
+    ).rejects.toThrow(UnauthorizedException);
+    await expect(
+      svc.login({ email: "marisol@example.com", password: "brandnew2027" }),
+    ).resolves.toHaveProperty("accessToken");
+  });
+
+  it("rejects a token that was never issued", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await svc.register({ ...REGISTRATION });
+    await expect(svc.resetPassword("made-up-token", "brandnew2027")).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("rejects a token that was already used", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await svc.register({ ...REGISTRATION });
+    await svc.requestPasswordReset("marisol@example.com");
+    const token = new URL(sentEmails[0].resetUrl).searchParams.get("token")!;
+    await svc.resetPassword(token, "brandnew2027");
+    await expect(svc.resetPassword(token, "another2027")).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("rejects an expired token", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await svc.register({ ...REGISTRATION });
+    await svc.requestPasswordReset("marisol@example.com");
+    db.resets[0].expiresAt = new Date(Date.now() - 1000);
+    const token = new URL(sentEmails[0].resetUrl).searchParams.get("token")!;
+    await expect(svc.resetPassword(token, "brandnew2027")).rejects.toThrow(UnauthorizedException);
   });
 });
 

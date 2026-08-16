@@ -14,6 +14,8 @@ import type { Request, Response } from "express";
 import { AuthService, type TokenPair } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { Public } from "./decorators/public.decorator";
 import { CurrentUser } from "./decorators/current-user.decorator";
 import type { AuthedUser } from "./strategies/jwt.strategy";
@@ -97,6 +99,30 @@ export class AuthController {
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     await this.auth.logout(req.cookies?.[REFRESH_COOKIE]);
     this.clearCookies(res);
+  }
+
+  /**
+   * Always 202, whether or not the address exists — the response must not reveal
+   * which emails are registered. Tightly throttled to blunt email-bombing.
+   */
+  @Public()
+  @HttpCode(202)
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @Post("forgot-password")
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.auth.requestPasswordReset(dto.email);
+    return { ok: true };
+  }
+
+  /** Consumes the one-time token, sets the new password, and clears any session cookies. */
+  @Public()
+  @HttpCode(200)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post("reset-password")
+  async resetPassword(@Body() dto: ResetPasswordDto, @Res({ passthrough: true }) res: Response) {
+    await this.auth.resetPassword(dto.token, dto.password);
+    this.clearCookies(res);
+    return { ok: true };
   }
 
   /** Who am I — the frontend's session check. */

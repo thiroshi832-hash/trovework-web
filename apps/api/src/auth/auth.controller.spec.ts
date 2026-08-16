@@ -10,6 +10,7 @@ import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { EMAIL_PROVIDER } from "./providers/email.provider";
 import { PrismaService } from "../prisma/prisma.service";
 
 const CONFIG: Record<string, string> = {
@@ -106,6 +107,7 @@ describe("AuthController (HTTP)", () => {
         AuthService,
         JwtStrategy,
         { provide: PrismaService, useValue: db },
+        { provide: EMAIL_PROVIDER, useValue: { sendPasswordReset: jest.fn() } },
         {
           provide: ConfigService,
           useValue: { get: (k: string, d?: string) => CONFIG[k] ?? d, getOrThrow: (k: string) => CONFIG[k] },

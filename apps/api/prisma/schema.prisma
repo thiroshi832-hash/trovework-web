@@ -55,7 +55,8 @@ model User {
 
   strikeCount Int @default(0) @map("strike_count")
 
-  refreshTokens    RefreshToken[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
   posts            Post[]
   violations       Violation[]
   profile          FreelancerProfile?
@@ -245,6 +246,23 @@ model Violation {
 
   @@index([userId])
   @@map("violations")
+}
+
+/// A one-time password-reset token, stored as a SHA-256 hash so a database read
+/// can't be replayed. Requesting a reset invalidates the user's older unused
+/// tokens; consuming one (or its expiry) makes it unusable, and a successful
+/// reset also revokes every refresh token so old sessions die.
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 /// One row per issued refresh token. Stored as a SHA-256 hash so a database

@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConflictException, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
@@ -6,6 +6,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
+import { EMAIL_PROVIDER, type EmailProvider } from "./providers/email.provider";
 
 const BCRYPT_ROUNDS = 12;
 
@@ -32,6 +33,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    @Inject(EMAIL_PROVIDER) private readonly email: EmailProvider,
   ) {
     this.adminEmails = new Set(
       (this.config.get<string>("ADMIN_EMAILS", "") ?? "")
@@ -165,6 +167,63 @@ export class AuthService {
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+  }
+
+  /* ---------------------------- password reset ----------------------------- */
+
+  /**
+   * Starts a reset. Emails a one-time link ONLY when the address exists, but
+   * the caller always gets the same answer, so this can't be used to discover
+   * which emails have accounts. Issuing a new token invalidates the user's
+   * older unused ones.
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    const normalised = email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({ where: { email: normalised } });
+    if (!user || user.status === "banned") return;
+
+    // Retire any still-usable tokens so only the newest link works.
+    await this.prisma.passwordResetToken.updateMany({
+      where: { userId: user.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    const token = randomBytes(32).toString("base64url");
+    const ttlMs = this.ttlToMs(this.config.get<string>("PASSWORD_RESET_TTL", "1h"));
+    await this.prisma.passwordResetToken.create({
+      data: { userId: user.id, tokenHash: this.hashToken(token), expiresAt: new Date(Date.now() + ttlMs) },
+    });
+
+    const origin = this.config.get<string>("WEB_ORIGIN", "https://trovework.com");
+    await this.email.sendPasswordReset(user.email, `${origin}/reset-password?token=${token}`);
+  }
+
+  /**
+   * Completes a reset: sets the new password, burns the token, and revokes every
+   * refresh token so any session opened with the old password is killed.
+   */
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const stored = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash: this.hashToken(token) },
+    });
+    if (!stored || stored.usedAt || stored.expiresAt <= new Date()) {
+      throw new UnauthorizedException("This reset link is invalid or has expired.");
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: stored.userId },
+        data: { passwordHash: await bcrypt.hash(newPassword, BCRYPT_ROUNDS) },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: stored.id },
+        data: { usedAt: new Date() },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId: stored.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
   }
 
   /* --------------------------------- lookup -------------------------------- */
