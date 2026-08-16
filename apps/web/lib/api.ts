@@ -22,6 +22,14 @@ export interface SessionUser {
   country?: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -182,6 +190,24 @@ export const api = {
       }),
     /** form must carry: idFront, selfie (required), idBack (optional), fullName, dob, idNumber */
     submitId: (form: FormData) => upload<{ status: string; message: string }>("/api/verify/id", form),
+  },
+
+  /* ----------------------------- categories ------------------------------ */
+  categories: {
+    /** Public, active-only, in display order. */
+    list: () => request<Category[]>("/api/categories"),
+  },
+
+  /* ------------------------------- admin --------------------------------- */
+  admin: {
+    categories: {
+      list: () => request<Category[]>("/api/admin/categories"),
+      create: (input: { name: string; slug?: string; sortOrder?: number; isActive?: boolean }) =>
+        request<Category>("/api/admin/categories", { method: "POST", body: JSON.stringify(input) }),
+      update: (id: string, input: Partial<{ name: string; slug: string; sortOrder: number; isActive: boolean }>) =>
+        request<Category>(`/api/admin/categories/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
+      remove: (id: string) => request<void>(`/api/admin/categories/${id}`, { method: "DELETE" }),
+    },
   },
 
   /* -------------------------------- chat --------------------------------- */
