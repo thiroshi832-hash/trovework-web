@@ -313,6 +313,15 @@ const TESTIMONIALS = [
 
 const MOCK = "block rounded bg-slate-200/70";
 
+/**
+ * A filled person silhouette that reaches the edges of whatever frame holds it,
+ * the way a real avatar or ID photo would. UserGlyph is drawn inset within its
+ * 24x24 viewBox, so it is scaled up and the frame clips the overflow.
+ */
+function SilhouetteFill() {
+  return <UserGlyph className="h-full w-full scale-[1.67]" />;
+}
+
 function StepCreateAccount() {
   return (
     <div className="relative w-full max-w-[17rem]">
@@ -324,7 +333,9 @@ function StepCreateAccount() {
           <span className="ml-2 h-1.5 flex-1 rounded bg-slate-200/70" />
         </div>
         <div className="flex gap-2.5 p-3">
-          <span className="h-14 w-14 shrink-0 rounded-full bg-slate-200/70" />
+          <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-slate-200/70 text-slate-400">
+            <SilhouetteFill />
+          </span>
           <div className="flex-1 space-y-1.5 pt-1.5">
             <span className={`${MOCK} h-1.5 w-full`} />
             <span className={`${MOCK} h-1.5 w-4/5`} />
@@ -346,25 +357,32 @@ function StepCreateAccount() {
 function StepGetVerified() {
   return (
     <div className="relative w-full max-w-[17rem]">
-      <div className="rounded-lg bg-white p-3.5 shadow-sm ring-1 ring-slate-200/80">
-        <div className="flex gap-2.5">
-          {/* An avatar placeholder: the silhouette fills the tile and its
-              shoulders run off the bottom edge, rather than floating in the
-              middle. UserGlyph is drawn inset within its 24x24 viewBox, so it
-              is scaled up and the overflow clipped to reach the edges. */}
-          <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-lg bg-brand-100 text-brand-500">
-            <UserGlyph className="h-full w-full scale-[1.67]" />
+      {/* An ID card: banded header, portrait photo, data lines and a signature
+          strip — this step is about the document, not a profile. */}
+      <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200/80">
+        <div className="flex items-center gap-2 bg-brand-600 px-3.5 py-2.5">
+          <span className="h-2 w-12 rounded-full bg-white/80" />
+          <span className="ml-auto h-2 w-6 rounded-full bg-white/40" />
+        </div>
+
+        <div className="flex gap-3.5 p-3.5">
+          <span className="grid h-20 w-16 shrink-0 place-items-center overflow-hidden rounded-md bg-slate-200/70 text-slate-400 ring-1 ring-slate-300/70">
+            <SilhouetteFill />
           </span>
-          <div className="flex-1 space-y-1.5 pt-1.5">
+          <div className="flex-1 space-y-2.5 pt-1">
             <span className={`${MOCK} h-1.5 w-full`} />
-            <span className={`${MOCK} h-1.5 w-3/4`} />
+            <span className={`${MOCK} h-1.5 w-4/5`} />
+            <span className={`${MOCK} h-1.5 w-3/5`} />
+            <span className={`${MOCK} h-1.5 w-2/3`} />
           </div>
         </div>
-        <div className="mt-3.5 space-y-1.5">
-          <span className={`${MOCK} h-1.5 w-full`} />
-          <span className={`${MOCK} h-1.5 w-5/6`} />
+
+        <div className="flex items-center gap-2 px-3.5 pb-3.5">
+          <span className="h-4 w-9 shrink-0 rounded bg-slate-100" />
+          <span className={`${MOCK} h-1.5 flex-1`} />
         </div>
       </div>
+
       <span className="absolute -bottom-3 right-2 grid h-14 w-14 place-items-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
         <Check className="h-6 w-6" />
       </span>
