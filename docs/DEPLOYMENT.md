@@ -5,11 +5,14 @@ Target: **Ubuntu 24.04**, IP `172.86.122.212`, domain `trovework.com` / `www.tro
 > **You run every command in this guide yourself.** All secrets — the VPS password, SSH private
 > keys, GitHub tokens — stay with you. Never paste them into a chat, an issue, or a commit.
 
-Architecture: nginx (host) terminates TLS on 443 and reverse-proxies to the Next.js container,
-which is bound to `127.0.0.1:3000` and unreachable from the internet.
+Architecture: nginx (host) terminates TLS on 443 and reverse-proxies to two containers, both
+bound to `127.0.0.1` and unreachable from the internet. Postgres publishes no port at all — only
+the api container can reach it, over the compose network.
 
 ```
-Internet ──443──▶ nginx (host, TLS) ──▶ 127.0.0.1:3000 ──▶ trovework-web container
+                            ┌─▶ /api/…  ──▶ 127.0.0.1:4000 ──▶ trovework-api ──▶ trovework-db
+Internet ──443──▶ nginx ────┤                                                   (no published port)
+             (host, TLS)    └─▶ everything else ──▶ 127.0.0.1:3000 ──▶ trovework-web
 ```
 
 ---
@@ -53,6 +56,16 @@ chown -R deploy:deploy /home/deploy/.ssh
 
 ## Step 2 — Create the CI deploy key
 
+> **On Windows, use absolute paths.** The commands below use `~`, which cmd.exe does not expand —
+> you get *"No such file or directory"* **before SSH even connects**. See
+> [Windows: use absolute paths](#windows-use-absolute-paths) below and use those forms instead.
+>
+> | Shell | Home shorthand | `~` works? |
+> |---|---|---|
+> | Git Bash | `~` | yes |
+> | cmd.exe | `%USERPROFILE%` | no |
+> | PowerShell | `$env:USERPROFILE` | yes |
+
 **On your local machine** (not the VPS), generate a keypair used only by GitHub Actions:
 
 ```bash
@@ -78,16 +91,7 @@ prompt can never succeed, so re-run the install command above rather than guessi
 
 ### Windows: use absolute paths
 
-Home-directory shorthand differs per shell, and mixing them up produces confusing
-*"No such file or directory"* errors **before** SSH ever connects:
-
-| Shell | Home shorthand | `~` works? |
-|---|---|---|
-| Git Bash | `~` | yes |
-| cmd.exe | `%USERPROFILE%` | no |
-| PowerShell | `$env:USERPROFILE` | yes |
-
-The reliable fix is to skip shorthand entirely and use an absolute path, which works everywhere:
+Skip home-directory shorthand entirely — an absolute path works in every shell:
 
 ```
 ssh-keygen -t ed25519 -C "github-actions-trovework" -f C:\Users\<you>\.ssh\trovework_deploy -N ""
@@ -217,14 +221,54 @@ Both paths are gitignored and must never be committed or served by nginx.
 
 ---
 
-## Step 7 — First build
+## Step 7 — Create the stack secrets
+
+`docker-compose.yml` refuses to start without these — that is deliberate, so a deployment can
+never silently come up with a default password. Create `/srv/trovework/.env` **on the VPS only**;
+it is gitignored and must never be committed.
 
 ```bash
 cd /srv/trovework
-docker compose up -d --build web
-docker compose ps
-curl -I http://127.0.0.1:3000        # expect HTTP/1.1 200 OK
+cat > .env <<EOF
+POSTGRES_USER=trovework
+POSTGRES_DB=trovework
+POSTGRES_PASSWORD=$(openssl rand -base64 36)
+JWT_ACCESS_SECRET=$(openssl rand -base64 48)
+JWT_REFRESH_SECRET=$(openssl rand -base64 48)
+WEB_ORIGIN=https://trovework.com
+EOF
+chmod 600 .env
 ```
+
+The two JWT secrets must differ. Rotating either one invalidates every existing session, which
+is exactly what you want if you suspect a leak.
+
+---
+
+## Step 8 — First build
+
+```bash
+cd /srv/trovework
+docker compose up -d --build            # db, api, web
+docker compose ps                       # all three should be healthy/running
+```
+
+Create the database tables. The first deploy needs this once; afterwards CI runs it on
+every deploy:
+
+```bash
+docker compose exec api npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
+```
+
+Check both services answer:
+
+```bash
+curl -I http://127.0.0.1:3000                 # web  -> HTTP/1.1 200 OK
+curl -i  http://127.0.0.1:4000/api/auth/me    # api  -> HTTP/1.1 401 (no session yet, which is correct)
+```
+
+A 401 from `/api/auth/me` is the healthy answer: the route exists and the guard is refusing an
+unauthenticated request.
 
 > **If the build fails with `Cannot find module '…linux-x64-musl.node'`** (lightningcss,
 > `@tailwindcss/oxide`, or `@next/swc`), the committed `package-lock.json` is missing Linux
@@ -246,7 +290,7 @@ curl -I http://127.0.0.1:3000        # expect HTTP/1.1 200 OK
 
 ---
 
-## Step 8 — nginx + TLS
+## Step 9 — nginx + TLS
 
 ```bash
 sudo apt install -y nginx certbot python3-certbot-nginx
@@ -281,7 +325,7 @@ Visit **https://trovework.com** — the landing page should load with a valid ce
 
 ---
 
-## Step 9 — Add GitHub Actions secrets
+## Step 10 — Add GitHub Actions secrets
 
 In the repo: **Settings → Secrets and variables → Actions → New repository secret**
 
@@ -304,7 +348,7 @@ cat ~/.ssh/trovework_deploy
 
 ---
 
-## Step 10 — Verify the pipeline
+## Step 11 — Verify the pipeline
 
 Push any commit to `master`. In the **Actions** tab:
 
@@ -325,37 +369,62 @@ sudo tail -f /var/log/nginx/error.log   # nginx errors
 sudo systemctl status nginx
 ```
 
+Per-service logs:
+
+```bash
+docker compose logs -f api            # NestJS
+docker compose logs -f db             # Postgres
+docker compose exec db psql -U trovework -d trovework   # a SQL prompt
+```
+
 **Rollback** to a previous commit:
 
 ```bash
 cd /srv/trovework
 git log --oneline -10
 git reset --hard <commit-sha>
-docker compose up -d --build web
+docker compose up -d --build api web
+```
+
+Rolling back **code** is safe. Rolling back a **migration** is not — a deploy that added a
+column leaves it behind, and older code that does not know about it still runs fine, but a
+destructive migration cannot be undone by resetting git. Take a dump before any migration that
+drops or renames:
+
+```bash
+docker compose exec db pg_dump -U trovework trovework > ~/trovework-$(date +%F).sql
 ```
 
 ### Troubleshooting
 
 | Symptom | Likely cause |
 |---|---|
-| `502 Bad Gateway` | Container down — `docker compose ps`, then `logs -f web` |
+| `502 Bad Gateway` on the site | web container down — `docker compose ps`, then `logs -f web` |
+| `502` only on `/api/…` | api container down — `docker compose logs -f api` |
+| api exits at boot with a config error | `.env` missing or incomplete (Step 7). Compose fails loudly by design rather than defaulting a password |
+| api logs `Can't reach database server` | db not healthy yet — `docker compose ps`, `logs -f db` |
+| Login works, then every request is 401 | Cookies not reaching the API. Check nginx passes `/api/` through and that the site is on HTTPS: the cookies are `Secure` outside development |
+| `relation "users" does not exist` | Migrations never ran — `docker compose run --rm api npx prisma migrate deploy --schema apps/api/prisma/schema.prisma` |
 | certbot fails | DNS not pointing at the VPS yet (Step 0), or port 80 blocked |
 | Deploy action fails auth | `VPS_SSH_KEY` missing header/footer lines, or public key not in `~deploy/.ssh/authorized_keys` |
 | `detected dubious ownership in repository` | Repo cloned as root; CI runs as `deploy`. Fix with `sudo chown -R deploy:deploy /srv/trovework` |
 | `permission denied` on the docker socket | `deploy` not in the `docker` group — `sudo usermod -aG docker deploy`, then reconnect |
-| Site loads over HTTP but not HTTPS | certbot didn't inject the 443 block — re-run Step 8 |
+| Site loads over HTTP but not HTTPS | certbot didn't inject the 443 block — re-run Step 9 |
 
 ---
 
 ## Security checklist
 
 - [ ] Root SSH login disabled, password auth disabled
-- [ ] `ufw` active — only 22, 80, 443 open (**not** 3000)
-- [ ] Container runs as non-root (`nextjs` user, set in the Dockerfile)
+- [ ] `ufw` active — only 22, 80, 443 open (**not** 3000, **not** 4000, **not** 5432)
+- [ ] Both containers run as non-root (`nextjs` / `nestjs`, set in their Dockerfiles)
+- [ ] Postgres publishes no port — reachable only from the api container
+- [ ] `/srv/trovework/.env` is `chmod 600`, with a random DB password and two *different* JWT secrets
 - [ ] `/srv/trovework-data/secured` is `700` and outside the web root
-- [ ] TLS live with auto-renewal verified
+- [ ] TLS live with auto-renewal verified — the auth cookies are `Secure`, so HTTP alone breaks login
 - [ ] HSTS enabled after TLS confirmed
 - [ ] No `.env` file or private key ever committed
+- [ ] A database dump exists before any destructive migration
 
 Enable unattended security updates:
 

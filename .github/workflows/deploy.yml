@@ -44,11 +44,20 @@ jobs:
             git fetch --all
             git reset --hard origin/master
 
-            echo "--- Building image ---"
-            docker compose build web
+            echo "--- Building images ---"
+            docker compose build api web
 
-            echo "--- Restarting service ---"
-            docker compose up -d web
+            echo "--- Starting database ---"
+            docker compose up -d db
+
+            echo "--- Applying migrations ---"
+            # Runs before the new api starts, so the schema is never behind the
+            # code that expects it. Prisma migrations are additive by default,
+            # so this is safe to re-run.
+            docker compose run --rm api npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
+
+            echo "--- Restarting services ---"
+            docker compose up -d api web
 
             echo "--- Cleaning up dangling images ---"
             docker image prune -f
@@ -59,9 +68,19 @@ jobs:
       - name: Verify site is responding
         run: |
           sleep 15
-          code=$(curl -s -o /dev/null -w "%{http_code}" https://trovework.com || echo "000")
-          echo "trovework.com returned HTTP $code"
-          if [ "$code" != "200" ]; then
+          web=$(curl -s -o /dev/null -w "%{http_code}" https://trovework.com || echo "000")
+          echo "web  https://trovework.com -> $web"
+          if [ "$web" != "200" ]; then
             echo "::error::Site did not return 200 after deploy"
+            exit 1
+          fi
+
+          # 401 is the healthy answer here: the route exists and the auth guard
+          # is refusing an unauthenticated request. 000 means the API is down,
+          # 502 means nginx cannot reach it.
+          api=$(curl -s -o /dev/null -w "%{http_code}" https://trovework.com/api/auth/me || echo "000")
+          echo "api  /api/auth/me -> $api"
+          if [ "$api" != "401" ]; then
+            echo "::error::API did not answer 401 on /api/auth/me (got $api)"
             exit 1
           fi
