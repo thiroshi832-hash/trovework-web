@@ -28,7 +28,7 @@ export default function FreelancerDashboard() {
   return (
     <div className="flex flex-1 flex-col bg-slate-50/60">
       <main className="flex-1">
-        <div className="mx-auto max-w-6xl px-6 py-8">
+        <div className="mx-auto max-w-page px-6 py-8">
           <DashboardHeader name={me.name} photo={me.photo} role={me.title}>
             <Link
               href="/profile/edit"
@@ -86,7 +86,7 @@ export default function FreelancerDashboard() {
                         <div className="flex flex-wrap items-center gap-2.5">
                           <h3 className="font-semibold text-navy-800">{p.title}</h3>
                           <span
-                            className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ${POST_STATUS_STYLE[p.status]}`}
+                            className={`shrink-0 rounded-full px-2.5 py-0.5 text-[0.6875rem] font-semibold ring-1 ${POST_STATUS_STYLE[p.status]}`}
                           >
                             {POST_STATUS_LABEL[p.status]}
                           </span>

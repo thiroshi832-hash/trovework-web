@@ -121,7 +121,7 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
   const shownCategories = showAllCategories ? CATEGORIES : CATEGORIES.slice(0, CATEGORIES_COLLAPSED);
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-8">
+    <div className="mx-auto max-w-page px-6 py-8">
       {/* ----------------------------- search bar ---------------------------- */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <form className="flex flex-1 gap-3" onSubmit={(e) => e.preventDefault()} role="search">

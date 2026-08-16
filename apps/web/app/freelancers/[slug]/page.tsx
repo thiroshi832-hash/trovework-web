@@ -76,7 +76,7 @@ export default async function FreelancerProfile({
   return (
     <div className="flex flex-1 flex-col bg-slate-50/60">
       <main className="flex-1">
-        <div className="mx-auto max-w-7xl px-6 py-8">
+        <div className="mx-auto max-w-page px-6 py-8">
           <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
             {/* ------------------------------ hero ---------------------------- */}
             <div className="relative overflow-hidden bg-navy-900 px-8 py-8 sm:px-10 sm:py-10">
@@ -243,7 +243,7 @@ export default async function FreelancerProfile({
                           <div>
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-semibold text-navy-800">{f.latestReview.author}</p>
-                              <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-medium text-brand-600">
+                              <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[0.625rem] font-medium text-brand-600">
                                 {f.latestReview.role}
                               </span>
                             </div>

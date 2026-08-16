@@ -23,6 +23,10 @@
   --color-navy-800: #0b1c38;
   --color-navy-900: #051636;
 
+  /* Page container. Wider than Tailwind's 7xl (80rem/1280px), which left too
+     much empty margin on large displays. */
+  --container-page: 1600px;
+
   /* Feature-badge gradient on the auth panels, sampled top-left to
      bottom-right off the comp */
   --color-badge-from: #107dfc;
@@ -48,4 +52,18 @@ body {
 
 html {
   scroll-behavior: smooth;
+  /*
+   * The design was drawn against a 1280px container; at 1600px everything set
+   * in rem — type, icon sizes, padding, gaps, avatars — read too small for the
+   * extra width. Tailwind sizes almost everything in rem, so raising the root
+   * scales the whole system by 12.5% in one place rather than touching every
+   * utility. Left at 100% below md, where the viewport is the constraint.
+   */
+  font-size: 100%;
+}
+
+@media (min-width: 48rem) {
+  html {
+    font-size: 112.5%;
+  }
 }

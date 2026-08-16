@@ -83,7 +83,7 @@ export function Inbox() {
                   <p className="mt-0.5 truncate text-sm text-slate-500">{t.lastMessage}</p>
                 </div>
                 {t.unread > 0 ? (
-                  <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-brand-600 px-1.5 text-[11px] font-semibold text-white">
+                  <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-brand-600 px-1.5 text-[0.6875rem] font-semibold text-white">
                     {t.unread}
                   </span>
                 ) : null}
@@ -137,7 +137,7 @@ export function Inbox() {
                     >
                       {m.body}
                     </div>
-                    <p className={`mt-1 text-[11px] text-slate-400 ${m.from === "me" ? "text-right" : ""}`}>
+                    <p className={`mt-1 text-[0.6875rem] text-slate-400 ${m.from === "me" ? "text-right" : ""}`}>
                       {m.at}
                     </p>
                   </div>

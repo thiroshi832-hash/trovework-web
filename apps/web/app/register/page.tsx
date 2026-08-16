@@ -45,7 +45,7 @@ export default async function RegisterPage({
   return (
     <div className="flex flex-1 flex-col bg-slate-50/60">
       <main className="flex-1">
-        <div className="mx-auto max-w-7xl px-6 py-8">
+        <div className="mx-auto max-w-page px-6 py-8">
           {/* ------------------------- split card ------------------------- */}
           <div className="grid overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 lg:grid-cols-[4.5fr_5.5fr]">
             {/* left — value proposition */}

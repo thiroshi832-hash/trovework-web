@@ -307,7 +307,7 @@ const MOCK = "block rounded bg-slate-200/70";
 
 function StepCreateAccount() {
   return (
-    <div className="relative w-full max-w-[220px]">
+    <div className="relative w-full max-w-[13.75rem]">
       <div className="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200/80">
         <div className="flex items-center gap-1 bg-slate-50 px-2.5 py-2">
           <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
@@ -337,7 +337,7 @@ function StepCreateAccount() {
 
 function StepGetVerified() {
   return (
-    <div className="relative w-full max-w-[220px]">
+    <div className="relative w-full max-w-[13.75rem]">
       <div className="rounded-lg bg-white p-3.5 shadow-sm ring-1 ring-slate-200/80">
         <div className="flex gap-2.5">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-brand-100 text-brand-500">
@@ -362,7 +362,7 @@ function StepGetVerified() {
 
 function StepConnectWork() {
   return (
-    <div className="w-full max-w-[220px] space-y-3">
+    <div className="w-full max-w-[13.75rem] space-y-3">
       <div className="flex items-center gap-2">
         <Portrait src="/avatars/community-3.jpg" className="h-9 w-9" sizes="36px" />
         <div className="flex-1 rounded-lg rounded-tl-sm bg-white p-3 shadow-sm ring-1 ring-slate-200/80">
@@ -389,12 +389,12 @@ function VerifiedCard({ className = "" }: { className?: string }) {
       <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-600 text-white">
         <ShieldCheck className="h-6 w-6" />
       </span>
-      <p className="mt-3.5 text-[17px] font-bold leading-snug text-navy-800">
+      <p className="mt-3.5 text-[1.0625rem] font-bold leading-snug text-navy-800">
         Verified
         <br />
         Community
       </p>
-      <p className="mt-2 text-[13px] leading-relaxed text-slate-500">
+      <p className="mt-2 text-[0.8125rem] leading-relaxed text-slate-500">
         All users are verified for a safe and trusted environment.
       </p>
     </div>
@@ -418,13 +418,13 @@ export default function Home() {
             className="absolute inset-y-0 right-0 hidden w-[54%] bg-[url('/images/hero.jpg')] bg-cover bg-[position:38%_center] [-webkit-mask-image:linear-gradient(to_right,transparent,#000_26%)] [mask-image:linear-gradient(to_right,transparent,#000_26%)] lg:block"
           />
 
-          <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-6 py-12 lg:grid-cols-2 lg:py-20">
+          <div className="relative mx-auto grid max-w-page items-center gap-10 px-6 py-12 lg:grid-cols-2 lg:py-20">
             {/* the floating card belongs to the container, not the bleeding
                 photo — its right edge lines up with the trust bar below */}
             {/* vertical offset tracks the photo (whose height is 41.67vw, set by
                 its locked aspect ratio) rather than this container, so the card
                 stays on the picture at every desktop width */}
-            <VerifiedCard className="absolute right-6 top-[calc(37.1vw_-_256px)] hidden w-[232px] min-h-[256px] lg:flex" />
+            <VerifiedCard className="absolute right-6 top-[calc(37.1vw_-_16rem)] hidden w-[14.5rem] min-h-[16rem] lg:flex" />
             <div>
               <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-brand-700 ring-1 ring-brand-100">
                 <span className="grid h-4 w-4 place-items-center rounded-full bg-brand-600 text-white">
@@ -435,7 +435,7 @@ export default function Home() {
 
               {/* Two lines, always — the long first line is allowed to run past
                   the column and over the photo rather than wrapping to three. */}
-              <h1 className="mt-5 text-[7.2vw] font-bold leading-[1.14] tracking-tight text-navy-800 sm:text-[5.4vw] lg:whitespace-nowrap lg:text-[4vw] xl:text-[51px]">
+              <h1 className="mt-5 text-[7.2vw] font-bold leading-[1.14] tracking-tight text-navy-800 sm:text-[5.4vw] lg:whitespace-nowrap lg:text-[min(4vw,63px)]">
                 Hire trusted freelancers.
                 <br />
                 Get work{" "}
@@ -459,7 +459,7 @@ export default function Home() {
                 </span>
               </h1>
 
-              <p className="mt-6 max-w-md text-[17px] leading-[1.95] text-slate-600">
+              <p className="mt-6 max-w-md text-[1.0625rem] leading-[1.95] text-slate-600">
                 Trovework connects verified freelancers with clients worldwide. Every user is
                 verified so you can collaborate with confidence.
               </p>
@@ -508,7 +508,7 @@ export default function Home() {
         </section>
 
         {/* ---------------------------- trust bar --------------------------- */}
-        <section id="trust" className="mx-auto max-w-7xl px-6 pb-4 pt-8">
+        <section id="trust" className="mx-auto max-w-page px-6 pb-4 pt-8">
           <div className={`grid ${CARD} rounded-2xl sm:grid-cols-2 lg:grid-cols-4`}>
             {TRUST_ITEMS.map((t, i) => (
               <div
@@ -528,7 +528,7 @@ export default function Home() {
         </section>
 
         {/* ---------------------------- categories -------------------------- */}
-        <section id="categories" className="mx-auto max-w-7xl px-6 py-14">
+        <section id="categories" className="mx-auto max-w-page px-6 py-14">
           <SectionHeading title="Popular Categories" action="View all categories" />
           <div className="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8">
             {CATEGORIES.map((c) => (
@@ -555,7 +555,7 @@ export default function Home() {
 
         {/* --------------------------- how it works ------------------------- */}
         <section id="how" className="bg-white py-14">
-          <div className="mx-auto max-w-7xl px-6">
+          <div className="mx-auto max-w-page px-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl">How It Works</h2>
               <p className="mt-2.5 text-sm text-slate-500">Get started in three simple steps</p>
@@ -583,7 +583,7 @@ export default function Home() {
         </section>
 
         {/* ------------------------------ stats ----------------------------- */}
-        <section className="mx-auto max-w-7xl px-6 py-12">
+        <section className="mx-auto max-w-page px-6 py-12">
           <div className="grid gap-10 rounded-2xl bg-gradient-to-r from-stat-from via-stat-via to-stat-to px-8 py-14 sm:grid-cols-2 lg:grid-cols-4">
             {STATS.map((s, i) => (
               <div
@@ -601,7 +601,7 @@ export default function Home() {
         </section>
 
         {/* ------------------------ featured freelancers -------------------- */}
-        <section className="mx-auto max-w-7xl px-6 py-10">
+        <section className="mx-auto max-w-page px-6 py-10">
           <SectionHeading title="Featured Freelancers" action="View all freelancers" href="/freelancers" />
           <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {FREELANCERS.map((f) => (
@@ -623,7 +623,7 @@ export default function Home() {
                 </div>
                 <div className="mt-3.5 flex flex-wrap justify-center gap-1.5">
                   {f.skills.map((s) => (
-                    <span key={s} className="rounded bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">
+                    <span key={s} className="rounded bg-slate-100 px-2 py-1 text-[0.625rem] font-medium text-slate-600">
                       {s}
                     </span>
                   ))}
@@ -638,7 +638,7 @@ export default function Home() {
         </section>
 
         {/* --------------------------- testimonials ------------------------- */}
-        <section className="mx-auto max-w-7xl px-6 py-14">
+        <section className="mx-auto max-w-page px-6 py-14">
           <h2 className="text-center text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl">
             What Our Users Say
           </h2>
@@ -660,7 +660,7 @@ export default function Home() {
         </section>
 
         {/* ------------------------------- CTA ------------------------------ */}
-        <section className="mx-auto max-w-7xl px-6 py-8">
+        <section className="mx-auto max-w-page px-6 py-8">
           <div className="relative overflow-hidden rounded-2xl bg-brand-600 px-8 py-20 text-center">
             {/* dotted world map, as in the comp: the Americas at the left edge,
                 Europe/Africa/Asia/Oceania at the right, the Atlantic left open
@@ -699,7 +699,7 @@ export default function Home() {
         </section>
 
         {/* ------------------------------- blog ----------------------------- */}
-        <section id="blog" className="mx-auto max-w-7xl px-6 py-14">
+        <section id="blog" className="mx-auto max-w-page px-6 py-14">
           <SectionHeading title="Latest from the Blog" action="View all articles" href="/blog" />
           <div className="mt-7 grid gap-6 md:grid-cols-3">
             {POSTS.map((p) => (
@@ -712,7 +712,7 @@ export default function Home() {
                     sizes="(min-width: 768px) 33vw, 100vw"
                     className="object-cover"
                   />
-                  <span className="absolute bottom-3 left-3 rounded bg-brand-600 px-2 py-1 text-[10px] font-bold tracking-wide text-white">
+                  <span className="absolute bottom-3 left-3 rounded bg-brand-600 px-2 py-1 text-[0.625rem] font-bold tracking-wide text-white">
                     {p.tag}
                   </span>
                 </div>

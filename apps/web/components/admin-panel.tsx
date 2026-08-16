@@ -46,7 +46,7 @@ export function AdminPanel() {
           >
             {t}
             <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+              className={`rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold ${
                 tab === t ? "bg-brand-50 text-brand-700" : "bg-slate-100 text-slate-500"
               }`}
             >
@@ -76,7 +76,7 @@ export function AdminPanel() {
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-semibold text-navy-800">{v.user}</p>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${
+                        className={`rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold ring-1 ${
                           v.strike >= 2
                             ? "bg-red-50 text-red-700 ring-red-200"
                             : "bg-amber-50 text-amber-700 ring-amber-200"
@@ -235,7 +235,7 @@ export function AdminPanel() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-navy-800">{b.user}</p>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[0.625rem] font-medium text-slate-500">
                         {b.role}
                       </span>
                     </div>

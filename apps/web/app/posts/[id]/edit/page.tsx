@@ -24,7 +24,7 @@ export default async function EditPostPage({
   return (
     <div className="flex flex-1 flex-col bg-slate-50/60">
       <main className="flex-1">
-        <div className="mx-auto max-w-4xl px-6 py-8">
+        <div className="mx-auto max-w-page px-6 py-8">
           <h1 className="text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl">Edit post</h1>
           <p className="mt-2 text-base text-slate-500">
             Changes are re-checked for contact details before they go live.

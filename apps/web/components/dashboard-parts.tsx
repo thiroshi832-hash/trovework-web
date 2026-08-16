@@ -119,7 +119,7 @@ export function VerificationCard({
                       s.ok ? "bg-emerald-500 text-white" : "bg-white text-amber-500 ring-1 ring-amber-300"
                     }`}
                   >
-                    {s.ok ? <Check className="h-3 w-3" /> : <span className="text-[11px] font-bold">!</span>}
+                    {s.ok ? <Check className="h-3 w-3" /> : <span className="text-[0.6875rem] font-bold">!</span>}
                   </span>
                   <span className={s.ok ? "text-emerald-800" : "text-amber-900"}>{s.label}</span>
                   <span className={s.ok ? "text-emerald-600" : "text-amber-700"}>
@@ -156,7 +156,7 @@ export function ThreadList({ threads }: { threads: Conversation[] }) {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <p className="truncate text-sm font-semibold text-navy-800">{t.withName}</p>
-              <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+              <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[0.625rem] font-medium text-slate-500">
                 {t.withRole}
               </span>
             </div>
@@ -165,7 +165,7 @@ export function ThreadList({ threads }: { threads: Conversation[] }) {
           <div className="shrink-0 text-right">
             <p className="text-xs text-slate-400">{t.when}</p>
             {t.unread > 0 ? (
-              <span className="mt-1 inline-grid h-5 min-w-5 place-items-center rounded-full bg-brand-600 px-1.5 text-[11px] font-semibold text-white">
+              <span className="mt-1 inline-grid h-5 min-w-5 place-items-center rounded-full bg-brand-600 px-1.5 text-[0.6875rem] font-semibold text-white">
                 {t.unread}
               </span>
             ) : null}
