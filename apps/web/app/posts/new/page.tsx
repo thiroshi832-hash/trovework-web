@@ -1,27 +1,24 @@
 import type { Metadata } from "next";
-import { ProfileEditForm } from "@/components/profile-edit-form";
+import { PostEditor } from "@/components/post-editor";
 
 export const metadata: Metadata = {
-  title: "Edit your profile — Trovework",
-  description: "Update your headline, skills, rate and contact details.",
-  // Someone's own editor should never be indexed.
+  title: "New post — Trovework",
   robots: { index: false, follow: false },
 };
 
-export default function ProfileEditPage() {
+export default function NewPostPage() {
   return (
     <div className="flex flex-1 flex-col bg-slate-50/60">
       <main className="flex-1">
         <div className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-8">
           <h1 className="text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl">
-            Edit your profile
+            Create a post
           </h1>
           <p className="mt-2 text-base text-slate-500">
-            This is what clients see when they find you in search.
+            Describe a service you offer. Clients find these through search.
           </p>
-
           <div className="mt-8">
-            <ProfileEditForm />
+            <PostEditor />
           </div>
         </div>
       </main>

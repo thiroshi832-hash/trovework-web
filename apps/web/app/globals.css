@@ -23,6 +23,24 @@
   --color-navy-800: #0b1c38;
   --color-navy-900: #051636;
 
+  /* Type scale, ~10% above Tailwind's default. Only the text tokens move, so
+     spacing, icons and avatars keep the sizes already agreed. Line heights are
+     the stock ratios, restated so they follow the larger sizes. */
+  --text-xs: 0.8125rem;   --text-xs--line-height: 1.35;
+  --text-sm: 0.9375rem;   --text-sm--line-height: 1.45;
+  --text-base: 1.0625rem; --text-base--line-height: 1.55;
+  --text-lg: 1.25rem;     --text-lg--line-height: 1.5;
+  --text-xl: 1.375rem;    --text-xl--line-height: 1.4;
+  --text-2xl: 1.625rem;   --text-2xl--line-height: 1.3;
+  --text-3xl: 2.0625rem;  --text-3xl--line-height: 1.2;
+  --text-4xl: 2.5rem;     --text-4xl--line-height: 1.12;
+  --text-5xl: 3.25rem;    --text-5xl--line-height: 1.05;
+  --text-6xl: 4rem;       --text-6xl--line-height: 1;
+
+  /* Page container. Wider than Tailwind's 7xl (80rem/1280px), which left too
+     much empty margin on large displays. */
+  --container-page: 1600px;
+
   /* Feature-badge gradient on the auth panels, sampled top-left to
      bottom-right off the comp */
   --color-badge-from: #107dfc;
@@ -35,6 +53,10 @@
 }
 
 :root {
+  /* py-4 (2rem total) + the h-10 logo (2.5rem) + the 1px bottom border.
+     Expressed in rem so it tracks the root-size change above. */
+  --header-h: calc(4.5rem + 1px);
+
   --background: #ffffff;
   --foreground: #0d2447;
 }
@@ -48,4 +70,18 @@ body {
 
 html {
   scroll-behavior: smooth;
+  /*
+   * The design was drawn against a 1280px container; at 1600px everything set
+   * in rem — type, icon sizes, padding, gaps, avatars — read too small for the
+   * extra width. Tailwind sizes almost everything in rem, so raising the root
+   * scales the whole system by 12.5% in one place rather than touching every
+   * utility. Left at 100% below md, where the viewport is the constraint.
+   */
+  font-size: 100%;
+}
+
+@media (min-width: 48rem) {
+  html {
+    font-size: 112.5%;
+  }
 }
