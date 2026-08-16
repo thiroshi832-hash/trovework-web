@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { PrismaModule } from "./prisma/prisma.module";
 import { PermissionModule } from "./permission/permission.module";
 import { AuthModule } from "./auth/auth.module";
+import { PostsModule } from "./posts/posts.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { RolesGuard } from "./auth/guards/roles.guard";
 import { VerifiedGuard } from "./auth/guards/verified.guard";
@@ -17,6 +18,7 @@ import { VerifiedGuard } from "./auth/guards/verified.guard";
     PrismaModule,
     PermissionModule,
     AuthModule,
+    PostsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

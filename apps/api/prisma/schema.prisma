@@ -19,6 +19,12 @@ enum AccountStatus {
   pending
 }
 
+enum PostStatus {
+  active
+  blocked
+  draft
+}
+
 model User {
   id           String        @id @default(uuid()) @db.Uuid
   email        String        @unique
@@ -44,12 +50,54 @@ model User {
   strikeCount Int @default(0) @map("strike_count")
 
   refreshTokens RefreshToken[]
+  posts         Post[]
+  violations    Violation[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([role])
   @@map("users")
+}
+
+/// A freelancer's service listing. Scanned for contact info on every write; a
+/// leak forces status = blocked and records a violation (dev doc §8).
+model Post {
+  id            String     @id @default(uuid()) @db.Uuid
+  authorId      String     @map("author_id") @db.Uuid
+  author        User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title         String
+  description   String
+  category      String
+  priceFrom     Decimal?   @map("price_from") @db.Decimal(12, 2)
+  status        PostStatus @default(draft)
+  /// Set only when status = blocked: the substrings the scanner matched.
+  blockedReason String?    @map("blocked_reason")
+
+  violations Violation[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([authorId])
+  @@index([status])
+  @@index([category])
+  @@map("posts")
+}
+
+/// One row per contact-info leak caught in a post. Feeds the admin panel and
+/// the 3-strike count on the user (FR-M-3/4).
+model Violation {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId       String?  @map("post_id") @db.Uuid
+  post         Post?    @relation(fields: [postId], references: [id], onDelete: SetNull)
+  detectedText String   @map("detected_text")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("violations")
 }
 
 /// One row per issued refresh token. Stored as a SHA-256 hash so a database
