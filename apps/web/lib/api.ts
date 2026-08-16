@@ -18,6 +18,8 @@ export interface SessionUser {
   status: "active" | "banned" | "pending";
   phoneVerified: boolean;
   idVerified: boolean;
+  strikeCount?: number;
+  country?: string;
 }
 
 export class ApiError extends Error {

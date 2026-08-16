@@ -155,6 +155,7 @@ export class AuthService {
         status: true,
         phoneVerified: true,
         idVerified: true,
+        strikeCount: true,
         country: true,
         state: true,
         createdAt: true,

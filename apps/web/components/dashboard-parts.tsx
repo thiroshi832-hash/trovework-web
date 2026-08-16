@@ -15,14 +15,21 @@ export function DashboardHeader({
   children,
 }: {
   name: string;
-  photo: string;
+  photo?: string | null;
   role: string;
   children?: ReactNode;
 }) {
+  const initials = name.split(/\s+/).map((p) => p[0] ?? "").join("").slice(0, 2).toUpperCase() || "?";
   return (
     <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-4">
-        <Portrait src={photo} sizes="64px" className="h-16 w-16" />
+        {photo ? (
+          <Portrait src={photo} sizes="64px" className="h-16 w-16" />
+        ) : (
+          <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-lg font-semibold text-white">
+            {initials}
+          </span>
+        )}
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-navy-800">
             Welcome back, {name.split(" ")[0]}
