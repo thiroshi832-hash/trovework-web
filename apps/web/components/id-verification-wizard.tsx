@@ -2,16 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Field, PendingNotice, SelectInput, TextInput } from "@/components/auth-fields";
+import { Field, PendingNotice, TextInput } from "@/components/auth-fields";
 import { ArrowLeft, Check, IdUpload, ShieldCheck } from "@/components/icons";
 
 const STEPS = ["Upload ID", "Take Selfie", "Your Info", "Review"] as const;
-const DOCUMENTS = ["Passport", "Driver's License", "National ID Card"] as const;
 const IMAGE_TYPES = ["image/jpeg", "image/png"];
 const MAX_BYTES = 5 * 1024 * 1024;
 
 type Shot = { url: string; name: string };
-type Info = { fullName: string; dob: string; idNumber: string; document: string };
+type Info = { fullName: string; dob: string; idNumber: string };
 
 /** Reads an image File to a data URL, or returns why it was rejected. */
 function readImage(file: File): Promise<{ shot?: Shot; error?: string }> {
@@ -86,10 +85,12 @@ function StepHeader({ title, children }: { title: string; children: React.ReactN
 function Dropzone({
   onFile,
   error,
+  className = "mt-6 px-6 py-12",
   children,
 }: {
   onFile: (f: File | undefined) => void;
   error: string | null;
+  className?: string;
   children: React.ReactNode;
 }) {
   const [dragging, setDragging] = useState(false);
@@ -105,7 +106,7 @@ function Dropzone({
         setDragging(false);
         onFile(e.dataTransfer.files[0]);
       }}
-      className={`mt-6 rounded-xl border-2 border-dashed px-6 py-12 text-center transition ${
+      className={`rounded-xl border-2 border-dashed text-center transition ${className} ${
         dragging
           ? "border-brand-500 bg-brand-50"
           : error
@@ -138,18 +139,79 @@ function Preview({ shot, onClear, label }: { shot: Shot; onClear: () => void; la
   );
 }
 
+/** One face of the document — cards need two, a passport only its photo page. */
+function DocSide({
+  label,
+  shot,
+  error,
+  onFile,
+  onClear,
+}: {
+  label: string;
+  shot: Shot | null;
+  error: string | null;
+  onFile: (f: File | undefined) => void;
+  onClear: () => void;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <div>
+      <p className="mb-2 text-sm font-medium text-navy-800">{label}</p>
+      <Dropzone error={error} onFile={onFile} className="px-4 py-8">
+        {shot ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={shot.url}
+              alt={label}
+              className="mx-auto h-28 w-44 rounded-lg object-cover ring-1 ring-slate-200"
+            />
+            <p className="mt-3 truncate text-sm font-semibold text-navy-800">{shot.name}</p>
+            <button
+              type="button"
+              onClick={onClear}
+              className="mt-3 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-navy-800 transition hover:bg-slate-50"
+            >
+              Replace
+            </button>
+          </>
+        ) : (
+          <>
+            <IdUpload className="mx-auto h-10 w-10 text-brand-600" />
+            <p className="mt-3 text-sm text-slate-500">Drag &amp; drop, or</p>
+            <button
+              type="button"
+              onClick={() => input.current?.click()}
+              className="mt-2.5 rounded-lg bg-brand-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
+            >
+              Choose file
+            </button>
+          </>
+        )}
+        <input
+          ref={input}
+          type="file"
+          accept={IMAGE_TYPES.join(",")}
+          className="sr-only"
+          onChange={(e) => onFile(e.target.files?.[0])}
+        />
+      </Dropzone>
+    </div>
+  );
+}
+
 /* ================================= wizard ================================= */
 
 export function IdVerificationWizard() {
   const [step, setStep] = useState(0);
-  const [idCard, setIdCard] = useState<Shot | null>(null);
+  const [idFront, setIdFront] = useState<Shot | null>(null);
+  const [idBack, setIdBack] = useState<Shot | null>(null);
   const [selfie, setSelfie] = useState<Shot | null>(null);
-  const [info, setInfo] = useState<Info>({ fullName: "", dob: "", idNumber: "", document: DOCUMENTS[0] });
+  const [info, setInfo] = useState<Info>({ fullName: "", dob: "", idNumber: "" });
   const [errors, setErrors] = useState<Partial<Record<keyof Info, string>>>({});
   const [fileError, setFileError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  const idInput = useRef<HTMLInputElement>(null);
   const selfieInput = useRef<HTMLInputElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   // The stream lives in a ref so unmount cleanup never has to touch state.
@@ -228,7 +290,7 @@ export function IdVerificationWizard() {
     return Object.keys(next).length === 0;
   }
 
-  const canAdvance = step === 0 ? !!idCard : step === 1 ? !!selfie : true;
+  const canAdvance = step === 0 ? !!idFront && !!idBack : step === 1 ? !!selfie : true;
 
   function next() {
     if (step === 2 && !validateInfo()) return;
@@ -270,7 +332,8 @@ export function IdVerificationWizard() {
             onClick={() => {
               setSubmitted(false);
               goTo(0);
-              setIdCard(null);
+              setIdFront(null);
+              setIdBack(null);
               setSelfie(null);
             }}
             className="rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
@@ -290,41 +353,31 @@ export function IdVerificationWizard() {
       {step === 0 ? (
         <>
           <StepHeader title="Upload your ID card">
-            Upload a clear photo of your government-issued ID.
+            Upload a clear photo of both sides of your government-issued ID card.
             <br />
-            Supported formats: JPG, PNG. Max size: 5MB.
+            Supported formats: JPG, PNG. Max size: 5MB per image.
           </StepHeader>
 
-          <Dropzone error={fileError} onFile={(f) => take(f, setIdCard)}>
-            {idCard ? (
-              <Preview shot={idCard} label="Your ID document" onClear={() => setIdCard(null)} />
-            ) : (
-              <>
-                <IdUpload className="mx-auto h-12 w-12 text-brand-600" />
-                <p className="mt-4 font-semibold text-navy-800">Drag &amp; drop your ID card here</p>
-                <p className="mt-1 text-sm text-slate-400">or</p>
-                <button
-                  type="button"
-                  onClick={() => idInput.current?.click()}
-                  className="mt-3 rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
-                >
-                  Choose File
-                </button>
-              </>
-            )}
-            <input
-              ref={idInput}
-              type="file"
-              accept={IMAGE_TYPES.join(",")}
-              className="sr-only"
-              onChange={(e) => take(e.target.files?.[0], setIdCard)}
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <DocSide
+              label="Front"
+              shot={idFront}
+              error={fileError}
+              onFile={(f) => take(f, setIdFront)}
+              onClear={() => setIdFront(null)}
             />
-          </Dropzone>
+            <DocSide
+              label="Back"
+              shot={idBack}
+              error={fileError}
+              onFile={(f) => take(f, setIdBack)}
+              onClear={() => setIdBack(null)}
+            />
+          </div>
 
-          <p className="mt-5 text-sm text-slate-500">
-            Accepted documents:
-            <br />
-            Driver&apos;s License, Passport, National ID Card
+          <p className="mt-5 text-sm leading-relaxed text-slate-500">
+            Both sides are needed — the back usually carries the card number and expiry date we
+            check against the details you enter next.
           </p>
         </>
       ) : null}
@@ -433,18 +486,7 @@ export function IdVerificationWizard() {
               />
             </Field>
 
-            <Field label="Document type">
-              <SelectInput
-                value={info.document}
-                onChange={(e) => setInfo({ ...info, document: e.target.value })}
-              >
-                {DOCUMENTS.map((d) => (
-                  <option key={d}>{d}</option>
-                ))}
-              </SelectInput>
-            </Field>
-
-            <Field label="Document number" error={errors.idNumber} className="sm:col-span-2">
+            <Field label="ID card number" error={errors.idNumber}>
               <TextInput
                 value={info.idNumber}
                 onChange={(e) => setInfo({ ...info, idNumber: e.target.value })}
@@ -464,18 +506,34 @@ export function IdVerificationWizard() {
           </StepHeader>
 
           <div className="mt-6 space-y-4">
-            <div className="flex items-center gap-4 rounded-xl border border-slate-200 p-4">
-              {idCard ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={idCard.url} alt="" className="h-16 w-24 shrink-0 rounded-md object-cover ring-1 ring-slate-200" />
-              ) : null}
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-navy-800">ID document</p>
-                <p className="truncate text-sm text-slate-500">{idCard?.name}</p>
+            <div className="rounded-xl border border-slate-200 p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-navy-800">ID card</p>
+                  <p className="text-sm text-slate-500">Front and back</p>
+                </div>
+                <button type="button" onClick={() => goTo(0)} className="text-sm font-medium text-brand-600 hover:text-brand-700">
+                  Edit
+                </button>
               </div>
-              <button type="button" onClick={() => goTo(0)} className="text-sm font-medium text-brand-600 hover:text-brand-700">
-                Edit
-              </button>
+              <div className="mt-3 flex flex-wrap gap-3">
+                {[
+                  { shot: idFront, label: "Front" },
+                  { shot: idBack, label: "Back" },
+                ].map(({ shot, label }) =>
+                  shot ? (
+                    <figure key={label}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={shot.url}
+                        alt={`ID card, ${label.toLowerCase()}`}
+                        className="h-16 w-24 rounded-md object-cover ring-1 ring-slate-200"
+                      />
+                      <figcaption className="mt-1 text-xs text-slate-400">{label}</figcaption>
+                    </figure>
+                  ) : null,
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-4 rounded-xl border border-slate-200 p-4">
@@ -503,7 +561,6 @@ export function IdVerificationWizard() {
                 {[
                   ["Full name", info.fullName],
                   ["Date of birth", info.dob],
-                  ["Document type", info.document],
                   ["Document number", info.idNumber],
                 ].map(([k, v]) => (
                   <div key={k} className="flex gap-2">
