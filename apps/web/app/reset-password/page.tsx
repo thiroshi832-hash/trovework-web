@@ -17,8 +17,8 @@ export default async function ResetPasswordPage({
 
   return (
     <AuthCard>
-      {/* The server validates the token; the page only needs to know one arrived. */}
-      <ResetPasswordForm hasToken={!!token} />
+      {/* The server does the real validation; the page just forwards the token. */}
+      <ResetPasswordForm token={token ?? null} />
     </AuthCard>
   );
 }

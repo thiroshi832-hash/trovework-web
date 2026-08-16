@@ -119,6 +119,19 @@ export const api = {
 
   me: () => request<SessionUser>("/api/auth/me"),
 
+  /** Always resolves (the API answers 202 whether or not the email exists). */
+  forgotPassword: (email: string) =>
+    request<{ ok: true }>("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (token: string, password: string) =>
+    request<{ ok: true }>("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, password }),
+    }),
+
   /* ------------------------------- profile ------------------------------- */
   profile: {
     getMine: () => request<unknown>("/api/profile/me"),
@@ -141,6 +154,7 @@ export const api = {
   /* ------------------------------- posts --------------------------------- */
   posts: {
     listMine: () => request<unknown[]>("/api/posts/mine"),
+    get: (id: string) => request<unknown>(`/api/posts/${id}`),
     create: (input: Record<string, unknown>) =>
       request<PostWriteResult>("/api/posts", { method: "POST", body: JSON.stringify(input) }),
     update: (id: string, input: Record<string, unknown>) =>
