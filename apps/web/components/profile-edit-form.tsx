@@ -275,6 +275,7 @@ export function ProfileEditForm() {
             <input
               ref={resumeInput}
               type="file"
+              aria-label="Upload your resume"
               accept=".pdf,.doc,.docx"
               className="sr-only"
               onChange={(e) => setResume(e.target.files?.[0] ?? null)}

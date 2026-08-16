@@ -191,6 +191,7 @@ function DocSide({
         <input
           ref={input}
           type="file"
+          aria-label={`Upload the ${label.toLowerCase()} of your ID card`}
           accept={IMAGE_TYPES.join(",")}
           className="sr-only"
           onChange={(e) => onFile(e.target.files?.[0])}
@@ -443,6 +444,7 @@ export function IdVerificationWizard() {
             <input
               ref={selfieInput}
               type="file"
+              aria-label="Upload a selfie"
               accept={IMAGE_TYPES.join(",")}
               capture="user"
               className="sr-only"

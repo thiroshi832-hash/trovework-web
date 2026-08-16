@@ -4,6 +4,7 @@ import { Portrait } from "@/components/brand";
 import { PEOPLE } from "@/lib/people";
 import { VISIBLE_FREELANCERS as FREELANCERS } from "@/lib/freelancers";
 import { CATEGORIES as ALL_CATEGORIES, type Category } from "@/lib/categories";
+import { BLOG_POSTS as POSTS } from "@/lib/blog";
 
 /* ================================ icons ================================= */
 
@@ -307,11 +308,6 @@ const TESTIMONIALS = [
   { ...PEOPLE.jessica, quote: "I found a long-term designer within days. Communication is smooth and everything just works." },
 ];
 
-const POSTS = [
-  { tag: "TIPS", image: "/design/blog-1.jpg", title: "How to Hire the Right Freelancer for Your Project", excerpt: "A practical guide to finding the perfect freelancer and getting great results.", date: "Aug 15, 2026", read: "5 min read" },
-  { tag: "SAFETY", image: "/design/blog-2.jpg", title: "Why Verification Matters in Freelancing", excerpt: "Building a safer marketplace for everyone through trust and verification.", date: "Aug 8, 2026", read: "4 min read" },
-  { tag: "GUIDES", image: "/design/blog-3.jpg", title: "Remote Work Best Practices for Clients and Freelancers", excerpt: "Tips to communicate better and deliver successful projects remotely.", date: "Aug 1, 2026", read: "6 min read" },
-];
 
 /* ========================= how-it-works artwork ========================== */
 
