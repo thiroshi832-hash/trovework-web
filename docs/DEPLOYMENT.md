@@ -207,9 +207,11 @@ docker compose version
 
 ## Step 5 — Clone the repository
 
-> **Run these as the `deploy` user, not root.** CI logs in as `deploy`, and git refuses to
-> operate on a repository owned by someone else (*"detected dubious ownership"*). If your prompt
-> reads `root@...`, switch first with `su - deploy`.
+> **Run these — and every later git command on this repo — as the `deploy` user, not root.** CI
+> logs in as `deploy`. If root runs `git pull`, the new objects are written root-owned and the next
+> CI deploy fails with *"insufficient permission for adding an object to .git/objects"*. If your
+> prompt reads `root@...`, switch first with `su - deploy`. Better still: after the first manual
+> clone, never pull by hand — let the Deploy workflow do it.
 
 ```bash
 sudo mkdir -p /srv/trovework
@@ -484,6 +486,7 @@ docker compose exec db pg_dump -U trovework trovework > ~/trovework-$(date +%F).
 | certbot fails | DNS not pointing at the VPS yet (Step 0), or port 80 blocked |
 | Deploy action fails auth | `VPS_SSH_KEY` missing header/footer lines, or public key not in `~deploy/.ssh/authorized_keys` |
 | `detected dubious ownership in repository` | Repo cloned as root; CI runs as `deploy`. Fix with `sudo chown -R deploy:deploy /srv/trovework` |
+| CI: `insufficient permission for adding an object to .git/objects` | Someone ran `git pull` on the box as root, writing root-owned objects CI cannot overwrite. `sudo chown -R deploy:deploy /srv/trovework`, and pull as `deploy` from now on (or let CI do it) |
 | `permission denied` on the docker socket | `deploy` not in the `docker` group — `sudo usermod -aG docker deploy`, then reconnect |
 | Site loads over HTTP but not HTTPS | certbot didn't inject the 443 block — re-run Step 9 |
 
