@@ -30,11 +30,12 @@ const nextConfig: NextConfig = {
    */
   async rewrites() {
     if (process.env.NODE_ENV !== "development") return [];
+    const api = process.env.API_URL ?? "http://127.0.0.1:4000";
     return [
-      {
-        source: "/api/:path*",
-        destination: `${process.env.API_URL ?? "http://127.0.0.1:4000"}/api/:path*`,
-      },
+      { source: "/api/:path*", destination: `${api}/api/:path*` },
+      // The Socket.IO chat gateway lives on the API server; keep it same-origin
+      // in dev too so the auth cookie rides the handshake.
+      { source: "/socket.io/:path*", destination: `${api}/socket.io/:path*` },
     ];
   },
 };

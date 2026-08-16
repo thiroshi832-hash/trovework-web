@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inbox } from "@/components/inbox";
 
 export const metadata: Metadata = {
@@ -17,7 +18,10 @@ export default function InboxPage() {
             Every person here has passed identity verification.
           </p>
           <div className="mt-8">
-            <Inbox />
+            {/* useSearchParams (the ?c= deep link) needs a Suspense boundary. */}
+            <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl border border-slate-200 bg-slate-50" />}>
+              <Inbox />
+            </Suspense>
           </div>
         </div>
       </main>
