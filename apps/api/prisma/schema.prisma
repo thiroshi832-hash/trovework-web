@@ -150,8 +150,9 @@ model PhoneChallenge {
 /// An ID verification submission. The engine (or an admin) decides; approval
 /// flips users.id_verified and, for a freelancer, makes the profile visible.
 /// Images live in the secured, non-public store (FR-F-3); only their paths are
-/// here. idNumber/dob are sensitive — the DB volume must be encrypted at rest,
-/// and field-level encryption is a planned follow-up (NFR-SEC-2).
+/// here. idNumber/dob are sensitive and stored ENCRYPTED at rest via
+/// PiiCryptoService (AES-256-GCM, NFR-SEC-2); the admin review path decrypts
+/// them for display. The DB volume should still be encrypted at rest too.
 model IdVerification {
   id       String             @id @default(uuid()) @db.Uuid
   userId   String             @map("user_id") @db.Uuid

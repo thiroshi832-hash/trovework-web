@@ -290,11 +290,17 @@ POSTGRES_DB=trovework
 POSTGRES_PASSWORD=$(openssl rand -hex 32)
 JWT_ACCESS_SECRET=$(openssl rand -base64 48)
 JWT_REFRESH_SECRET=$(openssl rand -base64 48)
+PII_ENCRYPTION_KEY=$(openssl rand -hex 32)
 WEB_ORIGIN=https://trovework.com
 ADMIN_EMAILS=you@yourdomain.com
 EOF
 chmod 600 .env
 ```
+
+`PII_ENCRYPTION_KEY` encrypts ID numbers and dates of birth at rest (NFR-SEC-2). It must decode to
+exactly 32 bytes — `openssl rand -hex 32` does that. **Do not rotate it after go-live** without a
+re-encryption step: existing ID records were sealed with the old key and would become unreadable
+(pending submissions would need re-review).
 
 `ADMIN_EMAILS` is a comma-separated list of addresses that become admins automatically on login —
 this is how you get the first admin, since registration only creates clients and freelancers.

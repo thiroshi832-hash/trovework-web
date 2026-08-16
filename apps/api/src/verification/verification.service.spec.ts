@@ -1,9 +1,17 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from "@nestjs/common";
 import { createHash } from "node:crypto";
+import { ConfigService } from "@nestjs/config";
 import { VerificationService, type Actor } from "./verification.service";
 import { ManualVerificationProvider, type VerificationProvider } from "./providers/verification.provider";
+import { PiiCryptoService } from "../crypto/pii-crypto.service";
 import type { SmsProvider } from "./providers/sms.provider";
 import type { PrismaService } from "../prisma/prisma.service";
+
+// A real crypto service with a fixed test key, so the encrypt→decrypt roundtrip
+// is actually exercised rather than mocked away.
+const pii = new PiiCryptoService({
+  get: (_k: string, d?: string) => "0".repeat(64) || d,
+} as unknown as ConfigService);
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
@@ -73,7 +81,7 @@ function makeService(
 ) {
   const sms = opts.sms ?? { sendCode: jest.fn(async () => undefined) };
   const engine = opts.engine ?? new ManualVerificationProvider();
-  return { svc: new VerificationService(db as unknown as PrismaService, sms, engine), sms, engine };
+  return { svc: new VerificationService(db as unknown as PrismaService, sms, engine, pii), sms, engine };
 }
 
 const freelancer: Actor = { id: "f1", role: "freelancer", status: "active" };
@@ -166,6 +174,21 @@ describe("VerificationService — ID submission", () => {
     expect(db.users.f1.idVerified).toBe(false); // crucially NOT flipped on submit
   });
 
+  it("stores dob and idNumber encrypted, never in the clear (NFR-SEC-2)", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, idVerified: false };
+    await makeService(db).svc.submitId(freelancer, submission);
+
+    const stored = db.verifications[0];
+    expect(stored.idNumber).not.toBe("AB123456");
+    expect(stored.dob).not.toBe("1990-04-12");
+    expect(stored.idNumber.startsWith("v1.")).toBe(true);
+    // fullName is not secret and stays readable.
+    expect(stored.fullName).toBe("Marisol Rivera");
+    // It round-trips back to the original for an authorised reader.
+    expect(pii.decrypt(stored.idNumber)).toBe("AB123456");
+  });
+
   it("an auto engine that verifies flips id_verified immediately", async () => {
     const db = prismaDouble();
     db.users.f1 = { ...freelancer, idVerified: false };
@@ -251,5 +274,8 @@ describe("VerificationService — admin review", () => {
     const pending = await svc.listPending();
     expect(pending).toHaveLength(1);
     expect(pending[0].id).toBe("v2");
+    // The reviewer sees decrypted PII, not the stored ciphertext.
+    expect(pending[0].idNumber).toBe("AB123456");
+    expect(pending[0].dob).toBe("1990-04-12");
   });
 });
