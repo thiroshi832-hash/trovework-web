@@ -3,8 +3,8 @@ import { PhoneVerifyForm } from "@/components/phone-verify-form";
 import { VerifyShell } from "@/components/verify-shell";
 
 export const metadata: Metadata = {
-  title: "Verify your phone number — Trovework",
-  description: "Confirm your phone number with a one-time code to help keep Trovework free of bots.",
+  title: "Verify your phone to publish — Trovework",
+  description: "Confirm your phone number with a one-time code before publishing your profile or a post.",
 };
 
 /* The panel artwork: a phone outline with a verified shield, as in the comp. */
@@ -52,10 +52,12 @@ export default function PhoneVerificationPage() {
       panel={
         <>
           <h2 className="text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
-            One more step to secure your account.
+            One more step before you go live.
           </h2>
           <p className="mt-5 max-w-sm text-base leading-relaxed text-brand-100">
-            We will send a one-time code to your phone number.
+            Phone and identity checks both run before anything you write goes live, so
+            everyone browsing Trovework is a real, verified person. We will send a one-time
+            code.
           </p>
           <PhoneArt />
         </>

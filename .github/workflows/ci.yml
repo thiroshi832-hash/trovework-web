@@ -27,5 +27,16 @@ jobs:
       - name: Lint
         run: npm run lint --workspace=web
 
-      - name: Build
+      - name: Build web
         run: npm run build --workspace=web
+
+      - name: Generate Prisma client
+        run: npx prisma generate --schema apps/api/prisma/schema.prisma
+
+      - name: Build api
+        run: npm run build --workspace=api
+
+      # The permission matrix and token rotation are the highest-risk logic in
+      # the codebase; a red test here must stop the deploy.
+      - name: Test api
+        run: npm run test --workspace=api

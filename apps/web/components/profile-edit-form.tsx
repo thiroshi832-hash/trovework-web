@@ -7,13 +7,33 @@ import { Field, PendingNotice, SelectInput, TextInput } from "@/components/auth-
 import { Check, ShieldCheck } from "@/components/icons";
 import { AVAILABILITY, CATEGORIES } from "@/lib/categories";
 import { COUNTRIES } from "@/components/auth-fields";
-import { CURRENT_FREELANCER } from "@/lib/session";
+import { CURRENT_FREELANCER, FREELANCER_VERIFICATION } from "@/lib/session";
 
 const BIO_MAX = 600;
 const HEADLINE_MAX = 70;
 const SKILL_MAX = 12;
 
 const ME = CURRENT_FREELANCER;
+
+const { phoneVerified, idVerified } = FREELANCER_VERIFICATION;
+const published = phoneVerified && idVerified;
+
+const GATES = [
+  {
+    title: "Verify your phone",
+    body: "Confirms a real person is behind the profile. Required to publish.",
+    href: "/verify/phone",
+    cta: "Verify phone",
+    done: phoneVerified,
+  },
+  {
+    title: "Verify your identity",
+    body: "Face and document match. Required to publish, and what puts you in search results.",
+    href: "/verify/id",
+    cta: "Verify identity",
+    done: idVerified,
+  },
+];
 
 type Errors = Partial<Record<"name" | "headline" | "rate" | "bio", string>>;
 
@@ -65,35 +85,64 @@ export function ProfileEditForm() {
 
   return (
     <form noValidate onSubmit={onSubmit} className="space-y-6">
-      {/* The API keeps is_visible = false until identity verification passes, so
-          say which side of that gate this profile is on rather than assuming. */}
-      {ME.idVerified ? (
+      {/* Both checks gate publishing, not registration: nothing goes live until
+          phone and identity are confirmed, and ID verification is what flips
+          is_visible and puts the profile into search. Driven by the stored
+          state so it cannot claim "not live" for someone already verified. */}
+      {published ? (
         <div className="flex gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
           <ShieldCheck className="h-7 w-7 shrink-0 text-emerald-600" />
           <div>
             <p className="text-sm font-semibold text-emerald-900">Your profile is live</p>
             <p className="mt-1 text-sm leading-relaxed text-emerald-800">
-              You are verified, so these details are what clients see in search results.
+              Both checks are done, so these details are what clients see in search results.
             </p>
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
           <div className="flex gap-3">
             <ShieldCheck className="h-7 w-7 shrink-0 text-amber-600" />
             <div>
-              <p className="text-sm font-semibold text-amber-900">Your profile is hidden</p>
+              <p className="text-sm font-semibold text-amber-900">Your profile is not live yet</p>
               <p className="mt-1 text-sm leading-relaxed text-amber-800">
-                Freelancer profiles stay out of search results until identity verification passes.
+                Verify your phone and your identity before you can publish your profile or any post.
               </p>
             </div>
           </div>
-          <Link
-            href="/verify/id"
-            className="shrink-0 rounded-lg bg-amber-600 px-5 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-amber-700"
-          >
-            Verify my identity
-          </Link>
+
+          <ol className="mt-5 space-y-3">
+            {GATES.map((g, i) => (
+              <li
+                key={g.title}
+                className="flex flex-col gap-3 rounded-xl bg-white/70 p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex gap-3">
+                  <span
+                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold text-white ${
+                      g.done ? "bg-emerald-500" : "bg-amber-600"
+                    }`}
+                  >
+                    {g.done ? <Check className="h-4 w-4" /> : i + 1}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-amber-900">{g.title}</p>
+                    <p className="mt-0.5 text-sm leading-relaxed text-amber-800">{g.body}</p>
+                  </div>
+                </div>
+                {g.done ? (
+                  <span className="shrink-0 text-sm font-semibold text-emerald-700">Done</span>
+                ) : (
+                  <Link
+                    href={g.href}
+                    className="shrink-0 rounded-lg bg-amber-600 px-5 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-amber-700"
+                  >
+                    {g.cta}
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ol>
         </div>
       )}
 

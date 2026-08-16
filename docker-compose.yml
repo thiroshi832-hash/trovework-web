@@ -1,4 +1,49 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: trovework-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-trovework}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-trovework}
+    # Deliberately no published port: only the api container reaches the DB.
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-trovework}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: trovework-api:latest
+    container_name: trovework-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    # Localhost only — nginx proxies /api through to here.
+    ports:
+      - "127.0.0.1:4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-trovework}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-trovework}?schema=public
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET in .env}
+      ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-15m}
+      REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL:-7d}
+      WEB_ORIGIN: ${WEB_ORIGIN:-https://trovework.com}
+    volumes:
+      # Uploads live on the host. /secured holds ID images and selfies and is
+      # never served by nginx (FR-F-3).
+      - /srv/trovework-data/storage:/app/storage
+      - /srv/trovework-data/secured:/app/secured
+
   web:
     build:
       # Context is the monorepo root so the workspace lockfile is available.
@@ -7,6 +52,8 @@ services:
     image: trovework-web:latest
     container_name: trovework-web
     restart: unless-stopped
+    depends_on:
+      - api
     # Bind to localhost only — nginx on the host is the sole public entry point.
     ports:
       - "127.0.0.1:3000:3000"
@@ -19,8 +66,5 @@ services:
       retries: 3
       start_period: 20s
 
-# Added in later phases:
-#   api      — NestJS backend (also bound to 127.0.0.1)
-#   db       — PostgreSQL, with a named volume and NO published port
-#   Storage note: ID images and selfies mount to /secured on the host,
-#   outside the web root, and are never served by nginx.
+volumes:
+  db_data:

@@ -25,7 +25,8 @@ export function PhoneVerifyForm() {
         Verify your phone number
       </h1>
       <p className="mt-3 text-base leading-relaxed text-slate-500">
-        Enter your phone number and we&apos;ll send you a one-time code.
+        Required before you publish your profile or a post. Enter your number and
+        we&apos;ll send you a one-time code.
       </p>
 
       <div className="mt-7">

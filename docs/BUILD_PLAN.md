@@ -30,7 +30,7 @@ The mapped requirements: FR-R-5, FR-V-6, NFR-SEC-3, and the permission matrix in
 | Search | Postgres full-text (V1) | Upgrade to Meilisearch/Elasticsearch when volume grows. |
 | Real-time chat | Socket.IO | Authenticated at connect + per-conversation authorization. |
 | File storage | Own server, foldered by location + user | ID/selfie in a secured, non-public, encrypted dir. |
-| SMS | Twilio Verify | One-time codes to block bots. |
+| SMS | Twilio Verify | One-time code. Moved from sign-up to a **publish gate** (see 6.0). |
 | Auth | JWT (access + refresh) + bcrypt | Verification state carried in claims + re-checked against DB on gated actions. |
 | Hosting | **Self-hosted VPS + CI/CD** | Docker Compose on a VPS; CI/CD pipeline for build+deploy. Own-server storage (ID images stay on our box) fits this directly. |
 
@@ -44,7 +44,6 @@ Browser (Next.js)  ──HTTPS──▶  API (NestJS REST)  ──▶  PostgreSQ
         │  WebSocket (Socket.IO)     ├──▶  Verification engine (in-house module)
         └────────────────────────────┤          face-match · OCR · liveness · manual review
                                       ├──▶  File storage (own server, foldered)
-                                      └──▶  Twilio Verify (SMS OTP)
 ```
 
 - **Client** — public profiles, search, dashboards, chat UI. Hides gated data for UX only.
@@ -97,6 +96,22 @@ All tables carry `created_at` / `updated_at`. Types indicative.
 
 ---
 
+## 6.0 Where verification sits (amended 2026-08-16)
+
+FR-A-3 originally required SMS verification before an account became active. That is
+now moved: **both phone and ID verification gate publishing, not registration.**
+
+| Action | Phone verified | ID verified |
+|---|---|---|
+| Register, log in, browse | — | — |
+| Publish a profile or a post | **Required** | **Required** |
+| Appear in search (`is_visible = true`) | — | **Required** |
+| Client views contact info / starts chat | — | **Required** |
+
+Registration therefore stays a single short form, and the friction lands where the
+user is about to put something in front of other people. The API must enforce both
+flags server-side on every publish call — the editor's banner is UX only.
+
 ## 6. The two highest-risk modules
 
 ### 6.1 ID verification engine (in-house)
@@ -146,7 +161,7 @@ Maps to FR-F-1/2/3, NFR-SEC-2, and the §10 security posture.
 Each phase produces a testable slice. The permission gate skeleton exists from Phase 1.
 
 **Phase 1 — Foundation**
-Monorepo (`apps/web`, `apps/api`, `packages/shared`); Prisma schema + first migration for all core tables; email/password signup with role choice; JWT (access+refresh) + bcrypt; Twilio phone verification; `@Verified()`/`@Role()` guard skeleton + `PermissionService` stub.
+Monorepo (`apps/web`, `apps/api`, `packages/shared`); Prisma schema + first migration for all core tables; email/password signup with role choice; JWT (access+refresh) + bcrypt; `@Verified()`/`@Role()` guard skeleton + `PermissionService` stub.
 
 **Phase 2 — Profiles & posts**
 Profile editor (name, headline, bio, category, skills, rate); resume + photo upload into the foldered storage; post CRUD; categories. Profiles default `is_visible = false`.
@@ -199,8 +214,11 @@ On-platform payments/escrow · commissions/subscriptions/paid placement · clien
 1. **ID engine models** — which face-embedding model + liveness approach are acceptable given the global-audience accuracy risk? This drives real effort and legal exposure.
 2. ~~Hosting target~~ — **DECIDED: self-hosted VPS + CI/CD.** Deploy via Docker Compose; secured file-storage dir lives on the VPS outside the web root.
 3. **Data-protection scope** — which regions at launch? Determines the retention/deletion and consent specifics.
-4. **Twilio account** — confirmed as the SMS provider (the dev doc left the cell blank but implies it elsewhere).
+4. **Twilio account** — still needed, but the SMS code now runs at the publish gate
+   rather than at sign-up (see 6.0). Consequence to watch: registration itself is no
+   longer rate-limited by SMS cost, so rate limiting (NFR-SEC-4) has to hold that line
+   on its own. Treat it as a **Must** in Phase 1, not a Should in Phase 7.
 
 ---
 
-*Recommended first action after sign-off: scaffold Phase 1 — monorepo, Prisma schema, auth + phone verification, and the permission-guard skeleton — so the gate exists before any feature leans on it.*
+*Recommended first action after sign-off: scaffold Phase 1 — monorepo, Prisma schema, auth, and the permission-guard skeleton — so the gate exists before any feature leans on it.*
