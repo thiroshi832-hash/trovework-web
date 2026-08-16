@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Portrait } from "@/components/brand";
@@ -9,45 +9,24 @@ import { ApiError, api } from "@/lib/api";
 import { Check, ShieldCheck } from "@/components/icons";
 import { AVAILABILITY, CATEGORIES } from "@/lib/categories";
 import { COUNTRIES } from "@/components/auth-fields";
-import { CURRENT_FREELANCER, FREELANCER_VERIFICATION } from "@/lib/session";
 
 const BIO_MAX = 600;
 const HEADLINE_MAX = 70;
 const SKILL_MAX = 12;
 
-const ME = CURRENT_FREELANCER;
-
-const { phoneVerified, idVerified } = FREELANCER_VERIFICATION;
-const published = phoneVerified && idVerified;
-
-const GATES = [
-  {
-    title: "Verify your phone",
-    body: "Confirms a real person is behind the profile. Required to publish.",
-    href: "/verify/phone",
-    cta: "Verify phone",
-    done: phoneVerified,
-  },
-  {
-    title: "Verify your identity",
-    body: "Face and document match. Required to publish, and what puts you in search results.",
-    href: "/verify/id",
-    cta: "Verify identity",
-    done: idVerified,
-  },
-];
-
 type Errors = Partial<Record<"name" | "headline" | "rate" | "bio", string>>;
 
 export function ProfileEditForm() {
-  const [name, setName] = useState(ME.name);
-  const [headline, setHeadline] = useState(ME.title);
-  const [bio, setBio] = useState(ME.about);
-  const [category, setCategory] = useState<string>(ME.category);
-  const [availability, setAvailability] = useState<string>(ME.availability);
-  const [country, setCountry] = useState(ME.country);
-  const [rate, setRate] = useState(String(ME.rate));
-  const [skills, setSkills] = useState<string[]>(ME.allSkills);
+  // Everything starts empty and is filled from the API — a real freelancer's own
+  // profile, or blank fields for someone who hasn't created one yet.
+  const [name, setName] = useState("");
+  const [headline, setHeadline] = useState("");
+  const [bio, setBio] = useState("");
+  const [category, setCategory] = useState<string>(CATEGORIES[0]);
+  const [availability, setAvailability] = useState<string>(AVAILABILITY[0]);
+  const [country, setCountry] = useState(COUNTRIES[0]);
+  const [rate, setRate] = useState("");
+  const [skills, setSkills] = useState<string[]>([]);
   const [skillDraft, setSkillDraft] = useState("");
   const [telegram, setTelegram] = useState("");
   const [discord, setDiscord] = useState("");
@@ -57,8 +36,73 @@ export function ProfileEditForm() {
   const [saved, setSaved] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [slug, setSlug] = useState<string | null>(null);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [idVerified, setIdVerified] = useState(false);
   const resumeInput = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const me = await api.me();
+        if (!live) return;
+        if (me.role !== "freelancer") {
+          router.replace("/"); // only freelancers have a profile to edit
+          return;
+        }
+        setPhoneVerified(me.phoneVerified);
+        setIdVerified(me.idVerified);
+        setName(me.fullName);
+
+        // A missing profile (404) just means first-time setup — leave the
+        // fields blank rather than erroring.
+        const p = await api.profile.getMine().catch(() => null);
+        if (!live || !p) return;
+        const profile = p as Record<string, unknown>;
+        setName((profile.displayName as string) ?? me.fullName);
+        setHeadline((profile.headline as string | null) ?? "");
+        setBio((profile.bio as string | null) ?? "");
+        if (profile.category) setCategory(profile.category as string);
+        if (profile.availability) setAvailability(profile.availability as string);
+        setRate(profile.hourlyRate != null ? String(profile.hourlyRate) : "");
+        setSkills((profile.skills as string[] | undefined) ?? []);
+        setTelegram((profile.contactTelegram as string | null) ?? "");
+        setDiscord((profile.contactDiscord as string | null) ?? "");
+        setWhatsapp((profile.contactWhatsapp as string | null) ?? "");
+        setPhoto((profile.photoPath as string | null) ?? null);
+        setSlug((profile.slug as string | null) ?? null);
+      } catch (err) {
+        if (err instanceof ApiError && (err.status === 401 || err.status === 0)) router.replace("/login");
+      } finally {
+        if (live) setLoading(false);
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [router]);
+
+  const published = phoneVerified && idVerified;
+  const GATES = [
+    {
+      title: "Verify your phone",
+      body: "Confirms a real person is behind the profile. Required to publish.",
+      href: "/verify/phone",
+      cta: "Verify phone",
+      done: phoneVerified,
+    },
+    {
+      title: "Verify your identity",
+      body: "Face and document match. Required to publish, and what puts you in search results.",
+      href: "/verify/id",
+      cta: "Verify identity",
+      done: idVerified,
+    },
+  ];
 
   function addSkill() {
     const s = skillDraft.trim();
@@ -112,6 +156,16 @@ export function ProfileEditForm() {
   }
 
   const section = "rounded-2xl border border-slate-200 bg-white p-6 sm:p-8";
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="h-40 animate-pulse rounded-2xl bg-slate-100" />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <form noValidate onSubmit={onSubmit} className="space-y-6">
@@ -182,7 +236,13 @@ export function ProfileEditForm() {
         <p className="mt-1 text-sm text-slate-500">How you appear across Trovework.</p>
 
         <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-center">
-          <Portrait src={ME.photo} sizes="96px" className="h-24 w-24" />
+          {photo ? (
+            <Portrait src={photo} sizes="96px" className="h-24 w-24" />
+          ) : (
+            <span className="grid h-24 w-24 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-2xl font-semibold text-white">
+              {(name || "?").split(/\s+/).map((p) => p[0] ?? "").join("").slice(0, 2).toUpperCase()}
+            </span>
+          )}
           <div>
             <p className="text-sm font-medium text-navy-800">Profile photo</p>
             <p className="mt-1 text-sm text-slate-500">JPG or PNG, at least 200×200.</p>
@@ -404,12 +464,14 @@ export function ProfileEditForm() {
       ) : null}
 
       <div className="flex flex-wrap items-center justify-end gap-3">
-        <Link
-          href={`/freelancers/${ME.slug}`}
-          className="rounded-lg border border-slate-200 px-6 py-3 text-sm font-semibold text-navy-800 transition hover:bg-slate-50"
-        >
-          View public profile
-        </Link>
+        {slug ? (
+          <Link
+            href={`/freelancers/${slug}`}
+            className="rounded-lg border border-slate-200 px-6 py-3 text-sm font-semibold text-navy-800 transition hover:bg-slate-50"
+          >
+            View public profile
+          </Link>
+        ) : null}
         <button
           type="submit"
           disabled={busy}

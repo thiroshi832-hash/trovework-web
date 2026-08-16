@@ -49,9 +49,12 @@ export function LoginForm() {
     setBusy(true);
     try {
       await api.login(String(fd.get("email")).trim(), String(fd.get("password")));
-      // The API decides where to go — /auth/me carries the role.
+      // The API decides the fallback (role → dashboard); a ?next= from the
+      // middleware redirect takes precedence so you land where you were headed.
       const me = await api.me();
-      router.replace(homeFor(me.role));
+      const next = new URLSearchParams(window.location.search).get("next");
+      const dest = next && next.startsWith("/") && !next.startsWith("//") ? next : homeFor(me.role);
+      router.replace(dest);
       router.refresh();
     } catch (err) {
       setFormError(
