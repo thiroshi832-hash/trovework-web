@@ -6,8 +6,17 @@ import type { PrismaService } from "../prisma/prisma.service";
 
 function prismaDouble() {
   const profiles: any[] = [];
+  const posts: any[] = [];
   return {
     profiles,
+    posts,
+    post: {
+      findMany: jest.fn(async ({ where }: any) =>
+        posts.filter(
+          (p) => p.authorId === where.authorId && (where.status ? p.status === where.status : true),
+        ),
+      ),
+    },
     freelancerProfile: {
       findUnique: jest.fn(async ({ where }: any) =>
         profiles.find((p) => (where.slug ? p.slug === where.slug : p.userId === where.userId)) ?? null,
@@ -115,6 +124,19 @@ describe("ProfilesService — contact gating (NFR-SEC-3)", () => {
     expect(res.rating).toBe(4.8);
     expect(res.reviewCount).toBe(12);
     expect(res.reviews).toHaveLength(1);
+  });
+
+  it("lists the freelancer's active posts, not drafts or blocked ones", async () => {
+    const db = prismaDouble();
+    seedVisibleProfile(db);
+    db.posts.push(
+      { id: "p1", authorId: OWNER_ID, title: "Deep clean", status: "active", updatedAt: new Date() },
+      { id: "p2", authorId: OWNER_ID, title: "Draft idea", status: "draft", updatedAt: new Date() },
+      { id: "p3", authorId: OWNER_ID, title: "Blocked one", status: "blocked", updatedAt: new Date() },
+    );
+    const res: any = await makeService(db).getPublicBySlug(null, SLUG);
+    expect(res.posts).toHaveLength(1);
+    expect(res.posts[0].title).toBe("Deep clean");
   });
 });
 

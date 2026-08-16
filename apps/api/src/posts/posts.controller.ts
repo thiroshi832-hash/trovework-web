@@ -21,6 +21,12 @@ export class PostsController {
     return this.posts.listMine(user.id);
   }
 
+  // Declared after "mine" so the static route wins over this param route.
+  @Get(":id")
+  getOne(@CurrentUser() user: AuthedUser, @Param("id") id: string) {
+    return this.posts.getOwn(user.id, id);
+  }
+
   @Post()
   create(@CurrentUser() user: AuthedUser, @Body() dto: CreatePostDto) {
     return this.posts.create(user, dto);

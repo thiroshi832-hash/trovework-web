@@ -76,11 +76,19 @@ export class ProfilesService {
     const [agg] = [(await this.reviews.aggregateFor([profile.userId])).get(profile.userId)];
     const reviews = await this.reviews.listFor(profile.userId);
 
+    // Their live service listings — never drafts or blocked ones.
+    const posts = await this.prisma.post.findMany({
+      where: { authorId: profile.userId, status: "active" },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true, title: true, description: true, category: true, priceFrom: true, updatedAt: true },
+    });
+
     return {
       ...this.shape(profile, canSeeContact),
       rating: agg?.average ?? 0,
       reviewCount: agg?.count ?? 0,
       reviews,
+      posts,
     };
   }
 
