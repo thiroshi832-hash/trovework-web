@@ -53,20 +53,5 @@
     "typescript": "^5.7.0",
     "@eslint/js": "^9.18.0",
     "typescript-eslint": "^8.20.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "testEnvironment": "node",
-    "maxWorkers": 1,
-    "_comment": "maxWorkers:1 \u2014 parallel workers leave a handle open and Jest force-exits, which could truncate output on a failing run. This suite gates deploys, so determinism beats the ~2s."
   }
 }

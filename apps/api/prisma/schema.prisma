@@ -52,12 +52,42 @@ model User {
   refreshTokens RefreshToken[]
   posts         Post[]
   violations    Violation[]
+  profile       FreelancerProfile?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([role])
   @@map("users")
+}
+
+/// A freelancer's public profile. Hidden from browse and search until ID
+/// verification passes (isVisible mirrors users.id_verified). The contact_*
+/// fields are GATED — served only to a verified client (FR-M-1, NFR-SEC-3).
+model FreelancerProfile {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName String   @map("display_name")
+  headline    String?
+  bio         String?
+  category    String
+  skills      String[]
+  hourlyRate  Decimal? @map("hourly_rate") @db.Decimal(12, 2)
+  resumePath  String?  @map("resume_path")
+  isVisible   Boolean  @default(false) @map("is_visible")
+
+  // Gated contact handles — never returned unless the viewer is a verified client.
+  contactTelegram String? @map("contact_telegram")
+  contactDiscord  String? @map("contact_discord")
+  contactWhatsapp String? @map("contact_whatsapp")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([isVisible])
+  @@index([category])
+  @@map("freelancer_profiles")
 }
 
 /// A freelancer's service listing. Scanned for contact info on every write; a
