@@ -43,7 +43,7 @@ export class AuthController {
     });
     res.cookie(REFRESH_COOKIE, tokens.refreshToken, {
       ...common,
-      path: "/auth",
+      path: "/api/auth",
       expires: tokens.refreshExpiresAt,
     });
   }
@@ -52,7 +52,7 @@ export class AuthController {
     const secure = this.config.get<string>("NODE_ENV") !== "development";
     const common = { httpOnly: true, secure, sameSite: "lax" as const };
     res.clearCookie(ACCESS_COOKIE, { ...common, path: "/" });
-    res.clearCookie(REFRESH_COOKIE, { ...common, path: "/auth" });
+    res.clearCookie(REFRESH_COOKIE, { ...common, path: "/api/auth" });
   }
 
   @Public()

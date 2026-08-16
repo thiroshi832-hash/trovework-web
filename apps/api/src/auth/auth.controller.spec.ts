@@ -136,7 +136,7 @@ describe("AuthController (HTTP)", () => {
       expect(access).toMatch(/HttpOnly/i);
       expect(refresh).toMatch(/HttpOnly/i);
       // Refresh is scoped so it is not sent with every ordinary request.
-      expect(refresh).toMatch(/Path=\/auth/i);
+      expect(refresh).toMatch(/Path=\/api\/auth/i);
     });
 
     it("never returns the password or its hash", async () => {
