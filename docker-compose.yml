@@ -39,6 +39,11 @@ services:
       REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL:-7d}
       WEB_ORIGIN: ${WEB_ORIGIN:-https://trovework.com}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      # Public assets (profile photos) go here; nginx serves the same volume at
+      # /uploads. SECURED_DIR (ID images/selfies) is never served.
+      PUBLIC_DIR: /app/storage
+      PUBLIC_URL_BASE: /uploads
+      SECURED_DIR: /app/secured
     volumes:
       # Uploads live on the host. /secured holds ID images and selfies and is
       # never served by nginx (FR-F-3).

@@ -61,6 +61,24 @@ export class ProfilesService {
     return profile;
   }
 
+  /**
+   * Points the profile photo at an already-stored asset. Requires an existing
+   * profile so the photo can't be attached before the freelancer has saved one.
+   * Returns the old path (if any) so the caller can clean it up.
+   */
+  async setPhoto(owner: ProfileOwner, photoPath: string): Promise<{ photoPath: string; previous: string | null }> {
+    if (owner.role !== "freelancer") throw new ForbiddenException("Only freelancers have a profile.");
+    if (owner.status === "banned") throw new ForbiddenException("This account has been suspended.");
+
+    const existing = await this.prisma.freelancerProfile.findUnique({ where: { userId: owner.id } });
+    if (!existing) throw new NotFoundException("Create your profile before adding a photo.");
+    // Capture before the update — the row object may be mutated in place.
+    const previous = existing.photoPath;
+
+    await this.prisma.freelancerProfile.update({ where: { userId: owner.id }, data: { photoPath } });
+    return { photoPath, previous };
+  }
+
   /* --------------------------------- read ---------------------------------- */
 
   /**

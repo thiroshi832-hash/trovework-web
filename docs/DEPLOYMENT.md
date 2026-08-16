@@ -261,14 +261,18 @@ These hold user uploads. **ID images and selfies live outside the web root, perm
 this satisfies FR-F-3 and NFR-SEC-2.
 
 ```bash
-sudo mkdir -p /srv/trovework-data/storage    # resumes, portfolio photos (servable)
+sudo mkdir -p /srv/trovework-data/storage    # profile photos (servable)
 sudo mkdir -p /srv/trovework-data/secured    # ID cards + selfies — NEVER public
 sudo chown -R deploy:deploy /srv/trovework-data
 sudo chmod 755 /srv/trovework-data/storage
 sudo chmod 700 /srv/trovework-data/secured
 ```
 
-Both paths are gitignored and must never be committed or served by nginx.
+nginx serves `storage/` at `/uploads/` (see the `location /uploads/` block in
+`deploy/nginx/trovework.conf`); the API writes profile photos there via
+`PUBLIC_DIR`. The **secured** dir is a separate volume that nginx never exposes —
+only the API reads it, for admin ID review. Both paths are gitignored and must
+never be committed.
 
 ---
 

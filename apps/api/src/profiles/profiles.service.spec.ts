@@ -215,3 +215,36 @@ describe("ProfilesService — upsert", () => {
     await expect(makeService(db).upsert(freelancer({ status: "banned" }), dto)).rejects.toThrow(/suspended/i);
   });
 });
+
+describe("ProfilesService — setPhoto", () => {
+  const owner: ProfileOwner = { id: OWNER_ID, role: "freelancer", status: "active", idVerified: true };
+
+  it("sets the photo path and reports no previous photo", async () => {
+    const db = prismaDouble();
+    seedVisibleProfile(db);
+    const res = await makeService(db).setPhoto(owner, "/uploads/f1/photo-abc.jpg");
+    expect(res.photoPath).toBe("/uploads/f1/photo-abc.jpg");
+    expect(res.previous ?? null).toBeNull();
+    expect(db.profiles[0].photoPath).toBe("/uploads/f1/photo-abc.jpg");
+  });
+
+  it("returns the old path so the caller can clean it up", async () => {
+    const db = prismaDouble();
+    seedVisibleProfile(db);
+    db.profiles[0].photoPath = "/uploads/f1/photo-old.jpg";
+    const res = await makeService(db).setPhoto(owner, "/uploads/f1/photo-new.jpg");
+    expect(res.previous).toBe("/uploads/f1/photo-old.jpg");
+  });
+
+  it("won't attach a photo before the profile exists", async () => {
+    const db = prismaDouble();
+    await expect(makeService(db).setPhoto(owner, "/uploads/f1/x.jpg")).rejects.toThrow(NotFoundException);
+  });
+
+  it("refuses a client", async () => {
+    const db = prismaDouble();
+    await expect(
+      makeService(db).setPhoto({ ...owner, role: "client" }, "/uploads/f1/x.jpg"),
+    ).rejects.toThrow(ForbiddenException);
+  });
+});

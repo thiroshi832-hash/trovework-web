@@ -137,6 +137,12 @@ export const api = {
     getMine: () => request<unknown>("/api/profile/me"),
     upsert: (input: Record<string, unknown>) =>
       request<unknown>("/api/profile", { method: "PUT", body: JSON.stringify(input) }),
+    /** Multipart upload of a single "photo" file; returns the stored public path. */
+    uploadPhoto: (file: File) => {
+      const form = new FormData();
+      form.append("photo", file);
+      return upload<{ photoPath: string }>("/api/profile/photo", form);
+    },
   },
 
   /* ---------------------------- freelancers ------------------------------ */
