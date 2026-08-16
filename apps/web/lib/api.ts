@@ -187,6 +187,8 @@ export const api = {
       }),
     list: () => request<unknown[]>("/api/conversations"),
     messages: (id: string) => request<unknown[]>(`/api/conversations/${id}/messages`),
+    /** Clears the thread's unread badge for the current user. */
+    markRead: (id: string) => request<void>(`/api/conversations/${id}/read`, { method: "POST" }),
     send: (id: string, body: string) =>
       request<unknown>(`/api/conversations/${id}/messages`, {
         method: "POST",

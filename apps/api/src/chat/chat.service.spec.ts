@@ -3,10 +3,15 @@ import { ChatService, type ChatActor } from "./chat.service";
 import { PermissionService } from "../permission/permission.service";
 import type { PrismaService } from "../prisma/prisma.service";
 
+// Messages get timestamps 1s apart from this base, so ordering (and unread
+// thresholds) are deterministic rather than at the mercy of real-clock ms.
+const CLOCK_BASE = Date.UTC(2026, 7, 17, 12, 0, 0);
+
 function prismaDouble() {
   const users: Record<string, any> = {};
   const conversations: any[] = [];
   const messages: any[] = [];
+  let tick = 0;
 
   const db: any = {
     users,
@@ -22,7 +27,14 @@ function prismaDouble() {
         return conversations.find((c) => c.clientId === clientId && c.freelancerId === freelancerId) ?? null;
       }),
       create: jest.fn(async ({ data }: any) => {
-        const c = { id: `c${conversations.length + 1}`, lastMessageAt: null, createdAt: new Date(), ...data };
+        const c = {
+          id: `c${conversations.length + 1}`,
+          lastMessageAt: null,
+          clientLastReadAt: null,
+          freelancerLastReadAt: null,
+          createdAt: new Date(),
+          ...data,
+        };
         conversations.push(c);
         return c;
       }),
@@ -37,11 +49,19 @@ function prismaDouble() {
     },
     message: {
       create: jest.fn(async ({ data }: any) => {
-        const m = { id: `m${messages.length + 1}`, sentAt: new Date(), ...data };
+        const m = { id: `m${messages.length + 1}`, sentAt: new Date(CLOCK_BASE + tick++ * 1000), ...data };
         messages.push(m);
         return m;
       }),
       findMany: jest.fn(async ({ where }: any) => messages.filter((m) => m.conversationId === where.conversationId)),
+      count: jest.fn(async ({ where }: any) =>
+        messages.filter((m) => {
+          if (m.conversationId !== where.conversationId) return false;
+          if (where.senderId?.not && m.senderId === where.senderId.not) return false;
+          if (where.sentAt?.gt && !(m.sentAt > where.sentAt.gt)) return false;
+          return true;
+        }).length,
+      ),
     },
     $transaction: jest.fn(async (arg: any) => (typeof arg === "function" ? arg(db) : Promise.all(arg))),
   };
@@ -158,5 +178,59 @@ describe("ChatService — messages", () => {
     expect(history.map((m) => m.body)).toEqual(["one", "two"]);
 
     await expect(svc.getMessages("x9", convo.id)).rejects.toThrow(NotFoundException);
+  });
+});
+
+describe("ChatService — unread counts", () => {
+  async function seededConvo() {
+    const db = prismaDouble();
+    seedFreelancer(db);
+    db.users["c1"] = { id: "c1", role: "client", status: "active" };
+    const svc = makeService(db);
+    const convo = await svc.start(verifiedClient, FREELANCER);
+    return { db, svc, convo };
+  }
+
+  const freelancer: ChatActor = {
+    id: FREELANCER, role: "freelancer", status: "active", idVerified: true, phoneVerified: true,
+  };
+
+  it("counts the other party's messages as unread when never opened", async () => {
+    const { db, svc, convo } = await seededConvo();
+    await svc.sendMessage(freelancer, convo.id, "hello?");
+    await svc.sendMessage(freelancer, convo.id, "still there?");
+
+    const list: any[] = await svc.listMine("c1");
+    expect(list).toHaveLength(1);
+    expect(list[0].unreadCount).toBe(2);
+    // The sender's own messages are never unread to them.
+    expect((await svc.listMine(FREELANCER))[0].unreadCount).toBe(0);
+    expect(db).toBeDefined();
+  });
+
+  it("only counts messages sent after this user last read", async () => {
+    const { db, svc, convo } = await seededConvo();
+    await svc.sendMessage(freelancer, convo.id, "first"); // sentAt = base+0
+    // Client reads at base+500 — between the two messages.
+    db.conversations[0].clientLastReadAt = new Date(CLOCK_BASE + 500);
+    await svc.sendMessage(freelancer, convo.id, "second"); // sentAt = base+1000
+
+    const list: any[] = await svc.listMine("c1");
+    expect(list[0].unreadCount).toBe(1);
+  });
+
+  it("markRead stamps the caller's own side of the thread", async () => {
+    const { db, svc, convo } = await seededConvo();
+    await svc.markRead("c1", convo.id);
+    expect(db.conversations[0].clientLastReadAt).toBeInstanceOf(Date);
+    expect(db.conversations[0].freelancerLastReadAt).toBeNull();
+
+    await svc.markRead(FREELANCER, convo.id);
+    expect(db.conversations[0].freelancerLastReadAt).toBeInstanceOf(Date);
+  });
+
+  it("won't mark a thread you're not part of (same 404)", async () => {
+    const { svc, convo } = await seededConvo();
+    await expect(svc.markRead("x9", convo.id)).rejects.toThrow(NotFoundException);
   });
 });

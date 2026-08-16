@@ -87,6 +87,10 @@ model Conversation {
   freelancer   User      @relation("freelancer", fields: [freelancerId], references: [id], onDelete: Cascade)
   messages     Message[]
   lastMessageAt DateTime? @map("last_message_at")
+  // When each party last opened the thread — drives unread counts. Null means
+  // never opened, so every message from the other side counts as unread.
+  clientLastReadAt     DateTime? @map("client_last_read_at")
+  freelancerLastReadAt DateTime? @map("freelancer_last_read_at")
   createdAt    DateTime  @default(now()) @map("created_at")
 
   @@unique([clientId, freelancerId])

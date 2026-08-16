@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
 import { ChatService } from "./chat.service";
 import { StartConversationDto } from "./dto/start-conversation.dto";
 import { SendMessageDto } from "./dto/send-message.dto";
@@ -29,5 +29,12 @@ export class ChatController {
   @Post(":id/messages")
   send(@CurrentUser() user: AuthedUser, @Param("id") id: string, @Body() dto: SendMessageDto) {
     return this.chat.sendMessage(user, id, dto.body);
+  }
+
+  /** Marks the thread read up to now for the current user (clears its unread badge). */
+  @Post(":id/read")
+  @HttpCode(204)
+  read(@CurrentUser() user: AuthedUser, @Param("id") id: string) {
+    return this.chat.markRead(user.id, id);
   }
 }

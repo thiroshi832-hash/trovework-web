@@ -50,15 +50,42 @@ export class ChatService {
     });
   }
 
-  /** Threads the user is a party to, most-recent first. */
-  listMine(userId: string) {
-    return this.prisma.conversation.findMany({
+  /**
+   * Threads the user is a party to, most-recent first, each with the number of
+   * messages from the other side since this user last opened it (unreadCount).
+   */
+  async listMine(userId: string) {
+    const convos = await this.prisma.conversation.findMany({
       where: { OR: [{ clientId: userId }, { freelancerId: userId }] },
       orderBy: [{ lastMessageAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       include: {
         client: { select: { id: true, fullName: true } },
         freelancer: { select: { id: true, fullName: true } },
       },
+    });
+
+    return Promise.all(
+      convos.map(async (c) => {
+        const lastRead = c.clientId === userId ? c.clientLastReadAt : c.freelancerLastReadAt;
+        const unreadCount = await this.prisma.message.count({
+          where: {
+            conversationId: c.id,
+            senderId: { not: userId },
+            ...(lastRead ? { sentAt: { gt: lastRead } } : {}),
+          },
+        });
+        return { ...c, unreadCount };
+      }),
+    );
+  }
+
+  /** Marks this user's side of the thread read up to now. */
+  async markRead(userId: string, conversationId: string): Promise<void> {
+    const convo = await this.assertParticipant(userId, conversationId);
+    const field = convo.clientId === userId ? "clientLastReadAt" : "freelancerLastReadAt";
+    await this.prisma.conversation.update({
+      where: { id: conversationId },
+      data: { [field]: new Date() },
     });
   }
 
