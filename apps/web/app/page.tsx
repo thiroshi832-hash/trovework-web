@@ -412,20 +412,21 @@ export default function Home() {
           The photo is a background layer rather than an <img> so the headline
           can run over its left edge. It starts at 46% and bleeds off the right.
         */}
-        <section className="relative overflow-hidden bg-white lg:min-h-[calc(100vh-var(--header-h))]">
+        <section className="relative overflow-hidden bg-white lg:flex lg:flex-col lg:min-h-[calc(100vh-var(--header-h))]">
           <div
             aria-hidden
             className="absolute inset-y-0 right-0 hidden w-[54%] bg-[url('/images/hero.jpg')] bg-cover bg-[position:38%_center] [-webkit-mask-image:linear-gradient(to_right,transparent,#000_26%)] [mask-image:linear-gradient(to_right,transparent,#000_26%)] lg:block"
           />
 
-          <div className="relative mx-auto grid max-w-page items-center gap-10 px-6 py-12 lg:grid-cols-2 lg:py-20">
-            {/* the floating card belongs to the container, not the bleeding
-                photo — its right edge lines up with the trust bar below */}
-            {/* vertical offset tracks the photo (whose height is 41.67vw, set by
-                its locked aspect ratio) rather than this container, so the card
-                stays on the picture at every desktop width */}
-            <VerifiedCard className="absolute bottom-[12%] right-6 hidden w-[14.5rem] min-h-[16rem] lg:flex" />
-            <div>
+          <div className="relative mx-auto grid w-full max-w-page items-stretch gap-10 px-6 py-12 lg:flex-1 lg:grid-cols-2 lg:py-16">
+            {/* Sits at the foot of the photo, level with the social proof on the
+                left, and its right edge lines up with the trust bar below. */}
+            <VerifiedCard className="absolute bottom-16 right-6 hidden w-[14.5rem] min-h-[16rem] lg:flex" />
+
+            {/* The column fills the hero: the pitch takes the free space above,
+                which leaves the social proof sitting near the bottom. */}
+            <div className="flex flex-col">
+              <div className="lg:my-auto">
               <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-brand-700 ring-1 ring-brand-100">
                 <span className="grid h-4 w-4 place-items-center rounded-full bg-brand-600 text-white">
                   <Check className="h-2.5 w-2.5" />
@@ -435,7 +436,7 @@ export default function Home() {
 
               {/* Two lines, always — the long first line is allowed to run past
                   the column and over the photo rather than wrapping to three. */}
-              <h1 className="mt-5 text-[7.2vw] font-bold leading-[1.14] tracking-tight text-navy-800 sm:text-[5.4vw] lg:whitespace-nowrap lg:text-[min(4vw,63px)]">
+              <h1 className="mt-7 text-[7.2vw] font-bold leading-[1.14] tracking-tight text-navy-800 sm:text-[5.4vw] lg:whitespace-nowrap lg:text-[min(4vw,63px)]">
                 Hire trusted freelancers.
                 <br />
                 Get work{" "}
@@ -459,12 +460,12 @@ export default function Home() {
                 </span>
               </h1>
 
-              <p className="mt-6 max-w-md text-[1.0625rem] leading-[1.95] text-slate-600">
+              <p className="mt-7 max-w-lg text-[1.0625rem] leading-[1.95] text-slate-600">
                 Trovework connects verified freelancers with clients worldwide. Every user is
                 verified so you can collaborate with confidence.
               </p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/register?role=client"
                   className="rounded-lg bg-brand-600 px-8 py-3 text-center text-sm font-semibold text-white transition hover:bg-brand-700"
@@ -479,7 +480,9 @@ export default function Home() {
                 </Link>
               </div>
 
-              <div className="mt-8 flex flex-wrap items-center gap-4">
+              </div>
+
+              <div className="mt-12 flex flex-wrap items-center gap-4 lg:mt-0 lg:pt-12">
                 <div className="flex -space-x-2.5">
                   {COMMUNITY.map((src) => (
                     <Portrait key={src} src={src} className="h-9 w-9 ring-2 ring-white" sizes="36px" />
