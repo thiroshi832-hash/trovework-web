@@ -51,7 +51,7 @@ export function Inbox() {
             Search conversations
           </label>
           <span className="relative block">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             <input
               id="thread-search"
               type="search"
@@ -111,7 +111,7 @@ export function Inbox() {
                 className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 lg:hidden"
                 aria-label="Back to conversations"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="h-5 w-5" />
               </button>
               <Portrait src={active.withPhoto} sizes="40px" className="h-10 w-10" />
               <div className="min-w-0 flex-1">
@@ -119,7 +119,7 @@ export function Inbox() {
                 <p className="text-xs text-slate-500">{active.withRole}</p>
               </div>
               <span className="hidden items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 sm:flex">
-                <ShieldCheck className="h-3.5 w-3.5" />
+                <ShieldCheck className="h-4.5 w-4.5" />
                 Verified
               </span>
             </header>
@@ -181,7 +181,7 @@ export function Inbox() {
                 </button>
               </div>
               <p className="mt-2.5 flex items-center gap-1.5 text-xs text-slate-400">
-                <Lock className="h-3.5 w-3.5" />
+                <Lock className="h-4.5 w-4.5" />
                 Keep contact details out of messages until you&apos;ve agreed to work together.
               </p>
             </div>

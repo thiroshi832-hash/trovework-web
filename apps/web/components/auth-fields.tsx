@@ -78,7 +78,7 @@ export function PasswordInput({
         aria-label={shown ? "Hide password" : "Show password"}
         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
       >
-        {shown ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        {shown ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
       </button>
     </span>
   );
@@ -105,7 +105,7 @@ export function SelectInput({
         {children}
       </select>
       <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d="m6.5 9.5 5.5 5.5 5.5-5.5" />
         </svg>
       </span>
@@ -132,7 +132,7 @@ export function RoleSelect({
       body: "Hire talent and get work done",
       tone: "bg-brand-600",
       icon: (
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <circle cx="12" cy="8.4" r="3.4" />
           <path d="M5 19.4a7 7 0 0 1 14 0" />
         </svg>
@@ -144,7 +144,7 @@ export function RoleSelect({
       body: "Find work and grow your career",
       tone: "bg-emerald-500",
       icon: (
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <rect x="3.5" y="5.5" width="17" height="11" rx="1.8" />
           <path d="M2.5 19.5h19" />
         </svg>
@@ -201,7 +201,7 @@ export function SocialButtons() {
       type="button"
       className="flex w-full items-center justify-center gap-2.5 rounded-lg border border-slate-200 bg-white px-4 py-3 text-base font-medium text-navy-800 transition hover:bg-slate-50"
     >
-      <GoogleMark className="h-4.5 w-4.5" />
+      <GoogleMark className="h-5.5 w-5.5" />
       Continue with Google
     </button>
   );

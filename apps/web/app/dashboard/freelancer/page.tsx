@@ -64,7 +64,7 @@ export default function FreelancerDashboard() {
             {/* A strike is worth surfacing: the third one bans the account. */}
             {strikes > 0 ? (
               <div className="flex gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-                <Lock className="h-6 w-6 shrink-0 text-amber-600" />
+                <Lock className="h-7 w-7 shrink-0 text-amber-600" />
                 <div>
                   <p className="text-sm font-semibold text-amber-900">
                     {strikes} of 3 strikes for sharing contact details
@@ -146,7 +146,7 @@ export default function FreelancerDashboard() {
 
               {blocked.length > 0 ? (
                 <p className="mt-5 flex items-center gap-2 text-sm text-slate-500">
-                  <ArrowRight className="h-4 w-4 text-brand-600" />
+                  <ArrowRight className="h-5 w-5 text-brand-600" />
                   {blocked.length} post needs attention before it can go live.
                 </p>
               ) : null}

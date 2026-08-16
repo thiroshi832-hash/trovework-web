@@ -18,7 +18,7 @@ export function ForgotPasswordForm() {
     return (
       <div className="text-center">
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-brand-50 text-brand-600">
-          <Mail className="h-7 w-7" />
+          <Mail className="h-9 w-9" />
         </span>
         <h1 className="mt-6 text-2xl font-bold tracking-tight text-navy-800">Check your email</h1>
         {/* Deliberately does not confirm whether the address has an account —
@@ -70,7 +70,7 @@ export function ForgotPasswordForm() {
           <TextInput
             type="email"
             autoComplete="email"
-            icon={<Mail className="h-4 w-4" />}
+            icon={<Mail className="h-5 w-5" />}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             invalid={!!error}
@@ -90,7 +90,7 @@ export function ForgotPasswordForm() {
         href="/login"
         className="mt-8 inline-flex items-center gap-2 text-base font-semibold text-navy-800 transition hover:text-brand-600"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-5 w-5" />
         Back to login
       </Link>
     </form>
@@ -118,7 +118,7 @@ export function ResetPasswordForm({ hasToken }: { hasToken: boolean }) {
     return (
       <div className="text-center">
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-amber-100 text-amber-600">
-          <Lock className="h-7 w-7" />
+          <Lock className="h-9 w-9" />
         </span>
         <h1 className="mt-6 text-2xl font-bold tracking-tight text-navy-800">
           This link isn&apos;t valid
@@ -141,7 +141,7 @@ export function ResetPasswordForm({ hasToken }: { hasToken: boolean }) {
     return (
       <div className="text-center">
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-100 text-emerald-600">
-          <Check className="h-7 w-7" />
+          <Check className="h-9 w-9" />
         </span>
         <h1 className="mt-6 text-2xl font-bold tracking-tight text-navy-800">Password updated</h1>
         <p className="mx-auto mt-3 max-w-sm text-base leading-relaxed text-slate-500">
@@ -187,7 +187,7 @@ export function ResetPasswordForm({ hasToken }: { hasToken: boolean }) {
         <Field label="New password" error={errors.password}>
           <PasswordInput
             autoComplete="new-password"
-            icon={<Lock className="h-4 w-4" />}
+            icon={<Lock className="h-5 w-5" />}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             invalid={!!errors.password}
@@ -212,7 +212,7 @@ export function ResetPasswordForm({ hasToken }: { hasToken: boolean }) {
         <Field label="Confirm new password" error={errors.confirm}>
           <PasswordInput
             autoComplete="new-password"
-            icon={<Lock className="h-4 w-4" />}
+            icon={<Lock className="h-5 w-5" />}
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             invalid={!!errors.confirm}
@@ -228,7 +228,7 @@ export function ResetPasswordForm({ hasToken }: { hasToken: boolean }) {
       </button>
 
       <p className="mt-5 flex items-start gap-2 text-sm leading-relaxed text-slate-500">
-        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
         Changing your password signs you out everywhere else.
       </p>
     </form>

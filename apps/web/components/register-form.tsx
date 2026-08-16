@@ -133,7 +133,7 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
           autoComplete="name"
           placeholder="Enter your full name"
           invalid={!!errors.fullName}
-          icon={<UserIcon className="h-4 w-4" />}
+          icon={<UserIcon className="h-5 w-5" />}
         />
       </Field>
 
@@ -145,7 +145,7 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
           autoComplete="email"
           placeholder="Enter your email address"
           invalid={!!errors.email}
-          icon={<Mail className="h-4 w-4" />}
+          icon={<Mail className="h-5 w-5" />}
         />
       </Field>
 
@@ -158,7 +158,7 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
             autoComplete="new-password"
             placeholder="Create a password"
             invalid={!!errors.password}
-            icon={<Lock className="h-4 w-4" />}
+            icon={<Lock className="h-5 w-5" />}
           />
         </Field>
         <Field label="Confirm Password" error={errors.confirmPassword}>
@@ -169,7 +169,7 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
             autoComplete="new-password"
             placeholder="Confirm your password"
             invalid={!!errors.confirmPassword}
-            icon={<Lock className="h-4 w-4" />}
+            icon={<Lock className="h-5 w-5" />}
           />
         </Field>
       </div>
@@ -184,7 +184,7 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
             setStateValue("");
           }}
           invalid={!!errors.country}
-          icon={<Globe className="h-4 w-4" />}
+          icon={<Globe className="h-5 w-5" />}
         >
           <option value="" disabled>
             Select your country or region
@@ -207,7 +207,7 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
               value={stateValue}
               onChange={(e) => setStateValue(e.target.value)}
               invalid={!!errors.state}
-              icon={<MapPin className="h-4 w-4" />}
+              icon={<MapPin className="h-5 w-5" />}
             >
               <option value="" disabled>
                 {country ? "Select your state or province" : "Select your country first"}
@@ -227,7 +227,7 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
               autoComplete="address-level1"
               placeholder="Enter your state or province"
               invalid={!!errors.state}
-              icon={<MapPin className="h-4 w-4" />}
+              icon={<MapPin className="h-5 w-5" />}
             />
           )}
         </Field>
@@ -237,7 +237,7 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
             required
             autoComplete="postal-code"
             invalid={!!errors.postalCode}
-            icon={<Hash className="h-4 w-4" />}
+            icon={<Hash className="h-5 w-5" />}
           />
         </Field>
       </div>

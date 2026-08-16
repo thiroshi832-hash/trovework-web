@@ -69,7 +69,7 @@ export function ProfileEditForm() {
           say which side of that gate this profile is on rather than assuming. */}
       {ME.idVerified ? (
         <div className="flex gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-          <ShieldCheck className="h-6 w-6 shrink-0 text-emerald-600" />
+          <ShieldCheck className="h-7 w-7 shrink-0 text-emerald-600" />
           <div>
             <p className="text-sm font-semibold text-emerald-900">Your profile is live</p>
             <p className="mt-1 text-sm leading-relaxed text-emerald-800">
@@ -80,7 +80,7 @@ export function ProfileEditForm() {
       ) : (
         <div className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-3">
-            <ShieldCheck className="h-6 w-6 shrink-0 text-amber-600" />
+            <ShieldCheck className="h-7 w-7 shrink-0 text-amber-600" />
             <div>
               <p className="text-sm font-semibold text-amber-900">Your profile is hidden</p>
               <p className="mt-1 text-sm leading-relaxed text-amber-800">
@@ -288,7 +288,7 @@ export function ProfileEditForm() {
       <section className={section}>
         <h2 className="text-lg font-bold text-navy-800">Contact details</h2>
         <div className="mt-3 flex gap-3 rounded-lg bg-brand-50 p-4">
-          <ShieldCheck className="h-5 w-5 shrink-0 text-brand-600" />
+          <ShieldCheck className="h-6 w-6 shrink-0 text-brand-600" />
           <p className="text-sm leading-relaxed text-brand-800">
             These are never shown on your public profile. The server releases them only to clients
             who have completed identity verification.
@@ -331,7 +331,7 @@ export function ProfileEditForm() {
           type="submit"
           className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-8 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
         >
-          <Check className="h-4 w-4" />
+          <Check className="h-5 w-5" />
           Save changes
         </button>
       </div>

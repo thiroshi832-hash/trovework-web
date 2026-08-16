@@ -53,7 +53,7 @@ function Stepper({ step, onJump }: { step: number; onJump: (i: number) => void }
                       : "bg-slate-100 text-slate-400"
                 }`}
               >
-                {done ? <Check className="h-4 w-4" /> : i + 1}
+                {done ? <Check className="h-5 w-5" /> : i + 1}
               </button>
               <span
                 className={`text-xs ${current ? "font-semibold text-brand-600" : done ? "text-brand-600" : "text-slate-400"}`}
@@ -177,7 +177,7 @@ function DocSide({
           </>
         ) : (
           <>
-            <IdUpload className="mx-auto h-10 w-10 text-brand-600" />
+            <IdUpload className="mx-auto h-12 w-12 text-brand-600" />
             <p className="mt-3 text-sm text-slate-500">Drag &amp; drop, or</p>
             <button
               type="button"
@@ -304,7 +304,7 @@ export function IdVerificationWizard() {
     return (
       <div className="text-center">
         <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-amber-100 text-amber-600">
-          <ShieldCheck className="h-9 w-9" />
+          <ShieldCheck className="h-11 w-11" />
         </span>
         <h1 className="mt-6 text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl">
           Verification pending
@@ -419,7 +419,7 @@ export function IdVerificationWizard() {
             ) : (
               <>
                 <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-brand-50 text-brand-600">
-                  <IdUpload className="h-7 w-7" />
+                  <IdUpload className="h-9 w-9" />
                 </span>
                 <p className="mt-4 font-semibold text-navy-800">Take a selfie with your camera</p>
                 <p className="mt-1 text-sm text-slate-400">or drop a photo here</p>
@@ -575,7 +575,7 @@ export function IdVerificationWizard() {
           </div>
 
           <div className="mt-6 flex gap-3 rounded-lg bg-brand-50 p-4">
-            <ShieldCheck className="h-5 w-5 shrink-0 text-brand-600" />
+            <ShieldCheck className="h-6 w-6 shrink-0 text-brand-600" />
             <p className="text-sm leading-relaxed text-brand-800">
               Your document and selfie are stored encrypted, outside the public web root, and are
               never shown on your profile.
@@ -598,7 +598,7 @@ export function IdVerificationWizard() {
             onClick={() => goTo(step - 1)}
             className="inline-flex items-center gap-2 text-sm font-semibold text-navy-800 transition hover:text-brand-600"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
             Back
           </button>
         ) : (

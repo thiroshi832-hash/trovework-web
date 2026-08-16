@@ -216,7 +216,7 @@ function Stars({ rating, className = "" }: { rating: number; className?: string 
   return (
     <span className={`flex items-center gap-0.5 text-amber-400 ${className}`} aria-label={`${rating} out of 5`}>
       {[0, 1, 2, 3, 4].map((i) => (
-        <Star key={i} className={`h-3.5 w-3.5 ${i < Math.round(rating) ? "" : "text-slate-200"}`} />
+        <Star key={i} className={`h-4.5 w-4.5 ${i < Math.round(rating) ? "" : "text-slate-200"}`} />
       ))}
     </span>
   );
@@ -249,7 +249,7 @@ function SectionHeading({
       {action ? (
         <Link href={href} className="group hidden shrink-0 items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700 sm:flex">
           {action}
-          <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+          <ArrowRight className="h-5 w-5 transition group-hover:translate-x-0.5" />
         </Link>
       ) : null}
     </div>
@@ -262,22 +262,22 @@ const CARD = "rounded-xl bg-white shadow-[0_1px_2px_rgba(11,28,56,0.04),0_10px_2
 /* ================================= data ================================= */
 
 const TRUST_ITEMS = [
-  { icon: <ShieldCheck className="h-6 w-6" />, title: "Verified Community", body: "Every user is verified to build trust and safety." },
-  { icon: <Lock className="h-6 w-6" />, title: "Safe & Secure", body: "Your data and conversations are always protected." },
-  { icon: <ChatBubble className="h-6 w-6" />, title: "Direct Communication", body: "Chat directly with verified users. No middlemen." },
-  { icon: <Gift className="h-6 w-6" />, title: "Free to Use", body: "Join, connect, and grow without any fees." },
+  { icon: <ShieldCheck className="h-7 w-7" />, title: "Verified Community", body: "Every user is verified to build trust and safety." },
+  { icon: <Lock className="h-7 w-7" />, title: "Safe & Secure", body: "Your data and conversations are always protected." },
+  { icon: <ChatBubble className="h-7 w-7" />, title: "Direct Communication", body: "Chat directly with verified users. No middlemen." },
+  { icon: <Gift className="h-7 w-7" />, title: "Free to Use", body: "Join, connect, and grow without any fees." },
 ];
 
 /* Tiles link into the browse page pre-filtered. Typing `name` as Category means
    a tile whose name drifts from the taxonomy fails the build. */
 const CATEGORIES: { icon: React.ReactNode; name: Category }[] = [
-  { icon: <CodeCircle className="h-10 w-10" />, name: "Web Development" },
-  { icon: <Pencil className="h-10 w-10" />, name: "Design & Creative" },
-  { icon: <Document className="h-10 w-10" />, name: "Writing & Translation" },
-  { icon: <Megaphone className="h-10 w-10" />, name: "Marketing" },
-  { icon: <PlayBox className="h-10 w-10" />, name: "Video & Animation" },
-  { icon: <AiSpark className="h-10 w-10" />, name: "AI Services" },
-  { icon: <Briefcase className="h-10 w-10" />, name: "Business" },
+  { icon: <CodeCircle className="h-12 w-12" />, name: "Web Development" },
+  { icon: <Pencil className="h-12 w-12" />, name: "Design & Creative" },
+  { icon: <Document className="h-12 w-12" />, name: "Writing & Translation" },
+  { icon: <Megaphone className="h-12 w-12" />, name: "Marketing" },
+  { icon: <PlayBox className="h-12 w-12" />, name: "Video & Animation" },
+  { icon: <AiSpark className="h-12 w-12" />, name: "AI Services" },
+  { icon: <Briefcase className="h-12 w-12" />, name: "Business" },
 ];
 
 const STEPS = [
@@ -293,10 +293,10 @@ const STEPS = [
  * have signed up. The category count is derived, so it cannot drift.
  */
 const STATS = [
-  { icon: <ShieldCheck className="h-7 w-7" />, value: "100%", label: "ID-verified members" },
-  { icon: <Gift className="h-7 w-7" />, value: "0%", label: "Commission or fees" },
-  { icon: <Briefcase className="h-7 w-7" />, value: `${ALL_CATEGORIES.length}`, label: "Fields of work" },
-  { icon: <Globe className="h-7 w-7" />, value: "Global", label: "Clients and freelancers" },
+  { icon: <ShieldCheck className="h-9 w-9" />, value: "100%", label: "ID-verified members" },
+  { icon: <Gift className="h-9 w-9" />, value: "0%", label: "Commission or fees" },
+  { icon: <Briefcase className="h-9 w-9" />, value: `${ALL_CATEGORIES.length}`, label: "Fields of work" },
+  { icon: <Globe className="h-9 w-9" />, value: "Global", label: "Clients and freelancers" },
 ];
 
 /* the overlapping faces in the hero's social-proof row */
@@ -315,7 +315,7 @@ const MOCK = "block rounded bg-slate-200/70";
 
 function StepCreateAccount() {
   return (
-    <div className="relative w-full max-w-[13.75rem]">
+    <div className="relative w-full max-w-[17rem]">
       <div className="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200/80">
         <div className="flex items-center gap-1 bg-slate-50 px-2.5 py-2">
           <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
@@ -324,7 +324,7 @@ function StepCreateAccount() {
           <span className="ml-2 h-1.5 flex-1 rounded bg-slate-200/70" />
         </div>
         <div className="flex gap-2.5 p-3">
-          <span className="h-10 w-10 shrink-0 rounded-full bg-slate-200/70" />
+          <span className="h-14 w-14 shrink-0 rounded-full bg-slate-200/70" />
           <div className="flex-1 space-y-1.5 pt-1.5">
             <span className={`${MOCK} h-1.5 w-full`} />
             <span className={`${MOCK} h-1.5 w-4/5`} />
@@ -336,8 +336,8 @@ function StepCreateAccount() {
           <span className="h-4 w-10 rounded bg-slate-100" />
         </div>
       </div>
-      <span className="absolute -bottom-3 right-3 grid h-11 w-11 place-items-center rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/25">
-        <UserPlus className="h-5 w-5" />
+      <span className="absolute -bottom-3 right-3 grid h-14 w-14 place-items-center rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/25">
+        <UserPlus className="h-6 w-6" />
       </span>
     </div>
   );
@@ -345,11 +345,11 @@ function StepCreateAccount() {
 
 function StepGetVerified() {
   return (
-    <div className="relative w-full max-w-[13.75rem]">
+    <div className="relative w-full max-w-[17rem]">
       <div className="rounded-lg bg-white p-3.5 shadow-sm ring-1 ring-slate-200/80">
         <div className="flex gap-2.5">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-brand-100 text-brand-500">
-            <UserGlyph className="h-6 w-6" />
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-brand-100 text-brand-500">
+            <UserGlyph className="h-7 w-7" />
           </span>
           <div className="flex-1 space-y-1.5 pt-1.5">
             <span className={`${MOCK} h-1.5 w-full`} />
@@ -361,8 +361,8 @@ function StepGetVerified() {
           <span className={`${MOCK} h-1.5 w-5/6`} />
         </div>
       </div>
-      <span className="absolute -bottom-3 right-2 grid h-11 w-11 place-items-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
-        <Check className="h-5 w-5" />
+      <span className="absolute -bottom-3 right-2 grid h-14 w-14 place-items-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
+        <Check className="h-6 w-6" />
       </span>
     </div>
   );
@@ -370,9 +370,9 @@ function StepGetVerified() {
 
 function StepConnectWork() {
   return (
-    <div className="w-full max-w-[13.75rem] space-y-3">
+    <div className="w-full max-w-[17rem] space-y-4">
       <div className="flex items-center gap-2">
-        <Portrait src="/avatars/community-3.jpg" className="h-9 w-9" sizes="36px" />
+        <Portrait src="/avatars/community-3.jpg" className="h-12 w-12" sizes="48px" />
         <div className="flex-1 rounded-lg rounded-tl-sm bg-white p-3 shadow-sm ring-1 ring-slate-200/80">
           <span className="block h-1.5 w-4/5 rounded bg-brand-400/70" />
         </div>
@@ -381,7 +381,7 @@ function StepConnectWork() {
         <div className="flex-1 rounded-lg rounded-tr-sm bg-white p-3 shadow-sm ring-1 ring-slate-200/80">
           <span className="ml-auto block h-1.5 w-3/5 rounded bg-brand-400/70" />
         </div>
-        <Portrait src="/avatars/community-2.jpg" className="h-9 w-9" sizes="36px" />
+        <Portrait src="/avatars/community-2.jpg" className="h-12 w-12" sizes="48px" />
       </div>
     </div>
   );
@@ -395,7 +395,7 @@ function VerifiedCard({ className = "" }: { className?: string }) {
   return (
     <div className={`flex-col justify-center overflow-hidden rounded-2xl bg-white p-6 shadow-xl ring-1 ring-slate-200/60 ${className}`}>
       <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-600 text-white">
-        <ShieldCheck className="h-6 w-6" />
+        <ShieldCheck className="h-7 w-7" />
       </span>
       <p className="mt-3.5 text-[1.0625rem] font-bold leading-snug text-navy-800">
         Verified
@@ -491,9 +491,9 @@ export default function Home() {
               </div>
 
               <div className="mt-12 flex flex-wrap items-center gap-4 lg:mt-0 lg:pt-12">
-                <div className="flex -space-x-2.5">
+                <div className="flex -space-x-3.5">
                   {COMMUNITY.map((src) => (
-                    <Portrait key={src} src={src} className="h-9 w-9 ring-2 ring-white" sizes="36px" />
+                    <Portrait key={src} src={src} className="h-14 w-14 ring-2 ring-white" sizes="56px" />
                   ))}
                 </div>
                 <div>
@@ -557,7 +557,7 @@ export default function Home() {
               className={`group flex flex-col items-center gap-3.5 px-3 py-7 text-center transition hover:-translate-y-0.5 hover:ring-brand-200 ${CARD}`}
             >
               <span className="text-brand-400">
-                <Dots className="h-10 w-10" />
+                <Dots className="h-12 w-12" />
               </span>
               <span className="text-xs font-medium leading-tight text-navy-800">More Categories</span>
             </Link>
@@ -574,14 +574,14 @@ export default function Home() {
 
             <div className="relative mt-12">
               {/* dashed connector, as in the comp */}
-              <div className="absolute left-[16.6%] right-[16.6%] top-4 hidden border-t border-dashed border-brand-200 lg:block" />
+              <div className="absolute left-[16.6%] right-[16.6%] top-6 hidden border-t border-dashed border-brand-200 lg:block" />
               <div className="grid gap-12 lg:grid-cols-3">
                 {STEPS.map((s, i) => (
                   <div key={s.title} className="relative flex flex-col items-center text-center">
-                    <span className="relative z-10 grid h-8 w-8 place-items-center rounded-full bg-brand-100 text-sm font-semibold text-brand-600">
+                    <span className="relative z-10 grid h-12 w-12 place-items-center rounded-full bg-brand-100 text-base font-semibold text-brand-600">
                       {i + 1}
                     </span>
-                    <div className="mt-8 flex h-44 w-full max-w-xs items-center justify-center rounded-xl bg-slate-50/80 p-5">
+                    <div className="mt-8 flex h-56 w-full max-w-sm items-center justify-center rounded-xl bg-slate-50/80 p-6">
                       {STEP_ART[i]}
                     </div>
                     <h3 className="mt-6 font-semibold text-navy-800">{s.title}</h3>
@@ -624,7 +624,7 @@ export default function Home() {
                   className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-white shadow-sm shadow-amber-500/30"
                 >
                   <span className="sr-only">Featured freelancer</span>
-                  <Crown className="h-4 w-4" />
+                  <Crown className="h-5 w-5" />
                 </span>
                 <Portrait src={f.photo} className="mx-auto h-28 w-28" sizes="112px" />
                 <div className="mt-4 flex items-center justify-center gap-1.5">
@@ -664,7 +664,7 @@ export default function Home() {
           <div className="mt-9 grid gap-5 md:grid-cols-3">
             {TESTIMONIALS.map((t) => (
               <figure key={t.name} className={`p-6 ${CARD}`}>
-                <Quote className="h-6 w-6 text-brand-300" />
+                <Quote className="h-7 w-7 text-brand-300" />
                 <blockquote className="mt-3.5 text-sm leading-relaxed text-slate-600">{t.quote}</blockquote>
                 <figcaption className="mt-6 flex items-center gap-3">
                   <Portrait src={t.photo} className="h-9 w-9" sizes="36px" />

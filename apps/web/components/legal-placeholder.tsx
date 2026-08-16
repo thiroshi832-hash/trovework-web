@@ -26,7 +26,7 @@ export function LegalPlaceholder({
           <p className="mt-4 text-lg leading-relaxed text-slate-600">{lead}</p>
 
           <div className="mt-8 flex gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-6">
-            <ShieldCheck className="h-6 w-6 shrink-0 text-amber-600" />
+            <ShieldCheck className="h-7 w-7 shrink-0 text-amber-600" />
             <div>
               <p className="text-base font-semibold text-amber-900">We&apos;re still writing this one</p>
               <p className="mt-1.5 text-sm leading-relaxed text-amber-800">

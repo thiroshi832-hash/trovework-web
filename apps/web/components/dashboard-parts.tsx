@@ -56,7 +56,7 @@ export function Section({
             className="group inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
           >
             {action}
-            <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+            <ArrowRight className="h-5 w-5 transition group-hover:translate-x-0.5" />
           </Link>
         ) : null}
       </div>
@@ -99,7 +99,7 @@ export function VerificationCard({
     >
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex gap-4">
-          <ShieldCheck className={`h-7 w-7 shrink-0 ${done ? "text-emerald-600" : "text-amber-600"}`} />
+          <ShieldCheck className={`h-9 w-9 shrink-0 ${done ? "text-emerald-600" : "text-amber-600"}`} />
           <div>
             <h2 className={`text-lg font-bold ${done ? "text-emerald-900" : "text-amber-900"}`}>
               {done ? "You're verified" : "Verification incomplete"}
@@ -119,7 +119,7 @@ export function VerificationCard({
                       s.ok ? "bg-emerald-500 text-white" : "bg-white text-amber-500 ring-1 ring-amber-300"
                     }`}
                   >
-                    {s.ok ? <Check className="h-3 w-3" /> : <span className="text-[0.6875rem] font-bold">!</span>}
+                    {s.ok ? <Check className="h-4 w-4" /> : <span className="text-[0.6875rem] font-bold">!</span>}
                   </span>
                   <span className={s.ok ? "text-emerald-800" : "text-amber-900"}>{s.label}</span>
                   <span className={s.ok ? "text-emerald-600" : "text-amber-700"}>

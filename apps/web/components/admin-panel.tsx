@@ -165,14 +165,14 @@ export function AdminPanel() {
                     onClick={() => act(`approved ${c.user} and made their profile visible`)}
                     className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
                   >
-                    <Check className="h-4 w-4" />
+                    <Check className="h-5 w-5" />
                     Approve
                   </button>
                 </div>
               </div>
 
               <p className="mt-4 flex items-start gap-2 rounded-lg bg-slate-50 px-3.5 py-3 text-sm leading-relaxed text-slate-600">
-                <Lock className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                <Lock className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
                 The ID image and selfie are held in secured storage outside the web root. Open them
                 through the review tool, which logs the access, rather than downloading copies.
               </p>
@@ -261,7 +261,7 @@ export function AdminPanel() {
       ) : null}
 
       <p className="mt-8 flex items-start gap-2 text-sm leading-relaxed text-slate-500">
-        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
         Every action here is enforced server-side. This screen only asks — it cannot itself change
         anyone&apos;s verification state, and it is not a substitute for the permission checks in the API.
       </p>

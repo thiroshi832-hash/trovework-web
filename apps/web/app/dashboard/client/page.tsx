@@ -62,7 +62,7 @@ export default function ClientDashboard() {
             <Section title="Saved freelancers" action="Browse more" href="/freelancers">
               {SAVED.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-300 px-6 py-12 text-center">
-                  <Search className="mx-auto h-8 w-8 text-slate-300" />
+                  <Search className="mx-auto h-10 w-10 text-slate-300" />
                   <p className="mt-3 font-semibold text-navy-800">Nothing saved yet</p>
                   <p className="mt-1 text-sm text-slate-500">
                     Save a freelancer from their profile to keep them here.
@@ -102,7 +102,7 @@ export default function ClientDashboard() {
                 <>
                   {/* The gate is the server's, not the UI's — but say why it's shut. */}
                   <div className="flex gap-4 rounded-xl bg-slate-50 p-5">
-                    <Lock className="h-6 w-6 shrink-0 text-slate-400" />
+                    <Lock className="h-7 w-7 shrink-0 text-slate-400" />
                     <div>
                       <p className="text-sm font-semibold text-navy-800">Chat is locked</p>
                       <p className="mt-1 text-sm leading-relaxed text-slate-500">

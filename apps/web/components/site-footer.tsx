@@ -16,7 +16,7 @@ function SocialLink({ path, label }: { path: string; label: string }) {
       aria-label={label}
       className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white"
     >
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden>
+      <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden>
         <path d={path} />
       </svg>
     </a>

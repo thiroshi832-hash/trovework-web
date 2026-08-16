@@ -13,22 +13,22 @@ export const metadata: Metadata = {
 
 const BENEFITS = [
   {
-    icon: <ShieldCheckSolid className="h-7 w-7" />,
+    icon: <ShieldCheckSolid className="h-9 w-9" />,
     title: "Trust first",
     body: "Every user is verified so you can collaborate safely.",
   },
   {
-    icon: <ChatBubbleSolid className="h-7 w-7" />,
+    icon: <ChatBubbleSolid className="h-9 w-9" />,
     title: "Direct communication",
     body: "Chat directly with verified users. No middlemen.",
   },
   {
-    icon: <GlobeSolid className="h-7 w-7" />,
+    icon: <GlobeSolid className="h-9 w-9" />,
     title: "Global community",
     body: "Hire and work with people from 120+ countries.",
   },
   {
-    icon: <LockSolid className="h-7 w-7" />,
+    icon: <LockSolid className="h-9 w-9" />,
     title: "Privacy & security",
     body: "Your data and conversations are always protected.",
   },
@@ -81,7 +81,7 @@ export default function LoginPage() {
                 </ul>
 
                 <figure className="mt-8 rounded-xl bg-white/10 p-5 ring-1 ring-white/15">
-                  <Quote className="h-5 w-5 text-white/40" />
+                  <Quote className="h-6 w-6 text-white/40" />
                   <blockquote className="mt-2 text-base leading-relaxed text-white/90">
                     Trovework helps me find people I can trust. The verification gives me peace of
                     mind.

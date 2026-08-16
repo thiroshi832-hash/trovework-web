@@ -47,7 +47,7 @@ function SelectShell({ children }: { children: React.ReactNode }) {
   return (
     <span className="relative block">
       {children}
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
     </span>
   );
 }
@@ -349,7 +349,7 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
                               className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-600 text-white"
                             >
                               <span className="sr-only">Identity verified</span>
-                              <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden>
+                              <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
                                 <path
                                   d="m5 12.5 4.5 4.5L19 7"
                                   fill="none"
@@ -371,7 +371,7 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
                           <span className="text-xs font-medium text-slate-400"> /hr</span>
                         </p>
                         <p className="mt-1 flex items-center justify-end gap-1.5 text-sm">
-                          <Star className="h-4 w-4 text-amber-400" />
+                          <Star className="h-5 w-5 text-amber-400" />
                           <span className="font-semibold text-navy-800">{f.rating.toFixed(1)}</span>
                           <span className="text-slate-400">({f.reviews})</span>
                         </p>
@@ -402,7 +402,7 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
 
             {results.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-                <Search className="mx-auto h-8 w-8 text-slate-300" />
+                <Search className="mx-auto h-10 w-10 text-slate-300" />
                 <p className="mt-3 font-semibold text-navy-800">No freelancers match those filters</p>
                 <p className="mt-1 text-sm text-slate-500">
                   Try widening the price range or clearing a filter.

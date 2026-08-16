@@ -48,7 +48,7 @@ export function PostEditor({ post }: { post?: Post }) {
       {/* An already-blocked post explains itself the moment the editor opens. */}
       {post?.status === "blocked" && post.blockedText ? (
         <div className="flex gap-4 rounded-2xl border border-red-200 bg-red-50 p-5">
-          <Lock className="h-6 w-6 shrink-0 text-red-600" />
+          <Lock className="h-7 w-7 shrink-0 text-red-600" />
           <div>
             <p className="text-sm font-semibold text-red-900">This post was blocked</p>
             <p className="mt-1 text-sm leading-relaxed text-red-800">
@@ -133,7 +133,7 @@ export function PostEditor({ post }: { post?: Post }) {
       {/* ------------------------- contact-info check ------------------------ */}
       <section className={section}>
         <div className="flex items-start gap-4">
-          <ShieldCheck className={`h-6 w-6 shrink-0 ${wouldBlock ? "text-red-600" : "text-emerald-600"}`} />
+          <ShieldCheck className={`h-7 w-7 shrink-0 ${wouldBlock ? "text-red-600" : "text-emerald-600"}`} />
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-bold text-navy-800">Contact details check</h2>
             {wouldBlock ? (
