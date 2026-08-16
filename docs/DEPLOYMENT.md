@@ -372,14 +372,25 @@ In the repo: **Settings → Secrets and variables → Actions → New repository
 | `VPS_PORT` | `22` (optional) |
 
 For `VPS_SSH_KEY`, paste the **entire** file including the
-`-----BEGIN OPENSSH PRIVATE KEY-----` and `-----END OPENSSH PRIVATE KEY-----` lines:
+`-----BEGIN OPENSSH PRIVATE KEY-----` and `-----END OPENSSH PRIVATE KEY-----` lines.
+
+> **Run this on your local machine, not on the VPS.** Only the *public* half of the key was ever
+> copied to the server; the private half stays with you. Running it inside an SSH session prints
+> `No such file or directory`, because it is not there — and should never be.
 
 ```bash
+# Git Bash
 cat ~/.ssh/trovework_deploy
+
+# cmd.exe or PowerShell
+type C:\Users\<you>\.ssh\trovework_deploy
 ```
 
 > This is the one secret GitHub needs. It is encrypted at rest and never printed in logs. It grants
 > SSH access to the `deploy` user only — not root — which is why Step 3 matters.
+>
+> It goes into the GitHub secret box and nowhere else: not onto the VPS, not into a chat window,
+> not into the repo. Anyone holding it can log into your server as `deploy`.
 
 ---
 
