@@ -348,8 +348,10 @@ function StepGetVerified() {
     <div className="relative w-full max-w-[17rem]">
       <div className="rounded-lg bg-white p-3.5 shadow-sm ring-1 ring-slate-200/80">
         <div className="flex gap-2.5">
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-brand-100 text-brand-500">
-            <UserGlyph className="h-7 w-7" />
+          {/* UserGlyph is a solid silhouette, so it reads much heavier than the
+              outline icons at the same size — it needs more padding, not less. */}
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-brand-100 text-brand-400">
+            <UserGlyph className="h-6 w-6" />
           </span>
           <div className="flex-1 space-y-1.5 pt-1.5">
             <span className={`${MOCK} h-1.5 w-full`} />
