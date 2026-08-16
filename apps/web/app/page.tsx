@@ -620,7 +620,7 @@ export default function Home() {
           <SectionHeading title="Featured Freelancers" action="View all freelancers" href="/freelancers" />
           <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {FREELANCERS.map((f) => (
-              <article key={f.slug} className={`relative p-6 text-center transition hover:shadow-md ${CARD}`}>
+              <article key={f.slug} className={`relative flex flex-col p-6 text-center transition hover:shadow-md ${CARD}`}>
                 {/* The section is "Featured", and the verified tick already sits
                     beside the name — so this badge says something different. */}
                 <span
@@ -649,7 +649,9 @@ export default function Home() {
                     </span>
                   ))}
                 </div>
-                <p className="mt-5 text-left text-lg font-bold text-navy-800">
+                {/* mt-auto: one freelancer lists three skills, another four, so
+                    without this the rate sits at a different height per card. */}
+                <p className="mt-auto pt-5 text-left text-lg font-bold text-navy-800">
                   ${f.rate}
                   <span className="text-xs font-medium text-slate-400"> /hr</span>
                 </p>
@@ -724,7 +726,7 @@ export default function Home() {
           <SectionHeading title="Latest from the Blog" action="View all articles" href="/blog" />
           <div className="mt-7 grid gap-6 md:grid-cols-3">
             {POSTS.map((p) => (
-              <article key={p.title} className={`group overflow-hidden ${CARD}`}>
+              <article key={p.title} className={`group flex flex-col overflow-hidden ${CARD}`}>
                 <div className="relative aspect-[203/102]">
                   <Image
                     src={p.image}
@@ -737,12 +739,20 @@ export default function Home() {
                     {p.tag}
                   </span>
                 </div>
-                <div className="px-6 py-7">
+                <div className="flex flex-1 flex-col px-6 py-7">
                   <h3 className="text-lg font-semibold leading-snug text-navy-800 group-hover:text-brand-600">{p.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-slate-500">{p.excerpt}</p>
-                  <p className="mt-8 text-xs text-slate-400">
-                    {p.date} &nbsp;•&nbsp; {p.read}
-                  </p>
+                  {/* Titles run to one or two lines, so the excerpt and date are
+                      pushed to the foot and line up across the row. The excerpt
+                      holds two lines whatever its length — in production these
+                      will be longer and would otherwise shift the date. */}
+                  <div className="mt-auto pt-3">
+                    <p className="line-clamp-2 min-h-[3.25em] text-sm leading-relaxed text-slate-500">
+                      {p.excerpt}
+                    </p>
+                    <p className="mt-8 text-xs text-slate-400">
+                      {p.date} &nbsp;•&nbsp; {p.read}
+                    </p>
+                  </div>
                 </div>
               </article>
             ))}
