@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IdUploadForm } from "@/components/id-upload-form";
+import { IdVerificationWizard } from "@/components/id-verification-wizard";
 import { VerifyShell } from "@/components/verify-shell";
 import { ShieldCheckSolid } from "@/components/icons";
 
@@ -35,7 +35,7 @@ export default function IdVerificationPage() {
           </ol>
 
           <div className="mt-10 flex items-start gap-3 border-t border-white/10 pt-6">
-            <ShieldCheckSolid className="h-7 w-7 shrink-0 text-white/70" />
+            <ShieldCheckSolid className="h-9 w-9 shrink-0 text-white/70" />
             <p className="text-sm leading-relaxed text-brand-100">
               Your data is encrypted and kept secure.
             </p>
@@ -43,7 +43,7 @@ export default function IdVerificationPage() {
         </>
       }
     >
-      <IdUploadForm />
+      <IdVerificationWizard />
     </VerifyShell>
   );
 }

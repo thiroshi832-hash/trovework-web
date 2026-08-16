@@ -2,8 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { Portrait } from "@/components/brand";
 import { PEOPLE } from "@/lib/people";
-import { FREELANCERS } from "@/lib/freelancers";
-import type { Category } from "@/lib/categories";
+import { VISIBLE_FREELANCERS as FREELANCERS } from "@/lib/freelancers";
+import { CATEGORIES as ALL_CATEGORIES, type Category } from "@/lib/categories";
+import { BLOG_POSTS as POSTS } from "@/lib/blog";
 
 /* ================================ icons ================================= */
 
@@ -69,37 +70,11 @@ function Star({ className }: IconProps) {
   );
 }
 
-function StarOutline({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="M12 3.6l2.5 5.1 5.6.8-4.1 4 1 5.6-5-2.6-5 2.6 1-5.6-4.1-4 5.6-.8L12 3.6Z" {...stroke} />
-    </svg>
-  );
-}
-
 function Globe({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
       <circle cx="12" cy="12" r="8.2" {...stroke} />
       <path d="M3.8 12h16.4M12 3.8c2.1 2.2 3.2 5.1 3.2 8.2S14.1 18 12 20.2C9.9 18 8.8 15.1 8.8 12S9.9 6 12 3.8Z" {...stroke} />
-    </svg>
-  );
-}
-
-function Users({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <circle cx="9" cy="8.4" r="3.2" {...stroke} />
-      <path d="M3.4 19.2a5.8 5.8 0 0 1 11.2 0M16.2 5.6a3.1 3.1 0 0 1 0 5.7M17.6 19.2a5.6 5.6 0 0 0-1.9-4" {...stroke} />
-    </svg>
-  );
-}
-
-function Building({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <rect x="5" y="4" width="9.5" height="16" rx="1.4" {...stroke} />
-      <path d="M14.5 9.5H19v10.5M8 8h3.5M8 11.5h3.5M8 15h3.5" {...stroke} />
     </svg>
   );
 }
@@ -213,6 +188,18 @@ function Briefcase({ className }: IconProps) {
   );
 }
 
+function Crown({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        d="M2.9 8.3a.85.85 0 0 1 1.35-.68L7.7 10.2l3.55-5.55a.9.9 0 0 1 1.5 0L16.3 10.2l3.45-2.58a.85.85 0 0 1 1.35.68l-1.5 8.1H4.4Z"
+        fill="currentColor"
+      />
+      <rect x="4.2" y="18" width="15.6" height="2.5" rx="1.25" fill="currentColor" />
+    </svg>
+  );
+}
+
 function Dots({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
@@ -229,7 +216,7 @@ function Stars({ rating, className = "" }: { rating: number; className?: string 
   return (
     <span className={`flex items-center gap-0.5 text-amber-400 ${className}`} aria-label={`${rating} out of 5`}>
       {[0, 1, 2, 3, 4].map((i) => (
-        <Star key={i} className={`h-3.5 w-3.5 ${i < Math.round(rating) ? "" : "text-slate-200"}`} />
+        <Star key={i} className={`h-4.5 w-4.5 ${i < Math.round(rating) ? "" : "text-slate-200"}`} />
       ))}
     </span>
   );
@@ -237,7 +224,11 @@ function Stars({ rating, className = "" }: { rating: number; className?: string 
 
 function VerifiedTick({ className = "h-4 w-4" }: { className?: string }) {
   return (
-    <span className={`grid shrink-0 place-items-center rounded-full bg-brand-600 text-white ${className}`}>
+    <span
+      title="Identity verified"
+      className={`grid shrink-0 place-items-center rounded-full bg-brand-600 text-white ${className}`}
+    >
+      <span className="sr-only">Identity verified</span>
       <Check className="h-[60%] w-[60%]" />
     </span>
   );
@@ -258,7 +249,7 @@ function SectionHeading({
       {action ? (
         <Link href={href} className="group hidden shrink-0 items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700 sm:flex">
           {action}
-          <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+          <ArrowRight className="h-5 w-5 transition group-hover:translate-x-0.5" />
         </Link>
       ) : null}
     </div>
@@ -271,22 +262,22 @@ const CARD = "rounded-xl bg-white shadow-[0_1px_2px_rgba(11,28,56,0.04),0_10px_2
 /* ================================= data ================================= */
 
 const TRUST_ITEMS = [
-  { icon: <ShieldCheck className="h-6 w-6" />, title: "Verified Community", body: "Every user is verified to build trust and safety." },
-  { icon: <Lock className="h-6 w-6" />, title: "Safe & Secure", body: "Your data and conversations are always protected." },
-  { icon: <ChatBubble className="h-6 w-6" />, title: "Direct Communication", body: "Chat directly with verified users. No middlemen." },
-  { icon: <Gift className="h-6 w-6" />, title: "Free to Use", body: "Join, connect, and grow without any fees." },
+  { icon: <ShieldCheck className="h-7 w-7" />, title: "Verified Community", body: "Every user is verified to build trust and safety." },
+  { icon: <Lock className="h-7 w-7" />, title: "Safe & Secure", body: "Your data and conversations are always protected." },
+  { icon: <ChatBubble className="h-7 w-7" />, title: "Direct Communication", body: "Chat directly with verified users. No middlemen." },
+  { icon: <Gift className="h-7 w-7" />, title: "Free to Use", body: "Join, connect, and grow without any fees." },
 ];
 
 /* Tiles link into the browse page pre-filtered. Typing `name` as Category means
    a tile whose name drifts from the taxonomy fails the build. */
 const CATEGORIES: { icon: React.ReactNode; name: Category }[] = [
-  { icon: <CodeCircle className="h-10 w-10" />, name: "Web Development" },
-  { icon: <Pencil className="h-10 w-10" />, name: "Design & Creative" },
-  { icon: <Document className="h-10 w-10" />, name: "Writing & Translation" },
-  { icon: <Megaphone className="h-10 w-10" />, name: "Marketing" },
-  { icon: <PlayBox className="h-10 w-10" />, name: "Video & Animation" },
-  { icon: <AiSpark className="h-10 w-10" />, name: "AI Services" },
-  { icon: <Briefcase className="h-10 w-10" />, name: "Business" },
+  { icon: <CodeCircle className="h-12 w-12" />, name: "Web Development" },
+  { icon: <Pencil className="h-12 w-12" />, name: "Design & Creative" },
+  { icon: <Document className="h-12 w-12" />, name: "Writing & Translation" },
+  { icon: <Megaphone className="h-12 w-12" />, name: "Marketing" },
+  { icon: <PlayBox className="h-12 w-12" />, name: "Video & Animation" },
+  { icon: <AiSpark className="h-12 w-12" />, name: "AI Services" },
+  { icon: <Briefcase className="h-12 w-12" />, name: "Business" },
 ];
 
 const STEPS = [
@@ -295,13 +286,18 @@ const STEPS = [
   { title: "Connect & work", body: "Find the right person, start a chat, and get work done." },
 ];
 
+/*
+ * Claims that are true on day one. The comp carried headline user counts
+ * ("15K+ Verified Freelancers", "98% Positive Reviews") which would be false at
+ * launch, so these state what the product guarantees instead of how many people
+ * have signed up. The category count is derived, so it cannot drift.
+ */
 const STATS = [
-  { icon: <Users className="h-7 w-7" />, value: "15K+", label: "Verified Freelancers" },
-  { icon: <Building className="h-7 w-7" />, value: "8K+", label: "Happy Clients" },
-  { icon: <Globe className="h-7 w-7" />, value: "120+", label: "Countries" },
-  { icon: <StarOutline className="h-7 w-7" />, value: "98%", label: "Positive Reviews" },
+  { icon: <ShieldCheck className="h-9 w-9" />, value: "100%", label: "ID-verified members" },
+  { icon: <Gift className="h-9 w-9" />, value: "0%", label: "Commission or fees" },
+  { icon: <Briefcase className="h-9 w-9" />, value: `${ALL_CATEGORIES.length}`, label: "Fields of work" },
+  { icon: <Globe className="h-9 w-9" />, value: "Global", label: "Clients and freelancers" },
 ];
-
 
 /* the overlapping faces in the hero's social-proof row */
 const COMMUNITY = [1, 2, 3, 4, 5].map((n) => `/avatars/community-${n}.jpg`);
@@ -312,19 +308,23 @@ const TESTIMONIALS = [
   { ...PEOPLE.jessica, quote: "I found a long-term designer within days. Communication is smooth and everything just works." },
 ];
 
-const POSTS = [
-  { tag: "TIPS", image: "/design/blog-1.jpg", title: "How to Hire the Right Freelancer for Your Project", excerpt: "A practical guide to finding the perfect freelancer and getting great results.", date: "Aug 15, 2026", read: "5 min read" },
-  { tag: "SAFETY", image: "/design/blog-2.jpg", title: "Why Verification Matters in Freelancing", excerpt: "Building a safer marketplace for everyone through trust and verification.", date: "Aug 8, 2026", read: "4 min read" },
-  { tag: "GUIDES", image: "/design/blog-3.jpg", title: "Remote Work Best Practices for Clients and Freelancers", excerpt: "Tips to communicate better and deliver successful projects remotely.", date: "Aug 1, 2026", read: "6 min read" },
-];
 
 /* ========================= how-it-works artwork ========================== */
 
 const MOCK = "block rounded bg-slate-200/70";
 
+/**
+ * A filled person silhouette that reaches the edges of whatever frame holds it,
+ * the way a real avatar or ID photo would. UserGlyph is drawn inset within its
+ * 24x24 viewBox, so it is scaled up and the frame clips the overflow.
+ */
+function SilhouetteFill() {
+  return <UserGlyph className="h-full w-full scale-[1.67]" />;
+}
+
 function StepCreateAccount() {
   return (
-    <div className="relative w-full max-w-[220px]">
+    <div className="relative w-full max-w-[17rem]">
       <div className="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200/80">
         <div className="flex items-center gap-1 bg-slate-50 px-2.5 py-2">
           <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
@@ -333,7 +333,9 @@ function StepCreateAccount() {
           <span className="ml-2 h-1.5 flex-1 rounded bg-slate-200/70" />
         </div>
         <div className="flex gap-2.5 p-3">
-          <span className="h-10 w-10 shrink-0 rounded-full bg-slate-200/70" />
+          <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-slate-200/70 text-slate-400">
+            <SilhouetteFill />
+          </span>
           <div className="flex-1 space-y-1.5 pt-1.5">
             <span className={`${MOCK} h-1.5 w-full`} />
             <span className={`${MOCK} h-1.5 w-4/5`} />
@@ -345,8 +347,8 @@ function StepCreateAccount() {
           <span className="h-4 w-10 rounded bg-slate-100" />
         </div>
       </div>
-      <span className="absolute -bottom-3 right-3 grid h-11 w-11 place-items-center rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/25">
-        <UserPlus className="h-5 w-5" />
+      <span className="absolute -bottom-3 right-3 grid h-14 w-14 place-items-center rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/25">
+        <UserPlus className="h-6 w-6" />
       </span>
     </div>
   );
@@ -354,24 +356,29 @@ function StepCreateAccount() {
 
 function StepGetVerified() {
   return (
-    <div className="relative w-full max-w-[220px]">
-      <div className="rounded-lg bg-white p-3.5 shadow-sm ring-1 ring-slate-200/80">
-        <div className="flex gap-2.5">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-brand-100 text-brand-500">
-            <UserGlyph className="h-6 w-6" />
+    <div className="relative w-full max-w-[17rem]">
+      {/* An ID card: square photo, the fields beside it, and a signature strip. */}
+      <div className="overflow-hidden rounded-xl bg-white p-3.5 shadow-sm ring-1 ring-slate-200/80">
+        <div className="flex gap-3.5">
+          <span className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-md bg-brand-100 text-brand-500">
+            <SilhouetteFill />
           </span>
-          <div className="flex-1 space-y-1.5 pt-1.5">
+          <div className="flex-1 space-y-2 pt-0.5">
             <span className={`${MOCK} h-1.5 w-full`} />
-            <span className={`${MOCK} h-1.5 w-3/4`} />
+            <span className={`${MOCK} h-1.5 w-4/5`} />
+            <span className={`${MOCK} h-1.5 w-3/5`} />
+            <span className={`${MOCK} h-1.5 w-2/3`} />
           </div>
         </div>
-        <div className="mt-3.5 space-y-1.5">
-          <span className={`${MOCK} h-1.5 w-full`} />
-          <span className={`${MOCK} h-1.5 w-5/6`} />
+
+        <div className="mt-3.5 flex items-center gap-2">
+          <span className="h-4 w-9 shrink-0 rounded bg-slate-100" />
+          <span className={`${MOCK} h-1.5 flex-1`} />
         </div>
       </div>
-      <span className="absolute -bottom-3 right-2 grid h-11 w-11 place-items-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
-        <Check className="h-5 w-5" />
+
+      <span className="absolute -bottom-3 right-2 grid h-14 w-14 place-items-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
+        <Check className="h-6 w-6" />
       </span>
     </div>
   );
@@ -379,18 +386,32 @@ function StepGetVerified() {
 
 function StepConnectWork() {
   return (
-    <div className="w-full max-w-[220px] space-y-3">
-      <div className="flex items-center gap-2">
-        <Portrait src="/avatars/community-3.jpg" className="h-9 w-9" sizes="36px" />
-        <div className="flex-1 rounded-lg rounded-tl-sm bg-white p-3 shadow-sm ring-1 ring-slate-200/80">
-          <span className="block h-1.5 w-4/5 rounded bg-brand-400/70" />
+    <div className="w-full max-w-[17rem] space-y-2.5">
+      {/* Two faded stubs of earlier messages, so the thread reads as one already
+          under way rather than two lines floating on their own. */}
+      <div aria-hidden className="flex justify-end pr-13 opacity-45">
+        <span className="h-5 w-20 rounded-2xl rounded-br-md bg-brand-500/60" />
+      </div>
+      <div aria-hidden className="flex pl-13 opacity-45">
+        <span className="h-5 w-16 rounded-2xl rounded-bl-md bg-white shadow-sm ring-1 ring-slate-200/70" />
+      </div>
+
+      {/* incoming */}
+      <div className="flex items-end gap-2.5">
+        <Portrait src="/avatars/community-3.jpg" className="h-11 w-11" sizes="44px" />
+        <div className="max-w-[76%] space-y-2 rounded-2xl rounded-bl-md bg-white px-3.5 py-3 shadow-sm ring-1 ring-slate-200/80">
+          <span className="block h-1.5 w-24 rounded-full bg-slate-200/90" />
+          <span className="block h-1.5 w-14 rounded-full bg-slate-200/70" />
         </div>
       </div>
-      <div className="flex items-center gap-2 pl-7">
-        <div className="flex-1 rounded-lg rounded-tr-sm bg-white p-3 shadow-sm ring-1 ring-slate-200/80">
-          <span className="ml-auto block h-1.5 w-3/5 rounded bg-brand-400/70" />
+
+      {/* outgoing */}
+      <div className="flex items-end justify-end gap-2.5">
+        <div className="max-w-[76%] space-y-2 rounded-2xl rounded-br-md bg-brand-600 px-3.5 py-3 shadow-sm shadow-brand-600/20">
+          <span className="block h-1.5 w-20 rounded-full bg-white/85" />
+          <span className="block h-1.5 w-12 rounded-full bg-white/60" />
         </div>
-        <Portrait src="/avatars/community-2.jpg" className="h-9 w-9" sizes="36px" />
+        <Portrait src="/avatars/community-2.jpg" className="h-11 w-11" sizes="44px" />
       </div>
     </div>
   );
@@ -404,14 +425,14 @@ function VerifiedCard({ className = "" }: { className?: string }) {
   return (
     <div className={`flex-col justify-center overflow-hidden rounded-2xl bg-white p-6 shadow-xl ring-1 ring-slate-200/60 ${className}`}>
       <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-600 text-white">
-        <ShieldCheck className="h-6 w-6" />
+        <ShieldCheck className="h-7 w-7" />
       </span>
-      <p className="mt-3.5 text-[17px] font-bold leading-snug text-navy-800">
+      <p className="mt-3.5 text-[1.0625rem] font-bold leading-snug text-navy-800">
         Verified
         <br />
         Community
       </p>
-      <p className="mt-2 text-[13px] leading-relaxed text-slate-500">
+      <p className="mt-2 text-[0.8125rem] leading-relaxed text-slate-500">
         All users are verified for a safe and trusted environment.
       </p>
     </div>
@@ -429,20 +450,21 @@ export default function Home() {
           The photo is a background layer rather than an <img> so the headline
           can run over its left edge. It starts at 46% and bleeds off the right.
         */}
-        <section className="relative overflow-hidden bg-white lg:min-h-[41.67vw]">
+        <section className="relative overflow-hidden bg-white lg:flex lg:flex-col lg:min-h-[calc(100vh-var(--header-h))]">
           <div
             aria-hidden
             className="absolute inset-y-0 right-0 hidden w-[54%] bg-[url('/images/hero.jpg')] bg-cover bg-[position:38%_center] [-webkit-mask-image:linear-gradient(to_right,transparent,#000_26%)] [mask-image:linear-gradient(to_right,transparent,#000_26%)] lg:block"
           />
 
-          <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-6 py-12 lg:grid-cols-2 lg:py-20">
-            {/* the floating card belongs to the container, not the bleeding
-                photo — its right edge lines up with the trust bar below */}
-            {/* vertical offset tracks the photo (whose height is 41.67vw, set by
-                its locked aspect ratio) rather than this container, so the card
-                stays on the picture at every desktop width */}
-            <VerifiedCard className="absolute right-6 top-[calc(37.1vw_-_256px)] hidden w-[232px] min-h-[256px] lg:flex" />
-            <div>
+          <div className="relative mx-auto grid w-full max-w-page items-stretch gap-10 px-6 lg:px-10 xl:px-16 py-12 lg:flex-1 lg:grid-cols-2 lg:py-16">
+            {/* Sits at the foot of the photo, level with the social proof on the
+                left, and its right edge lines up with the trust bar below. */}
+            <VerifiedCard className="absolute bottom-16 right-6 hidden w-[14.5rem] min-h-[16rem] lg:flex" />
+
+            {/* The column fills the hero: the pitch takes the free space above,
+                which leaves the social proof sitting near the bottom. */}
+            <div className="flex flex-col">
+              <div className="lg:my-auto">
               <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-brand-700 ring-1 ring-brand-100">
                 <span className="grid h-4 w-4 place-items-center rounded-full bg-brand-600 text-white">
                   <Check className="h-2.5 w-2.5" />
@@ -452,7 +474,7 @@ export default function Home() {
 
               {/* Two lines, always — the long first line is allowed to run past
                   the column and over the photo rather than wrapping to three. */}
-              <h1 className="mt-5 text-[7.2vw] font-bold leading-[1.14] tracking-tight text-navy-800 sm:text-[5.4vw] lg:whitespace-nowrap lg:text-[4vw] xl:text-[51px]">
+              <h1 className="mt-7 text-[7.2vw] font-bold leading-[1.14] tracking-tight text-navy-800 sm:text-[5.4vw] lg:whitespace-nowrap lg:text-[min(4vw,63px)]">
                 Hire trusted freelancers.
                 <br />
                 Get work{" "}
@@ -476,12 +498,12 @@ export default function Home() {
                 </span>
               </h1>
 
-              <p className="mt-6 max-w-md text-[17px] leading-[1.95] text-slate-600">
+              <p className="mt-7 max-w-lg text-[1.0625rem] leading-[1.95] text-slate-600">
                 Trovework connects verified freelancers with clients worldwide. Every user is
                 verified so you can collaborate with confidence.
               </p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/register?role=client"
                   className="rounded-lg bg-brand-600 px-8 py-3 text-center text-sm font-semibold text-white transition hover:bg-brand-700"
@@ -496,10 +518,12 @@ export default function Home() {
                 </Link>
               </div>
 
-              <div className="mt-8 flex flex-wrap items-center gap-4">
-                <div className="flex -space-x-2.5">
+              </div>
+
+              <div className="mt-12 flex flex-wrap items-center gap-4 lg:mt-0 lg:pt-12">
+                <div className="flex -space-x-3.5">
                   {COMMUNITY.map((src) => (
-                    <Portrait key={src} src={src} className="h-9 w-9 ring-2 ring-white" sizes="36px" />
+                    <Portrait key={src} src={src} className="h-14 w-14 ring-2 ring-white" sizes="56px" />
                   ))}
                 </div>
                 <div>
@@ -525,7 +549,7 @@ export default function Home() {
         </section>
 
         {/* ---------------------------- trust bar --------------------------- */}
-        <section id="trust" className="mx-auto max-w-7xl px-6 pb-4 pt-8">
+        <section id="trust" className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 pb-4 pt-8">
           <div className={`grid ${CARD} rounded-2xl sm:grid-cols-2 lg:grid-cols-4`}>
             {TRUST_ITEMS.map((t, i) => (
               <div
@@ -545,7 +569,7 @@ export default function Home() {
         </section>
 
         {/* ---------------------------- categories -------------------------- */}
-        <section id="categories" className="mx-auto max-w-7xl px-6 py-14">
+        <section id="categories" className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-14">
           <SectionHeading title="Popular Categories" action="View all categories" />
           <div className="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8">
             {CATEGORIES.map((c) => (
@@ -563,7 +587,7 @@ export default function Home() {
               className={`group flex flex-col items-center gap-3.5 px-3 py-7 text-center transition hover:-translate-y-0.5 hover:ring-brand-200 ${CARD}`}
             >
               <span className="text-brand-400">
-                <Dots className="h-10 w-10" />
+                <Dots className="h-12 w-12" />
               </span>
               <span className="text-xs font-medium leading-tight text-navy-800">More Categories</span>
             </Link>
@@ -572,7 +596,7 @@ export default function Home() {
 
         {/* --------------------------- how it works ------------------------- */}
         <section id="how" className="bg-white py-14">
-          <div className="mx-auto max-w-7xl px-6">
+          <div className="mx-auto max-w-page px-6 lg:px-10 xl:px-16">
             <div className="text-center">
               <h2 className="text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl">How It Works</h2>
               <p className="mt-2.5 text-sm text-slate-500">Get started in three simple steps</p>
@@ -580,14 +604,14 @@ export default function Home() {
 
             <div className="relative mt-12">
               {/* dashed connector, as in the comp */}
-              <div className="absolute left-[16.6%] right-[16.6%] top-4 hidden border-t border-dashed border-brand-200 lg:block" />
+              <div className="absolute left-[16.6%] right-[16.6%] top-6 hidden border-t border-dashed border-brand-200 lg:block" />
               <div className="grid gap-12 lg:grid-cols-3">
                 {STEPS.map((s, i) => (
                   <div key={s.title} className="relative flex flex-col items-center text-center">
-                    <span className="relative z-10 grid h-8 w-8 place-items-center rounded-full bg-brand-100 text-sm font-semibold text-brand-600">
+                    <span className="relative z-10 grid h-12 w-12 place-items-center rounded-full bg-brand-100 text-base font-semibold text-brand-600">
                       {i + 1}
                     </span>
-                    <div className="mt-8 flex h-44 w-full max-w-xs items-center justify-center rounded-xl bg-slate-50/80 p-5">
+                    <div className="mt-8 flex h-56 w-full max-w-sm items-center justify-center rounded-xl bg-slate-50/80 p-6">
                       {STEP_ART[i]}
                     </div>
                     <h3 className="mt-6 font-semibold text-navy-800">{s.title}</h3>
@@ -600,7 +624,7 @@ export default function Home() {
         </section>
 
         {/* ------------------------------ stats ----------------------------- */}
-        <section className="mx-auto max-w-7xl px-6 py-12">
+        <section className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-12">
           <div className="grid gap-10 rounded-2xl bg-gradient-to-r from-stat-from via-stat-via to-stat-to px-8 py-14 sm:grid-cols-2 lg:grid-cols-4">
             {STATS.map((s, i) => (
               <div
@@ -618,18 +642,24 @@ export default function Home() {
         </section>
 
         {/* ------------------------ featured freelancers -------------------- */}
-        <section className="mx-auto max-w-7xl px-6 py-10">
+        <section className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-10">
           <SectionHeading title="Featured Freelancers" action="View all freelancers" href="/freelancers" />
           <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {FREELANCERS.map((f) => (
-              <article key={f.slug} className={`relative p-6 text-center transition hover:shadow-md ${CARD}`}>
-                <span className="absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-md bg-brand-50 text-brand-600">
-                  <Check className="h-3 w-3" />
+              <article key={f.slug} className={`relative flex flex-col p-6 text-center transition hover:shadow-md ${CARD}`}>
+                {/* The section is "Featured", and the verified tick already sits
+                    beside the name — so this badge says something different. */}
+                <span
+                  title="Featured freelancer"
+                  className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-white shadow-sm shadow-amber-500/30"
+                >
+                  <span className="sr-only">Featured freelancer</span>
+                  <Crown className="h-5 w-5" />
                 </span>
                 <Portrait src={f.photo} className="mx-auto h-28 w-28" sizes="112px" />
                 <div className="mt-4 flex items-center justify-center gap-1.5">
                   <h3 className="font-semibold text-navy-800">{f.name}</h3>
-                  <VerifiedTick />
+                  {f.idVerified ? <VerifiedTick /> : null}
                 </div>
                 <p className="mt-1 text-xs text-slate-500">{f.title}</p>
                 <div className="mt-2.5 flex items-center justify-center gap-1.5">
@@ -640,12 +670,14 @@ export default function Home() {
                 </div>
                 <div className="mt-3.5 flex flex-wrap justify-center gap-1.5">
                   {f.skills.map((s) => (
-                    <span key={s} className="rounded bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">
+                    <span key={s} className="rounded bg-slate-100 px-2 py-1 text-[0.625rem] font-medium text-slate-600">
                       {s}
                     </span>
                   ))}
                 </div>
-                <p className="mt-5 text-left text-lg font-bold text-navy-800">
+                {/* mt-auto: one freelancer lists three skills, another four, so
+                    without this the rate sits at a different height per card. */}
+                <p className="mt-auto pt-5 text-left text-lg font-bold text-navy-800">
                   ${f.rate}
                   <span className="text-xs font-medium text-slate-400"> /hr</span>
                 </p>
@@ -655,14 +687,14 @@ export default function Home() {
         </section>
 
         {/* --------------------------- testimonials ------------------------- */}
-        <section className="mx-auto max-w-7xl px-6 py-14">
+        <section className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-14">
           <h2 className="text-center text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl">
             What Our Users Say
           </h2>
           <div className="mt-9 grid gap-5 md:grid-cols-3">
             {TESTIMONIALS.map((t) => (
               <figure key={t.name} className={`p-6 ${CARD}`}>
-                <Quote className="h-6 w-6 text-brand-300" />
+                <Quote className="h-7 w-7 text-brand-300" />
                 <blockquote className="mt-3.5 text-sm leading-relaxed text-slate-600">{t.quote}</blockquote>
                 <figcaption className="mt-6 flex items-center gap-3">
                   <Portrait src={t.photo} className="h-9 w-9" sizes="36px" />
@@ -677,7 +709,7 @@ export default function Home() {
         </section>
 
         {/* ------------------------------- CTA ------------------------------ */}
-        <section className="mx-auto max-w-7xl px-6 py-8">
+        <section className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-8">
           <div className="relative overflow-hidden rounded-2xl bg-brand-600 px-8 py-20 text-center">
             {/* dotted world map, as in the comp: the Americas at the left edge,
                 Europe/Africa/Asia/Oceania at the right, the Atlantic left open
@@ -716,11 +748,11 @@ export default function Home() {
         </section>
 
         {/* ------------------------------- blog ----------------------------- */}
-        <section id="blog" className="mx-auto max-w-7xl px-6 py-14">
+        <section id="blog" className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-14">
           <SectionHeading title="Latest from the Blog" action="View all articles" href="/blog" />
           <div className="mt-7 grid gap-6 md:grid-cols-3">
             {POSTS.map((p) => (
-              <article key={p.title} className={`group overflow-hidden ${CARD}`}>
+              <article key={p.title} className={`group flex flex-col overflow-hidden ${CARD}`}>
                 <div className="relative aspect-[203/102]">
                   <Image
                     src={p.image}
@@ -729,16 +761,24 @@ export default function Home() {
                     sizes="(min-width: 768px) 33vw, 100vw"
                     className="object-cover"
                   />
-                  <span className="absolute bottom-3 left-3 rounded bg-brand-600 px-2 py-1 text-[10px] font-bold tracking-wide text-white">
+                  <span className="absolute bottom-3 left-3 rounded bg-brand-600 px-2 py-1 text-[0.625rem] font-bold tracking-wide text-white">
                     {p.tag}
                   </span>
                 </div>
-                <div className="px-6 py-7">
+                <div className="flex flex-1 flex-col px-6 py-7">
                   <h3 className="text-lg font-semibold leading-snug text-navy-800 group-hover:text-brand-600">{p.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-slate-500">{p.excerpt}</p>
-                  <p className="mt-8 text-xs text-slate-400">
-                    {p.date} &nbsp;•&nbsp; {p.read}
-                  </p>
+                  {/* Titles run to one or two lines, so the excerpt and date are
+                      pushed to the foot and line up across the row. The excerpt
+                      holds two lines whatever its length — in production these
+                      will be longer and would otherwise shift the date. */}
+                  <div className="mt-auto pt-3">
+                    <p className="line-clamp-2 min-h-[3.25em] text-sm leading-relaxed text-slate-500">
+                      {p.excerpt}
+                    </p>
+                    <p className="mt-8 text-xs text-slate-400">
+                      {p.date} &nbsp;•&nbsp; {p.read}
+                    </p>
+                  </div>
                 </div>
               </article>
             ))}

@@ -14,7 +14,7 @@ const NAV = [
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-2">
+      <nav className="mx-auto flex max-w-page items-center justify-between gap-6 px-6 lg:px-10 xl:px-16 py-4">
         <Logo />
 
         <div className="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex">
@@ -27,9 +27,9 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-3">
           <button type="button" className="hidden items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-navy-800 md:flex">
-            <Globe className="h-4 w-4" />
+            <Globe className="h-5 w-5" />
             English
-            <ChevronDown className="h-3.5 w-3.5" />
+            <ChevronDown className="h-4.5 w-4.5" />
           </button>
 
           <Link href="/login" className="hidden text-sm font-medium text-slate-600 hover:text-navy-800 sm:block">

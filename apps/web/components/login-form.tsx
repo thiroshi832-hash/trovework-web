@@ -58,7 +58,7 @@ export function LoginForm() {
           autoComplete="email"
           placeholder="Enter your email"
           invalid={!!errors.email}
-          icon={<Mail className="h-4 w-4" />}
+          icon={<Mail className="h-5 w-5" />}
         />
       </Field>
 
@@ -70,7 +70,7 @@ export function LoginForm() {
             autoComplete="current-password"
             placeholder="Enter your password"
             invalid={!!errors.password}
-            icon={<Lock className="h-4 w-4" />}
+            icon={<Lock className="h-5 w-5" />}
           />
         </Field>
         <div className="mt-2 text-right">
@@ -97,7 +97,7 @@ export function LoginForm() {
       <SocialButtons />
 
       <div className="flex gap-3 rounded-lg bg-slate-50 p-3.5">
-        <ShieldCheck className="h-5 w-5 shrink-0 text-brand-600" />
+        <ShieldCheck className="h-6 w-6 shrink-0 text-brand-600" />
         <div>
           <p className="text-base font-semibold text-navy-800">Secure login</p>
           <p className="mt-0.5 text-sm leading-relaxed text-slate-500">

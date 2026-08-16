@@ -11,10 +11,10 @@ import {
   MapPin,
   Star,
 } from "@/components/icons";
-import { FREELANCERS, freelancerBySlug, memberSince } from "@/lib/freelancers";
+import { VISIBLE_FREELANCERS, freelancerBySlug, memberSince } from "@/lib/freelancers";
 
 export function generateStaticParams() {
-  return FREELANCERS.map((f) => ({ slug: f.slug }));
+  return VISIBLE_FREELANCERS.map((f) => ({ slug: f.slug }));
 }
 
 export async function generateMetadata({
@@ -24,7 +24,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const f = freelancerBySlug(slug);
-  if (!f) return { title: "Freelancer not found — Trovework" };
+  if (!f || !f.idVerified) return { title: "Freelancer not found — Trovework" };
   return {
     title: `${f.name} — ${f.title} | Trovework`,
     description: f.blurb,
@@ -69,12 +69,14 @@ export default async function FreelancerProfile({
 }) {
   const { slug } = await params;
   const f = freelancerBySlug(slug);
-  if (!f) notFound();
+  // FR-P-3: an unverified freelancer is hidden from clients entirely, so the
+  // public profile must not exist either — not merely drop its verified tick.
+  if (!f || !f.idVerified) notFound();
 
   return (
     <div className="flex flex-1 flex-col bg-slate-50/60">
       <main className="flex-1">
-        <div className="mx-auto max-w-7xl px-6 py-8">
+        <div className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-8">
           <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
             {/* ------------------------------ hero ---------------------------- */}
             <div className="relative overflow-hidden bg-navy-900 px-8 py-8 sm:px-10 sm:py-10">
@@ -87,7 +89,7 @@ export default async function FreelancerProfile({
                   href="/freelancers"
                   className="inline-flex items-center gap-1.5 text-sm text-brand-100 transition hover:text-white"
                 >
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-5 w-5" />
                   Back to search
                 </Link>
 
@@ -98,22 +100,28 @@ export default async function FreelancerProfile({
                     <div>
                       <div className="flex items-center gap-2">
                         <h1 className="text-2xl font-bold text-white sm:text-3xl">{f.name}</h1>
-                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-600 text-white">
-                          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" aria-hidden>
-                            <path
-                              d="m5 12.5 4.5 4.5L19 7"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="3"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </span>
+                        {f.idVerified ? (
+                          <span
+                            title="Identity verified"
+                            className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-600 text-white"
+                          >
+                            <span className="sr-only">Identity verified</span>
+                            <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" aria-hidden>
+                              <path
+                                d="m5 12.5 4.5 4.5L19 7"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </span>
+                        ) : null}
                       </div>
                       <p className="mt-1.5 text-base text-brand-100">{f.title}</p>
                       <p className="mt-2.5 flex items-center gap-1.5 text-sm text-brand-100">
-                        <MapPin className="h-4 w-4" />
+                        <MapPin className="h-5 w-5" />
                         {f.country}
                       </p>
                     </div>
@@ -137,14 +145,14 @@ export default async function FreelancerProfile({
 
                 <div className="mt-7 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-white/10 pt-5 text-sm text-white">
                   <span className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-brand-200" />${f.rate} /hr
+                    <Clock className="h-5 w-5 text-brand-200" />${f.rate} /hr
                   </span>
                   <span className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-amber-400" />
+                    <Star className="h-5 w-5 text-amber-400" />
                     {f.rating.toFixed(1)} ({f.reviews} reviews)
                   </span>
                   <span className="flex items-center gap-2">
-                    <CalendarCheck className="h-4 w-4 text-brand-200" />
+                    <CalendarCheck className="h-5 w-5 text-brand-200" />
                     Member since {memberSince(f.joined)}
                   </span>
                 </div>
@@ -194,7 +202,7 @@ export default async function FreelancerProfile({
                       className="group inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
                     >
                       View more projects
-                      <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                      <ArrowRight className="h-5 w-5 transition group-hover:translate-x-0.5" />
                     </Link>
                   </p>
                 </section>
@@ -215,7 +223,7 @@ export default async function FreelancerProfile({
                           <div key={i} className="flex items-center gap-2.5 text-xs text-slate-500">
                             <dt className="flex w-7 shrink-0 items-center gap-0.5">
                               {5 - i}
-                              <Star className="h-3 w-3 text-slate-400" />
+                              <Star className="h-4 w-4 text-slate-400" />
                             </dt>
                             <dd className="flex flex-1 items-center gap-2.5">
                               <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
@@ -235,7 +243,7 @@ export default async function FreelancerProfile({
                           <div>
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-semibold text-navy-800">{f.latestReview.author}</p>
-                              <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-medium text-brand-600">
+                              <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[0.625rem] font-medium text-brand-600">
                                 {f.latestReview.role}
                               </span>
                             </div>
@@ -256,7 +264,7 @@ export default async function FreelancerProfile({
                       className="group inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
                     >
                       View all reviews
-                      <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                      <ArrowRight className="h-5 w-5 transition group-hover:translate-x-0.5" />
                     </Link>
                   </p>
                 </section>
@@ -269,9 +277,9 @@ export default async function FreelancerProfile({
               href="/verify/id"
               className="flex items-center justify-center gap-2.5 border-t border-slate-200 bg-slate-50 px-6 py-4 text-sm font-medium text-brand-600 transition hover:bg-slate-100"
             >
-              <Lock className="h-4 w-4" />
+              <Lock className="h-5 w-5" />
               Contact information is available after ID verification.
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-5 w-5" />
             </Link>
           </div>
         </div>

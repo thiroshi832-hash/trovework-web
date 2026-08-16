@@ -18,17 +18,17 @@ export const metadata: Metadata = {
 
 const BENEFITS = [
   {
-    icon: <ShieldCheckSolid className="h-7 w-7" />,
+    icon: <ShieldCheckSolid className="h-9 w-9" />,
     title: "Verified community",
     body: "Every user is verified to build a safer, more trustworthy marketplace.",
   },
   {
-    icon: <ChatBubbleSolid className="h-7 w-7" />,
+    icon: <ChatBubbleSolid className="h-9 w-9" />,
     title: "Safe communication",
     body: "Message, share files and collaborate securely within Trovework.",
   },
   {
-    icon: <GiftSolid className="h-7 w-7" />,
+    icon: <GiftSolid className="h-9 w-9" />,
     title: "Free to use",
     body: "Create your account and explore opportunities at no cost.",
   },
@@ -45,7 +45,7 @@ export default async function RegisterPage({
   return (
     <div className="flex flex-1 flex-col bg-slate-50/60">
       <main className="flex-1">
-        <div className="mx-auto max-w-7xl px-6 py-8">
+        <div className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-8">
           {/* ------------------------- split card ------------------------- */}
           <div className="grid overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 lg:grid-cols-[4.5fr_5.5fr]">
             {/* left — value proposition */}
@@ -88,7 +88,7 @@ export default async function RegisterPage({
                 </ul>
 
                 <figure className="mt-8 rounded-xl bg-white/10 p-5 ring-1 ring-white/15">
-                  <Quote className="h-5 w-5 text-white/40" />
+                  <Quote className="h-6 w-6 text-white/40" />
                   <blockquote className="mt-2 text-base leading-relaxed text-white/90">
                     Trovework helped me find amazing clients and grow my business with confidence.
                   </blockquote>
