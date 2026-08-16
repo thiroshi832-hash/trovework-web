@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand";
+import { AuthNav } from "@/components/auth-nav";
 import { ChevronDown, Globe } from "@/components/icons";
 
 /* Anchors are absolute so they still resolve from /login and /register. */
@@ -32,15 +33,7 @@ export function SiteHeader() {
             <ChevronDown className="h-4.5 w-4.5" />
           </button>
 
-          <Link href="/login" className="hidden text-sm font-medium text-slate-600 hover:text-navy-800 sm:block">
-            Login
-          </Link>
-          <Link
-            href="/register"
-            className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
-          >
-            Register
-          </Link>
+          <AuthNav />
         </div>
       </nav>
     </header>
