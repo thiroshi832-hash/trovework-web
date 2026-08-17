@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Portrait } from "@/components/brand";
 import { Field, SelectInput, TextInput } from "@/components/auth-fields";
-import { ApiError, api } from "@/lib/api";
+import { ApiError, api, homeFor } from "@/lib/api";
 import { Check, ShieldCheck } from "@/components/icons";
 import { AVAILABILITY, CATEGORIES } from "@/lib/categories";
 import { COUNTRIES } from "@/components/auth-fields";
@@ -51,7 +51,9 @@ export function ProfileEditForm() {
         const me = await api.me();
         if (!live) return;
         if (me.role !== "freelancer") {
-          router.replace("/"); // only freelancers have a profile to edit
+          // Only freelancers have a profile to edit — send others to their own
+          // home (client dashboard / admin), never the marketing landing page.
+          router.replace(homeFor(me.role));
           return;
         }
         setPhoneVerified(me.phoneVerified);

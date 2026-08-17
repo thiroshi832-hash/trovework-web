@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Stars } from "@/components/brand";
 import { CARD, DashboardHeader, Section, Stat, VerificationCard } from "@/components/dashboard-parts";
 import { Lock, Search } from "@/components/icons";
-import { ApiError, api, type SessionUser } from "@/lib/api";
+import { ApiError, api, homeFor, type SessionUser } from "@/lib/api";
 
 interface ApiConversation {
   id: string;
@@ -63,6 +63,11 @@ export function ClientDashboard() {
       try {
         const session = await api.me();
         if (!live) return;
+        // Freelancers/admins that land here go to their own home.
+        if (session.role !== "client") {
+          router.replace(homeFor(session.role));
+          return;
+        }
         setMe(session);
 
         const [convosRes, recRes] = await Promise.allSettled([
