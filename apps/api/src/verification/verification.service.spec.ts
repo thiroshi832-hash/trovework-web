@@ -233,7 +233,10 @@ describe("VerificationService — phone send limits", () => {
 
     db.challenges.f1.windowStartedAt = new Date(Date.now() - 25 * 3_600_000);
     await expect(svc.requestPhoneCode(freelancer, german)).resolves.toMatchObject({ sent: true });
+    // The counter restarts, and the message genuinely goes out again — the
+    // refused attempt in the middle must not have consumed the new window.
     expect(db.challenges.f1.sendCount).toBe(1);
+    expect(sms.sendCode).toHaveBeenCalledTimes(2);
   });
 
   it("charges the allowance even when the gateway rejects the send", async () => {
