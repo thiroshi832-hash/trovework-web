@@ -28,9 +28,20 @@ function prismaDouble() {
     profiles,
     phoneChallenge: {
       upsert: jest.fn(async ({ where, create, update }: any) => {
-        challenges[where.userId] = challenges[where.userId]
-          ? { ...challenges[where.userId], ...update }
-          : { attempts: 0, ...create }; // mirror the schema default
+        const existing = challenges[where.userId];
+        if (!existing) {
+          challenges[where.userId] = { attempts: 0, sendCount: 0, ...create }; // schema defaults
+          return challenges[where.userId];
+        }
+        // Resolve Prisma's { increment } atomic writes the way the DB would.
+        const applied = Object.fromEntries(
+          Object.entries(update).map(([k, v]: [string, any]) =>
+            v && typeof v === "object" && "increment" in v
+              ? [k, (existing[k] ?? 0) + v.increment]
+              : [k, v],
+          ),
+        );
+        challenges[where.userId] = { ...existing, ...applied };
         return challenges[where.userId];
       }),
       findUnique: jest.fn(async ({ where }: any) => challenges[where.userId] ?? null),
@@ -77,14 +88,165 @@ function prismaDouble() {
 
 function makeService(
   db: ReturnType<typeof prismaDouble>,
-  opts: { sms?: SmsProvider; engine?: VerificationProvider } = {},
+  opts: { sms?: SmsProvider; engine?: VerificationProvider; env?: Record<string, string> } = {},
 ) {
   const sms = opts.sms ?? { sendCode: jest.fn(async () => undefined) };
   const engine = opts.engine ?? new ManualVerificationProvider();
-  return { svc: new VerificationService(db as unknown as PrismaService, sms, engine, pii), sms, engine };
+  const config = {
+    get: (key: string, fallback?: unknown) => opts.env?.[key] ?? fallback,
+  } as unknown as ConfigService;
+  return {
+    svc: new VerificationService(db as unknown as PrismaService, sms, engine, pii, config),
+    sms,
+    engine,
+  };
+}
+
+/** Moves a challenge's clocks back so the next send is past the cooldown. */
+function agePastCooldown(db: any, userId: string, seconds = 60) {
+  db.challenges[userId].lastSentAt = new Date(Date.now() - seconds * 1000);
 }
 
 const freelancer: Actor = { id: "f1", role: "freelancer", status: "active" };
+
+describe("VerificationService — phone send limits", () => {
+  const german = "+4915112345678";
+
+  it("refuses a country priced at or above the block threshold, without sending", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, phoneVerified: false };
+    const { svc, sms } = makeService(db);
+
+    // Pakistan, EUR 0.2952.
+    await expect(svc.requestPhoneCode(freelancer, "+923001234567")).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(sms.sendCode).not.toHaveBeenCalled();
+    expect(db.challenges.f1).toBeUndefined();
+  });
+
+  it("refuses an expensive NANP territory while allowing the US", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, phoneVerified: false };
+    const { svc, sms } = makeService(db);
+
+    // Jamaica (+1 876) is EUR 0.2358; both start "+1".
+    await expect(svc.requestPhoneCode(freelancer, "+18765550123")).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(sms.sendCode).not.toHaveBeenCalled();
+
+    await expect(svc.requestPhoneCode(freelancer, "+12125550123")).resolves.toMatchObject({
+      sent: true,
+    });
+    expect(sms.sendCode).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects an unparseable number before spending anything", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, phoneVerified: false };
+    const { svc, sms } = makeService(db);
+
+    await expect(svc.requestPhoneCode(freelancer, "+1")).rejects.toThrow(BadRequestException);
+    expect(sms.sendCode).not.toHaveBeenCalled();
+  });
+
+  it("stores the number normalised to E.164", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, phoneVerified: false };
+    const { svc } = makeService(db);
+
+    await svc.requestPhoneCode(freelancer, "+49 (151) 123-456-78");
+    expect(db.challenges.f1.phone).toBe(german);
+  });
+
+  it("blocks a resend inside the cooldown and says how long to wait", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, phoneVerified: false };
+    const { svc, sms } = makeService(db);
+
+    await expect(svc.requestPhoneCode(freelancer, german)).resolves.toEqual({
+      sent: true,
+      resendAfterSeconds: 30,
+    });
+
+    await expect(svc.requestPhoneCode(freelancer, german)).rejects.toMatchObject({
+      status: 429,
+      response: { retryAfterSeconds: expect.any(Number) },
+    });
+    expect(sms.sendCode).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows the resend once the cooldown has elapsed", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, phoneVerified: false };
+    const { svc, sms } = makeService(db);
+
+    await svc.requestPhoneCode(freelancer, german);
+    agePastCooldown(db, "f1");
+
+    await expect(svc.requestPhoneCode(freelancer, german)).resolves.toMatchObject({ sent: true });
+    expect(sms.sendCode).toHaveBeenCalledTimes(2);
+    expect(db.challenges.f1.sendCount).toBe(2);
+  });
+
+  it("caps the daily spend per account", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, phoneVerified: false };
+    const { svc, sms } = makeService(db, { env: { PHONE_MAX_SENDS_PER_DAY: "3" } });
+
+    for (let i = 0; i < 3; i++) {
+      await svc.requestPhoneCode(freelancer, german);
+      agePastCooldown(db, "f1");
+    }
+    expect(sms.sendCode).toHaveBeenCalledTimes(3);
+
+    await expect(svc.requestPhoneCode(freelancer, german)).rejects.toMatchObject({ status: 429 });
+    expect(sms.sendCode).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not let a new number reset the daily allowance", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, phoneVerified: false };
+    const { svc, sms } = makeService(db, { env: { PHONE_MAX_SENDS_PER_DAY: "2" } });
+
+    await svc.requestPhoneCode(freelancer, german);
+    agePastCooldown(db, "f1");
+    await svc.requestPhoneCode(freelancer, "+4915112345679");
+    agePastCooldown(db, "f1");
+
+    // Cycling numbers is the abuse this cap exists to stop.
+    await expect(svc.requestPhoneCode(freelancer, "+4915112345670")).rejects.toMatchObject({
+      status: 429,
+    });
+    expect(sms.sendCode).toHaveBeenCalledTimes(2);
+  });
+
+  it("opens a fresh allowance once the 24h window rolls over", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, phoneVerified: false };
+    const { svc, sms } = makeService(db, { env: { PHONE_MAX_SENDS_PER_DAY: "1" } });
+
+    await svc.requestPhoneCode(freelancer, german);
+    agePastCooldown(db, "f1");
+    await expect(svc.requestPhoneCode(freelancer, german)).rejects.toMatchObject({ status: 429 });
+
+    db.challenges.f1.windowStartedAt = new Date(Date.now() - 25 * 3_600_000);
+    await expect(svc.requestPhoneCode(freelancer, german)).resolves.toMatchObject({ sent: true });
+    expect(db.challenges.f1.sendCount).toBe(1);
+  });
+
+  it("charges the allowance even when the gateway rejects the send", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, phoneVerified: false };
+    const sms = { sendCode: jest.fn(async () => { throw new Error("gateway down"); }) };
+    const { svc } = makeService(db, { sms });
+
+    await expect(svc.requestPhoneCode(freelancer, german)).rejects.toThrow("gateway down");
+    // Otherwise a number the gateway always refuses could be retried forever.
+    expect(db.challenges.f1.sendCount).toBe(1);
+  });
+});
 
 describe("VerificationService — phone", () => {
   it("sends a code and stores it hashed, never in the clear", async () => {
@@ -92,7 +254,7 @@ describe("VerificationService — phone", () => {
     db.users.f1 = { ...freelancer, phoneVerified: false };
     const { svc, sms } = makeService(db);
 
-    await svc.requestPhoneCode(freelancer, "+15551234567");
+    await svc.requestPhoneCode(freelancer, "+12125550123");
 
     expect(sms.sendCode).toHaveBeenCalledTimes(1);
     const sentCode = (sms.sendCode as jest.Mock).mock.calls[0][1];
@@ -105,12 +267,12 @@ describe("VerificationService — phone", () => {
     db.users.f1 = { ...freelancer, phoneVerified: false };
     const { svc, sms } = makeService(db);
 
-    await svc.requestPhoneCode(freelancer, "+15551234567");
+    await svc.requestPhoneCode(freelancer, "+12125550123");
     const code = (sms.sendCode as jest.Mock).mock.calls[0][1];
 
     await expect(svc.confirmPhoneCode(freelancer, code)).resolves.toEqual({ phoneVerified: true });
     expect(db.users.f1.phoneVerified).toBe(true);
-    expect(db.users.f1.phone).toBe("+15551234567");
+    expect(db.users.f1.phone).toBe("+12125550123");
     expect(db.challenges.f1).toBeUndefined(); // consumed
   });
 
@@ -118,7 +280,7 @@ describe("VerificationService — phone", () => {
     const db = prismaDouble();
     db.users.f1 = { ...freelancer, phoneVerified: false };
     const { svc } = makeService(db);
-    await svc.requestPhoneCode(freelancer, "+15551234567");
+    await svc.requestPhoneCode(freelancer, "+12125550123");
 
     await expect(svc.confirmPhoneCode(freelancer, "000000")).rejects.toThrow(BadRequestException);
     expect(db.challenges.f1.attempts).toBe(1);
@@ -129,7 +291,7 @@ describe("VerificationService — phone", () => {
     const db = prismaDouble();
     db.users.f1 = { ...freelancer, phoneVerified: false };
     const { svc, sms } = makeService(db);
-    await svc.requestPhoneCode(freelancer, "+15551234567");
+    await svc.requestPhoneCode(freelancer, "+12125550123");
     const code = (sms.sendCode as jest.Mock).mock.calls[0][1];
     db.challenges.f1.expiresAt = new Date(Date.now() - 1000);
 
@@ -141,7 +303,7 @@ describe("VerificationService — phone", () => {
     const db = prismaDouble();
     db.users.f1 = { ...freelancer, phoneVerified: false };
     const { svc } = makeService(db);
-    await svc.requestPhoneCode(freelancer, "+15551234567");
+    await svc.requestPhoneCode(freelancer, "+12125550123");
     db.challenges.f1.attempts = 5;
     await expect(svc.confirmPhoneCode(freelancer, "123456")).rejects.toThrow(/too many/i);
   });
@@ -149,7 +311,7 @@ describe("VerificationService — phone", () => {
   it("refuses a banned user", async () => {
     const db = prismaDouble();
     const banned: Actor = { ...freelancer, status: "banned" };
-    await expect(makeService(db).svc.requestPhoneCode(banned, "+15551234567")).rejects.toThrow(
+    await expect(makeService(db).svc.requestPhoneCode(banned, "+12125550123")).rejects.toThrow(
       ForbiddenException,
     );
   });

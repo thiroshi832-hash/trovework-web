@@ -229,6 +229,16 @@ export const COUNTRIES = [
   "South Africa", "Brazil", "Mexico", "Argentina", "Colombia", "Chile",
 ];
 
+/**
+ * Dial codes offered in the phone-verification picker.
+ *
+ * Only countries we actually send SMS to are listed — offering one the server
+ * will refuse just walks the user into an error. Nigeria (+234) and the
+ * Philippines (+63) are dropped on price; India (+91) is cheap but blocked as a
+ * policy call. This is UX only: the real decision lives in the API
+ * (apps/api/src/verification/sms-pricing.ts), which is what any number is
+ * checked against however it was typed.
+ */
 export const DIAL_CODES = [
   { flag: "🇺🇸", code: "+1", label: "US" },
   { flag: "🇬🇧", code: "+44", label: "UK" },
@@ -238,10 +248,7 @@ export const DIAL_CODES = [
   { flag: "🇫🇷", code: "+33", label: "FR" },
   { flag: "🇪🇸", code: "+34", label: "ES" },
   { flag: "🇯🇵", code: "+81", label: "JP" },
-  { flag: "🇮🇳", code: "+91", label: "IN" },
-  { flag: "🇵🇭", code: "+63", label: "PH" },
   { flag: "🇦🇪", code: "+971", label: "AE" },
-  { flag: "🇳🇬", code: "+234", label: "NG" },
   { flag: "🇧🇷", code: "+55", label: "BR" },
   { flag: "🇲🇽", code: "+52", label: "MX" },
 ];
