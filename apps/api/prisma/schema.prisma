@@ -146,6 +146,16 @@ model PhoneChallenge {
   codeHash  String   @map("code_hash")
   expiresAt DateTime @map("expires_at")
   attempts  Int      @default(0)
+
+  /// Every SMS costs real money, so sends are rate-limited on two axes:
+  /// lastSentAt enforces the short resend cooldown, and sendCount within the
+  /// window rolling from windowStartedAt caps the daily spend per account.
+  /// Neither resets when the user edits the number — otherwise cycling through
+  /// numbers would reset the budget, which is exactly the abuse being stopped.
+  lastSentAt      DateTime @default(now()) @map("last_sent_at")
+  sendCount       Int      @default(0) @map("send_count")
+  windowStartedAt DateTime @default(now()) @map("window_started_at")
+
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("phone_challenges")

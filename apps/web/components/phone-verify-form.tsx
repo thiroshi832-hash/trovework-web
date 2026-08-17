@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { DIAL_CODES, Field } from "@/components/auth-fields";
 import { ArrowLeft, ChevronDown } from "@/components/icons";
 import { ApiError, api } from "@/lib/api";
@@ -14,25 +14,55 @@ export function PhoneVerifyForm() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  /** Seconds until "Resend" is allowed. Counted down by the effect below. */
+  const [cooldown, setCooldown] = useState(0);
   const router = useRouter();
+
+  // Every SMS costs money, so the server enforces a gap between sends and tells
+  // us how long it is; this only mirrors that, so the button can't be leaned on.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
 
   const digits = number.replace(/\D/g, "").length;
   const phoneTooShort = number.length > 0 && digits < 6;
   // The API wants E.164: dial code + national digits, no spaces or punctuation.
   const e164 = `${dial}${number.replace(/\D/g, "")}`;
 
+  /** Shared by the first send and the resend. */
+  async function requestCode(): Promise<boolean> {
+    setBusy(true);
+    setFormError(null);
+    setNotice(null);
+    try {
+      const { resendAfterSeconds } = await api.verify.requestPhone(e164);
+      setCooldown(resendAfterSeconds);
+      return true;
+    } catch (err) {
+      setFormError(err instanceof ApiError ? err.message : "Couldn't send the code. Try again.");
+      // A 429 means we asked too soon — adopt the server's wait so the button
+      // stays disabled for exactly as long as it will keep refusing.
+      if (err instanceof ApiError && err.retryAfterSeconds) setCooldown(err.retryAfterSeconds);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function sendCode(e: FormEvent) {
     e.preventDefault();
     if (digits < 6) return;
-    setBusy(true);
-    setFormError(null);
-    try {
-      await api.verify.requestPhone(e164);
-      setStep("code");
-    } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Couldn't send the code. Try again.");
-    } finally {
-      setBusy(false);
+    if (await requestCode()) setStep("code");
+  }
+
+  async function resend() {
+    if (cooldown > 0 || busy) return;
+    if (await requestCode()) {
+      setCode("");
+      setNotice("We've sent you a new code.");
     }
   }
 
@@ -79,6 +109,12 @@ export function PhoneVerifyForm() {
           </p>
         ) : null}
 
+        {notice ? (
+          <p role="status" className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-sm text-emerald-800">
+            {notice}
+          </p>
+        ) : null}
+
         <button
           type="submit"
           disabled={busy || code.length !== 6}
@@ -89,9 +125,28 @@ export function PhoneVerifyForm() {
           {busy ? "Verifying…" : "Verify"}
         </button>
 
+        <p className="mt-5 text-center text-sm text-slate-500">
+          Didn&apos;t get it?{" "}
+          <button
+            type="button"
+            onClick={resend}
+            disabled={cooldown > 0 || busy}
+            // aria-live so a screen reader hears the timer tick down to enabled,
+            // rather than being left with a button that silently does nothing.
+            aria-live="polite"
+            className={
+              cooldown > 0 || busy
+                ? "cursor-not-allowed font-semibold text-slate-400"
+                : "font-semibold text-brand-600 transition hover:text-brand-700"
+            }
+          >
+            {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
+          </button>
+        </p>
+
         <button
           type="button"
-          onClick={() => { setStep("phone"); setCode(""); setFormError(null); }}
+          onClick={() => { setStep("phone"); setCode(""); setFormError(null); setNotice(null); }}
           className="mt-8 inline-flex items-center gap-2 text-base font-semibold text-navy-800 transition hover:text-brand-600"
         >
           <ArrowLeft className="h-5 w-5" />

@@ -30,7 +30,7 @@ The mapped requirements: FR-R-5, FR-V-6, NFR-SEC-3, and the permission matrix in
 | Search | Postgres full-text (V1) | Upgrade to Meilisearch/Elasticsearch when volume grows. |
 | Real-time chat | Socket.IO | Authenticated at connect + per-conversation authorization. |
 | File storage | Own server, foldered by location + user | ID/selfie in a secured, non-public, encrypted dir. |
-| SMS | Twilio Verify | One-time code. Moved from sign-up to a **publish gate** (see 6.0). |
+| SMS | **seven.io** | One-time code. Moved from sign-up to a **publish gate** (see 6.0). Expensive destinations are refused outright — see 6.3. |
 | Auth | JWT (access + refresh) + bcrypt | Verification state carried in claims + re-checked against DB on gated actions. |
 | Hosting | **Self-hosted VPS + CI/CD** | Docker Compose on a VPS; CI/CD pipeline for build+deploy. Own-server storage (ID images stay on our box) fits this directly. |
 
@@ -138,6 +138,29 @@ Runs **server-side** on every post create/edit. Flags: phone numbers, emails, UR
 
 This is the most-tested unit in the codebase (§9).
 
+### 6.3 Verification SMS cost control
+
+Phone verification spends real money per attempt and earns none, so the send path
+is gated three ways, all server-side:
+
+| Gate | Rule | Why |
+|---|---|---|
+| Destination | Refuse countries priced **≥ EUR 0.10/SMS**, plus a policy list | Madagascar is EUR 0.468 — 6x Germany — and the dear destinations are where number-farm abuse concentrates. India (EUR 0.075) is on the policy list: blocked by decision, not by price. |
+| Resend cooldown | 30s between sends per account | Stops a held-down resend button. |
+| Daily cap | 5 sends per account per rolling 24h | The cooldown alone still permits ~2,880 messages a day per account. |
+
+The price list lives in `apps/api/src/verification/sms-pricing.ts` and the blocklist
+is **derived** from it, so re-pricing a country is a one-number edit that cannot
+drift from what we refuse to send.
+
+Country comes from a numbering-plan lookup (`libphonenumber-js`), never the dial
+prefix: `+1` is both Canada at EUR 0.075 and Jamaica at EUR 0.2358, so prefix
+matching would either bill us for the Caribbean or lock out North America. A
+number whose country cannot be resolved is refused — no rate means no budget.
+
+Both counters are charged **before** the gateway call, so a destination the
+gateway keeps rejecting cannot be retried indefinitely at our expense.
+
 ---
 
 ## 7. File storage layout
@@ -214,10 +237,9 @@ On-platform payments/escrow · commissions/subscriptions/paid placement · clien
 1. **ID engine models** — which face-embedding model + liveness approach are acceptable given the global-audience accuracy risk? This drives real effort and legal exposure.
 2. ~~Hosting target~~ — **DECIDED: self-hosted VPS + CI/CD.** Deploy via Docker Compose; secured file-storage dir lives on the VPS outside the web root.
 3. **Data-protection scope** — which regions at launch? Determines the retention/deletion and consent specifics.
-4. **Twilio account** — still needed, but the SMS code now runs at the publish gate
-   rather than at sign-up (see 6.0). Consequence to watch: registration itself is no
-   longer rate-limited by SMS cost, so rate limiting (NFR-SEC-4) has to hold that line
-   on its own. Treat it as a **Must** in Phase 1, not a Should in Phase 7.
+4. ~~Twilio account~~ — **DECIDED: seven.io**, and the SMS code runs at the publish gate
+   rather than at sign-up (see 6.0). Consequence that landed: registration is no
+   longer rate-limited by SMS cost, so the limits in 6.3 hold that line instead.
 
 ---
 

@@ -34,10 +34,21 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    /** On a 429, how long the server says to wait before retrying. */
+    readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = "ApiError";
   }
+}
+
+/** A 429 body may carry both a specific reason and a wait; use them if present. */
+function readRetryAfter(body: unknown): number | undefined {
+  if (body && typeof body === "object" && "retryAfterSeconds" in body) {
+    const value = (body as { retryAfterSeconds: unknown }).retryAfterSeconds;
+    if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+  }
+  return undefined;
 }
 
 /** Nest returns `message` as a string, or an array of them from the validation pipe. */
@@ -99,7 +110,14 @@ async function request<T>(path: string, init?: RequestInit, retry = true): Promi
 
   if (!res.ok) {
     if (res.status === 429) {
-      throw new ApiError(429, "Too many attempts. Wait a minute and try again.");
+      // Endpoints that throttle for a specific reason (the SMS resend cooldown,
+      // the daily code cap) say so and say for how long — pass that through
+      // rather than flattening it to the generic message.
+      throw new ApiError(
+        429,
+        readMessage(body, "Too many attempts. Wait a minute and try again."),
+        readRetryAfter(body),
+      );
     }
     if (res.status >= 500) {
       throw new ApiError(res.status, "Something went wrong on our side. Please try again.");
@@ -218,8 +236,9 @@ export const api = {
 
   /* ---------------------------- verification ----------------------------- */
   verify: {
+    /** Resolves with how long the server wants before it will resend. */
     requestPhone: (phone: string) =>
-      request<{ sent: true }>("/api/verify/phone/request", {
+      request<{ sent: true; resendAfterSeconds: number }>("/api/verify/phone/request", {
         method: "POST",
         body: JSON.stringify({ phone }),
       }),
