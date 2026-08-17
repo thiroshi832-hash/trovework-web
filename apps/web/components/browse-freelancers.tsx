@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Portrait } from "@/components/brand";
 import { ChevronDown, Search, Star } from "@/components/icons";
 import { AVAILABILITY, CATEGORIES, CATEGORIES_COLLAPSED } from "@/lib/categories";
-import { api } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
 
 /** The card's view shape, adapted from an API profile row. */
 type Freelancer = {
@@ -125,6 +126,7 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
   const [freelancers, setFreelancers] = useState<Freelancer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     let live = true;
@@ -133,8 +135,14 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
       .then((rows) => {
         if (live) setFreelancers((rows as Record<string, unknown>[]).map(adapt));
       })
-      .catch(() => {
-        if (live) setLoadError(true);
+      .catch((err) => {
+        if (!live) return;
+        // Browsing needs a session; a missing/expired one sends you to log in.
+        if (err instanceof ApiError && (err.status === 401 || err.status === 0)) {
+          router.replace("/login?next=/freelancers");
+        } else {
+          setLoadError(true);
+        }
       })
       .finally(() => {
         if (live) setLoading(false);
@@ -142,7 +150,7 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
     return () => {
       live = false;
     };
-  }, []);
+  }, [router]);
 
   const set = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
 

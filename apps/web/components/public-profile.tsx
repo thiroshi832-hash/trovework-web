@@ -93,12 +93,16 @@ export function PublicProfile({ slug }: { slug: string }) {
       })
       .catch((err) => {
         if (!live) return;
+        if (err instanceof ApiError && (err.status === 401 || err.status === 0)) {
+          router.replace(`/login?next=/freelancers/${slug}`);
+          return;
+        }
         setState(err instanceof ApiError && err.status === 404 ? "notfound" : "error");
       });
     return () => {
       live = false;
     };
-  }, [slug]);
+  }, [slug, router]);
 
   async function requestChat() {
     if (!data) return;

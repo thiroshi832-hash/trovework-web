@@ -15,7 +15,6 @@ import { ProfilesService } from "./profiles.service";
 import { PublicStorageService } from "../storage/public-storage.service";
 import { UpsertProfileDto } from "./dto/upsert-profile.dto";
 import { SearchDto } from "./dto/search.dto";
-import { Public } from "../auth/decorators/public.decorator";
 import { Roles } from "../auth/decorators/roles.decorator";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import type { AuthedUser } from "../auth/strategies/jwt.strategy";
@@ -65,19 +64,18 @@ export class ProfilesController {
     return { photoPath };
   }
 
-  /* ------------------------------- public ------------------------------ */
-  // @Public() here means "optional auth": anonymous browsing is allowed, but a
-  // logged-in viewer is still attached so contact info can be gated per-viewer.
+  /* ------------------------------- browse ------------------------------ */
+  // Any signed-in user may browse (client or freelancer, verified or not);
+  // anonymous visitors are refused. Contact handles are still gated per-viewer,
+  // so an unverified viewer sees the listing but never the contact details.
 
-  @Public()
   @Get("freelancers")
   search(@Query() query: SearchDto) {
     return this.profiles.search(query);
   }
 
-  @Public()
   @Get("freelancers/:slug")
-  getPublic(@CurrentUser() viewer: AuthedUser | undefined, @Param("slug") slug: string) {
-    return this.profiles.getPublicBySlug(viewer ?? null, slug);
+  getPublic(@CurrentUser() viewer: AuthedUser, @Param("slug") slug: string) {
+    return this.profiles.getPublicBySlug(viewer, slug);
   }
 }
