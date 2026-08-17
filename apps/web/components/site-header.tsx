@@ -1,17 +1,19 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand";
 import { AuthNav } from "@/components/auth-nav";
+import { getDictionary } from "@/lib/i18n/server";
 
-/* Anchors are absolute so they still resolve from /login and /register. */
-const NAV = [
-  { label: "Browse Freelancers", href: "/freelancers" },
-  { label: "How It Works", href: "/#how" },
-  { label: "About Us", href: "/#about" },
-  { label: "Safety & Trust", href: "/#trust" },
-  { label: "Blog", href: "/#blog" },
-];
+export async function SiteHeader() {
+  const t = await getDictionary();
+  /* Anchors are absolute so they still resolve from /login and /register. */
+  const NAV = [
+    { label: t.nav.browse, href: "/freelancers" },
+    { label: t.nav.how, href: "/#how" },
+    { label: t.nav.about, href: "/#about" },
+    { label: t.nav.trust, href: "/#trust" },
+    { label: t.nav.blog, href: "/#blog" },
+  ];
 
-export function SiteHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
       <nav className="mx-auto flex max-w-page items-center justify-between gap-6 px-6 lg:px-10 xl:px-16 py-4">
