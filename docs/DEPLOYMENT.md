@@ -329,6 +329,31 @@ To enable it:
 New Google users are sent to `/complete-signup` to choose a role and enter their location before
 the account is created; returning users (matched by verified Google email) are logged straight in.
 
+### Password-reset email (Gmail SMTP, optional)
+
+Without SMTP credentials, "Forgot password?" still works but the API only **logs** the reset link
+(visible via `docker compose logs api`) instead of emailing it. To send real email through Gmail:
+
+1. On the Google account you'll send from, enable **2-Step Verification**, then create an
+   **App Password**: Google Account → Security → 2-Step Verification → **App passwords**. Copy the
+   16-character password.
+2. Add to `/srv/trovework/.env`:
+
+   ```bash
+   cat >> .env <<'EOF'
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=465
+   SMTP_USER=youraddress@gmail.com
+   SMTP_PASS=your-16-char-app-password
+   SMTP_FROM=Trovework <youraddress@gmail.com>
+   EOF
+   docker compose up -d --force-recreate api
+   ```
+
+Once `SMTP_USER` and `SMTP_PASS` are set, the API sends the reset link by email automatically; leave
+them blank to keep the log-only stub. (Gmail free sending limits apply — for higher volume use a
+transactional provider by pointing `SMTP_HOST`/`SMTP_PORT` at it.)
+
 > **Create this as the `deploy` user, not root.** With `chmod 600` the file is readable only by
 > its owner, and CI logs in as `deploy` — a root-owned `.env` makes the automated deploy fail with
 > `POSTGRES_PASSWORD not set` even though the file is right there. If you already made it as root:

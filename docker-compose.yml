@@ -44,6 +44,12 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-https://trovework.com/api/auth/google/callback}
+      # SMTP for password-reset email (optional — falls back to logging the link).
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
       # Public assets (profile photos) go here; nginx serves the same volume at
       # /uploads. SECURED_DIR (ID images/selfies) is never served.
       PUBLIC_DIR: /app/storage
