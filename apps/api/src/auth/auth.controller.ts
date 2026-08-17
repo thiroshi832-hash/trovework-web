@@ -7,21 +7,25 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  UseGuards,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
-import { AuthService, type TokenPair } from "./auth.service";
+import { AuthService, type GoogleProfile, type TokenPair } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
+import { CompleteGoogleDto } from "./dto/complete-google.dto";
 import { Public } from "./decorators/public.decorator";
+import { GoogleAuthGuard } from "./guards/google-auth.guard";
 import { CurrentUser } from "./decorators/current-user.decorator";
 import type { AuthedUser } from "./strategies/jwt.strategy";
 
 const ACCESS_COOKIE = "access_token";
 const REFRESH_COOKIE = "refresh_token";
+const GOOGLE_PENDING_COOKIE = "google_pending";
 
 @Controller("auth")
 export class AuthController {
@@ -123,6 +127,65 @@ export class AuthController {
     await this.auth.resetPassword(dto.token, dto.password);
     this.clearCookies(res);
     return { ok: true };
+  }
+
+  /* ------------------------------- google oauth ---------------------------- */
+
+  /** Kicks off the OAuth redirect (the guard sends the browser to Google). */
+  @Public()
+  @UseGuards(GoogleAuthGuard)
+  @Get("google")
+  googleStart() {
+    // The guard redirects to Google; this body never runs.
+  }
+
+  /**
+   * Google redirects here. A known user is logged straight in; a new one is sent
+   * to /complete-signup carrying a short-lived pending token in an httpOnly cookie
+   * (never in the URL) to finish with a role and location.
+   */
+  @Public()
+  @UseGuards(GoogleAuthGuard)
+  @Get("google/callback")
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
+    const origin = this.config.get<string>("WEB_ORIGIN", "https://trovework.com");
+    try {
+      const result = await this.auth.loginOrPrepareGoogle(req.user as GoogleProfile);
+      if (result.kind === "authenticated") {
+        this.setCookies(res, result.tokens);
+        return res.redirect(`${origin}/dashboard`);
+      }
+      const secure = this.config.get<string>("NODE_ENV") !== "development";
+      res.cookie(GOOGLE_PENDING_COOKIE, result.pendingToken, {
+        httpOnly: true,
+        secure,
+        sameSite: "lax",
+        path: "/api/auth",
+        maxAge: 15 * 60_000,
+      });
+      return res.redirect(`${origin}/complete-signup`);
+    } catch {
+      return res.redirect(`${origin}/login?error=google`);
+    }
+  }
+
+  /** Finishes a Google signup using the pending cookie plus the chosen role/location. */
+  @Public()
+  @HttpCode(200)
+  @Post("google/complete")
+  async googleComplete(
+    @Body() dto: CompleteGoogleDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const pending = req.cookies?.[GOOGLE_PENDING_COOKIE];
+    if (!pending) throw new UnauthorizedException("Your sign-up session expired. Please start again.");
+
+    const { userId, ...tokens } = await this.auth.completeGoogleSignup(pending, dto);
+    this.setCookies(res, tokens);
+    const secure = this.config.get<string>("NODE_ENV") !== "development";
+    res.clearCookie(GOOGLE_PENDING_COOKIE, { httpOnly: true, secure, sameSite: "lax", path: "/api/auth" });
+    return { userId };
   }
 
   /** Who am I — the frontend's session check. */

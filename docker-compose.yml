@@ -40,6 +40,10 @@ services:
       REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL:-7d}
       WEB_ORIGIN: ${WEB_ORIGIN:-https://trovework.com}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      # Google OAuth (optional — sign-in routes 503 until these are set).
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-https://trovework.com/api/auth/google/callback}
       # Public assets (profile photos) go here; nginx serves the same volume at
       # /uploads. SECURED_DIR (ID images/selfies) is never served.
       PUBLIC_DIR: /app/storage

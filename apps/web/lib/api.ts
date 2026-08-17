@@ -140,6 +140,13 @@ export const api = {
       body: JSON.stringify({ token, password }),
     }),
 
+  /** Finishes a Google signup (role + location) using the pending cookie the callback set. */
+  completeGoogleSignup: (input: { role: Role; country: string; state: string; postalCode: string }) =>
+    request<{ userId: string }>("/api/auth/google/complete", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+
   /* ------------------------------- profile ------------------------------- */
   profile: {
     getMine: () => request<unknown>("/api/profile/me"),

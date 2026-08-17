@@ -34,7 +34,11 @@ enum VerificationStatus {
 model User {
   id           String        @id @default(uuid()) @db.Uuid
   email        String        @unique
-  passwordHash String        @map("password_hash")
+  // Null for accounts created via a social provider (e.g. Google) that have
+  // not set a password. Such users can still add one later via password reset.
+  passwordHash String?       @map("password_hash")
+  // Set when the account is linked to a Google identity.
+  googleId     String?       @unique @map("google_id")
   fullName     String        @map("full_name")
   role         Role
   status       AccountStatus @default(active)

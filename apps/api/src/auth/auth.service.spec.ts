@@ -66,7 +66,9 @@ function prismaDouble() {
     },
     user: {
       findUnique: jest.fn(async ({ where }: any) =>
-        users.find((u) => (where.email ? u.email === where.email : u.id === where.id)) ?? null,
+        users.find((u) =>
+          where.email ? u.email === where.email : where.googleId ? u.googleId === where.googleId : u.id === where.id,
+        ) ?? null,
       ),
       create: jest.fn(async ({ data }: any) => {
         const u = { id: `u${users.length + 1}`, phoneVerified: false, idVerified: false, status: "active", ...data };
@@ -342,6 +344,97 @@ describe("AuthService — password reset", () => {
     db.resets[0].expiresAt = new Date(Date.now() - 1000);
     const token = new URL(sentEmails[0].resetUrl).searchParams.get("token")!;
     await expect(svc.resetPassword(token, "brandnew2027")).rejects.toThrow(UnauthorizedException);
+  });
+});
+
+describe("AuthService — Google OAuth", () => {
+  const googleUser = {
+    googleId: "g-123",
+    email: "New.User@Gmail.com",
+    emailVerified: true,
+    fullName: "New User",
+  };
+
+  it("asks a brand-new Google user to finish signing up", async () => {
+    const db = prismaDouble();
+    const res = await makeService(db as any).loginOrPrepareGoogle({ ...googleUser });
+    expect(res.kind).toBe("needs_signup");
+    if (res.kind === "needs_signup") expect(res.pendingToken).toBeTruthy();
+    expect(db.users).toHaveLength(0); // no account until they finish
+  });
+
+  it("creates the account (no password) once the signup is completed", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    const prep = await svc.loginOrPrepareGoogle({ ...googleUser });
+    if (prep.kind !== "needs_signup") throw new Error("expected needs_signup");
+
+    const res = await svc.completeGoogleSignup(prep.pendingToken, {
+      role: "freelancer",
+      country: "Canada",
+      state: "Ontario",
+      postalCode: "M5V2T6",
+    });
+    expect(res).toHaveProperty("accessToken");
+    expect(db.users[0].email).toBe("new.user@gmail.com"); // normalised
+    expect(db.users[0].googleId).toBe("g-123");
+    expect(db.users[0].role).toBe("freelancer");
+    expect(db.users[0].passwordHash ?? null).toBeNull();
+  });
+
+  it("logs a returning Google user straight in", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    const prep = await svc.loginOrPrepareGoogle({ ...googleUser });
+    if (prep.kind !== "needs_signup") throw new Error("expected needs_signup");
+    await svc.completeGoogleSignup(prep.pendingToken, {
+      role: "client", country: "Canada", state: "Ontario", postalCode: "M5V2T6",
+    });
+
+    const again = await svc.loginOrPrepareGoogle({ ...googleUser });
+    expect(again.kind).toBe("authenticated");
+  });
+
+  it("links Google to an existing email/password account", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await svc.register({ ...REGISTRATION }); // marisol@example.com, password-based
+
+    const res = await svc.loginOrPrepareGoogle({
+      googleId: "g-marisol",
+      email: "Marisol@example.com",
+      emailVerified: true,
+      fullName: "Marisol Rivera",
+    });
+    expect(res.kind).toBe("authenticated");
+    expect(db.users[0].googleId).toBe("g-marisol"); // linked, not duplicated
+    expect(db.users).toHaveLength(1);
+  });
+
+  it("refuses an unverified Google email", async () => {
+    const db = prismaDouble();
+    await expect(
+      makeService(db as any).loginOrPrepareGoogle({ ...googleUser, emailVerified: false }),
+    ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("refuses a banned account signing in with Google", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await svc.register({ ...REGISTRATION });
+    db.users[0].status = "banned";
+    await expect(
+      svc.loginOrPrepareGoogle({ googleId: "g-x", email: "marisol@example.com", emailVerified: true, fullName: "M" }),
+    ).rejects.toThrow(/suspended/i);
+  });
+
+  it("rejects a bogus pending token at completion", async () => {
+    const db = prismaDouble();
+    await expect(
+      makeService(db as any).completeGoogleSignup("not-a-real-token", {
+        role: "client", country: "Canada", state: "Ontario", postalCode: "M5V2T6",
+      }),
+    ).rejects.toThrow(UnauthorizedException);
   });
 });
 

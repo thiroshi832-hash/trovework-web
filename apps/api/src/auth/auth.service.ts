@@ -24,6 +24,23 @@ export interface TokenPair {
   refreshExpiresAt: Date;
 }
 
+/** What the Google strategy hands us after validating the OAuth profile. */
+export interface GoogleProfile {
+  googleId: string;
+  email: string;
+  emailVerified: boolean;
+  fullName: string;
+}
+
+/**
+ * Either the Google user is known (or matched by email) and gets logged straight
+ * in, or they're new and must finish signing up (role + location) — in which case
+ * we hand back a short-lived token that carries their verified Google identity.
+ */
+export type GoogleAuthResult =
+  | { kind: "authenticated"; userId: string; tokens: TokenPair }
+  | { kind: "needs_signup"; pendingToken: string };
+
 @Injectable()
 export class AuthService {
   /** Emails that should always be admins, from ADMIN_EMAILS (comma-separated). */
@@ -224,6 +241,102 @@ export class AuthService {
         data: { revokedAt: new Date() },
       }),
     ]);
+  }
+
+  /* ------------------------------- google oauth ---------------------------- */
+
+  /** Distinguishes the short-lived signup token from a normal access token. */
+  private static readonly GOOGLE_PENDING_TYP = "google_pending";
+
+  /**
+   * Called after Google validates the user. Logs in a known account (matched by
+   * Google id, or by a verified email — which links the two), otherwise returns
+   * a short-lived token so the new user can finish signing up with a role and
+   * location.
+   */
+  async loginOrPrepareGoogle(profile: GoogleProfile): Promise<GoogleAuthResult> {
+    if (!profile.emailVerified) {
+      // Google should always verify its own accounts; refuse if it somehow didn't.
+      throw new UnauthorizedException("Your Google email is not verified.");
+    }
+    const email = profile.email.trim().toLowerCase();
+
+    const existing =
+      (await this.prisma.user.findUnique({ where: { googleId: profile.googleId } })) ??
+      (await this.prisma.user.findUnique({ where: { email } }));
+
+    if (existing) {
+      if (existing.status === "banned") throw new UnauthorizedException("This account has been suspended.");
+      // First Google login for an email/password account links the two.
+      if (!existing.googleId) {
+        await this.prisma.user.update({ where: { id: existing.id }, data: { googleId: profile.googleId } });
+      }
+      const role = await this.ensureAdminRole(existing.id, existing.email, existing.role);
+      return {
+        kind: "authenticated",
+        userId: existing.id,
+        tokens: await this.issueTokens(existing.id, role, existing.phoneVerified, existing.idVerified),
+      };
+    }
+
+    // New user — carry the verified identity in a signed, short-lived token.
+    const pendingToken = await this.jwt.signAsync(
+      { typ: AuthService.GOOGLE_PENDING_TYP, googleId: profile.googleId, email, name: profile.fullName },
+      { secret: this.config.getOrThrow<string>("JWT_ACCESS_SECRET"), expiresIn: "15m" },
+    );
+    return { kind: "needs_signup", pendingToken };
+  }
+
+  /**
+   * Finishes a Google signup: validates the pending token, creates the account
+   * with the role and location the user just chose, and logs them in.
+   */
+  async completeGoogleSignup(
+    pendingToken: string,
+    details: { role: "client" | "freelancer"; country: string; state: string; postalCode: string },
+  ): Promise<{ userId: string } & TokenPair> {
+    let payload: { typ?: string; googleId?: string; email?: string; name?: string };
+    try {
+      payload = await this.jwt.verifyAsync(pendingToken, {
+        secret: this.config.getOrThrow<string>("JWT_ACCESS_SECRET"),
+      });
+    } catch {
+      throw new UnauthorizedException("Your sign-up session expired. Please start again.");
+    }
+    if (payload.typ !== AuthService.GOOGLE_PENDING_TYP || !payload.googleId || !payload.email) {
+      throw new UnauthorizedException("Invalid sign-up session. Please start again.");
+    }
+
+    const email = payload.email.trim().toLowerCase();
+
+    // If the account was created in the meantime (double submit, or they linked
+    // via email elsewhere), just log them in rather than failing.
+    const already =
+      (await this.prisma.user.findUnique({ where: { googleId: payload.googleId } })) ??
+      (await this.prisma.user.findUnique({ where: { email } }));
+    if (already) {
+      const role = await this.ensureAdminRole(already.id, already.email, already.role);
+      return {
+        userId: already.id,
+        ...(await this.issueTokens(already.id, role, already.phoneVerified, already.idVerified)),
+      };
+    }
+
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        googleId: payload.googleId,
+        passwordHash: null, // no password — Google is the credential
+        fullName: (payload.name ?? "").trim() || email.split("@")[0],
+        role: details.role,
+        country: details.country.trim(),
+        state: details.state.trim(),
+        postalCode: details.postalCode.trim(),
+      },
+    });
+
+    const role = await this.ensureAdminRole(user.id, user.email, user.role);
+    return { userId: user.id, ...(await this.issueTokens(user.id, role, false, false)) };
   }
 
   /* --------------------------------- lookup -------------------------------- */

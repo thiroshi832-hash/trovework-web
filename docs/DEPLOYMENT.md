@@ -307,6 +307,28 @@ this is how you get the first admin, since registration only creates clients and
 Register normally with that email, then log in: you're now an admin and can approve ID
 verifications. Removing an email here does not demote an existing admin.
 
+### Google sign-in (optional)
+
+"Continue with Google" stays disabled (the routes return 503) until you add OAuth credentials.
+To enable it:
+
+1. In the [Google Cloud Console](https://console.cloud.google.com/apis/credentials), create an
+   **OAuth 2.0 Client ID** (type: Web application).
+2. Add the **Authorized redirect URI**: `https://trovework.com/api/auth/google/callback`
+   (and `http://localhost:3000/api/auth/google/callback` for local dev).
+3. Append the credentials to `/srv/trovework/.env`:
+
+   ```bash
+   cat >> .env <<'EOF'
+   GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=your-client-secret
+   GOOGLE_CALLBACK_URL=https://trovework.com/api/auth/google/callback
+   EOF
+   ```
+
+New Google users are sent to `/complete-signup` to choose a role and enter their location before
+the account is created; returning users (matched by verified Google email) are logged straight in.
+
 > **Create this as the `deploy` user, not root.** With `chmod 600` the file is readable only by
 > its owner, and CI logs in as `deploy` — a root-owned `.env` makes the automated deploy fail with
 > `POSTGRES_PASSWORD not set` even though the file is right there. If you already made it as root:
