@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { THEME_SCRIPT } from "@/lib/theme";
 import { getLocale } from "@/lib/i18n/server";
 import { dir } from "@/lib/i18n/config";
 import { I18nProvider } from "@/lib/i18n/provider";
@@ -33,10 +34,16 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang={locale}
       dir={dir(locale)}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // The theme script adds `dark` to this element before React hydrates, so
+      // the server's class list is expected not to match the client's.
+      suppressHydrationWarning
     >
       {/* Header and footer live here so every route gets the same chrome —
           pages render only their own content. */}
       <body className="min-h-full flex flex-col">
+        {/* First thing in the body: applies the stored theme before anything
+            paints, so there is no white flash on the way into dark mode. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <I18nProvider locale={locale}>
           <SiteHeader />
           {children}

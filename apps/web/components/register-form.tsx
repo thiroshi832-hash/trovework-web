@@ -14,6 +14,7 @@ import {
   TextInput,
   type Role,
 } from "@/components/auth-fields";
+import { Checkbox } from "@/components/checkbox";
 import { Globe, Hash, Lock, Mail, MapPin, UserIcon } from "@/components/icons";
 import { subdivisionsFor } from "@/lib/subdivisions";
 import { ApiError, api, homeFor } from "@/lib/api";
@@ -253,12 +254,11 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
       </div>
 
       <label className="flex items-start gap-2.5 text-sm leading-relaxed text-slate-600">
-        <input
-          type="checkbox"
+        <Checkbox
           name="terms"
           checked={agreed}
           onChange={(e) => setAgreed(e.target.checked)}
-          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+          className="mt-0.5"
         />
         <span>
           I agree to Trovework&apos;s{" "}

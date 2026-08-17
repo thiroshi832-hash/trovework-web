@@ -24,8 +24,10 @@ function SocialLink({ path, label }: { path: string; label: string }) {
 }
 
 export function SiteFooter({ newsletter = false }: { newsletter?: boolean }) {
+  // navy-900 stays dark in both themes, so the body text has to be pinned to a
+  // light slate rather than following the ramp, which inverts.
   return (
-    <footer className="bg-navy-900 text-slate-300">
+    <footer className="bg-navy-900 text-slate-300 dark:text-slate-700">
       <div className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-24">
         <div
           className={`grid gap-10 ${

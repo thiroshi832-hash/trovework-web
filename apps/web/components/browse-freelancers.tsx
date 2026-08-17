@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Portrait } from "@/components/brand";
-import { ChevronDown, Search, Star } from "@/components/icons";
+import { Checkbox } from "@/components/checkbox";
+import { ChevronDown, Close, Search, Star } from "@/components/icons";
 import { AVAILABILITY, CATEGORIES, CATEGORIES_COLLAPSED } from "@/lib/categories";
 import { ApiError, api } from "@/lib/api";
 
@@ -61,7 +62,6 @@ function adapt(r: Record<string, unknown>): Freelancer {
   };
 }
 
-const ALL = "All Categories";
 const ANY_AVAILABILITY = "Anytime";
 
 const RATINGS = [
@@ -75,7 +75,8 @@ const SORTS = ["Newest", "Top rated", "Lowest price", "Highest price"] as const;
 type Sort = (typeof SORTS)[number];
 
 type Filters = {
-  category: string;
+  /** Empty means no category filter — the same result as ticking every box. */
+  categories: string[];
   skill: string;
   min: string;
   max: string;
@@ -84,13 +85,20 @@ type Filters = {
 };
 
 const EMPTY: Filters = {
-  category: ALL,
+  categories: [],
   skill: "",
   min: "",
   max: "",
   rating: 0,
   availability: ANY_AVAILABILITY,
 };
+
+/** "Marketing", "Marketing and Legal", "3 categories". */
+function describeCategories(picked: string[]): string {
+  if (picked.length === 1) return picked[0];
+  if (picked.length === 2) return `${picked[0]} and ${picked[1]}`;
+  return `${picked.length} categories`;
+}
 
 const selectBase =
   "w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 pl-3.5 pr-9 text-sm text-navy-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100";
@@ -106,17 +114,20 @@ function SelectShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function BrowseFreelancers({ initialCategory }: { initialCategory?: string }) {
+export function BrowseFreelancers({ initialCategories = [] }: { initialCategories?: string[] }) {
   // Every control filters as you change it. An explicit "apply" step made the
   // sidebar look broken: clicking a category did nothing until you found the button.
   const [filters, setFilters] = useState<Filters>({
     ...EMPTY,
-    category:
-      initialCategory && (CATEGORIES as readonly string[]).includes(initialCategory)
-        ? initialCategory
-        : ALL,
+    // Anything in the URL that isn't a real category is dropped rather than
+    // filtered on, which would silently return nothing.
+    categories: initialCategories.filter((c) => (CATEGORIES as readonly string[]).includes(c)),
   });
-  const [showAllCategories, setShowAllCategories] = useState(false);
+  // A deep link can arrive with a category that lives past the "More" cut, so
+  // start expanded when one of those is already selected.
+  const [showAllCategories, setShowAllCategories] = useState(() =>
+    initialCategories.some((c) => CATEGORIES.indexOf(c as (typeof CATEGORIES)[number]) >= CATEGORIES_COLLAPSED),
+  );
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<Sort>("Newest");
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -154,6 +165,14 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
 
   const set = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
 
+  const toggleCategory = (name: string) =>
+    setFilters((f) => ({
+      ...f,
+      categories: f.categories.includes(name)
+        ? f.categories.filter((c) => c !== name)
+        : [...f.categories, name],
+    }));
+
   const skills = useMemo(
     () => [...new Set(freelancers.flatMap((f) => f.allSkills))].sort(),
     [freelancers],
@@ -177,7 +196,8 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
     const hi = Number.isNaN(max) ? Infinity : max;
 
     const matched = freelancers.filter((f) => {
-      if (filters.category !== ALL && f.category !== filters.category) return false;
+      // Several categories read as OR — a freelancer in any of them qualifies.
+      if (filters.categories.length && !filters.categories.includes(f.category)) return false;
       if (filters.skill && !f.allSkills.includes(filters.skill)) return false;
       if (f.rate < lo || f.rate > hi) return false;
       if (f.rating < filters.rating) return false;
@@ -200,7 +220,7 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
   }, [freelancers, filters, search, sort, min, max]);
 
   const activeCount =
-    (filters.category !== ALL ? 1 : 0) +
+    filters.categories.length +
     (filters.skill ? 1 : 0) +
     (filters.min.trim() !== "" || filters.max.trim() !== "" ? 1 : 0) +
     (filters.rating ? 1 : 0) +
@@ -264,30 +284,59 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
             </button>
           </div>
 
-          <div className="mt-5">
-            <h3 className="text-sm font-semibold text-navy-800">Category</h3>
+          {/* Categories are multi-select and combine as OR. No selection is the
+              same as every selection, so "All categories" is a reset rather
+              than a box of its own. */}
+          <fieldset className="mt-5">
+            <div className="flex items-center justify-between">
+              <legend className="text-sm font-semibold text-navy-800">Category</legend>
+              {filters.categories.length ? (
+                <button
+                  type="button"
+                  onClick={() => set({ categories: [] })}
+                  className="text-xs text-brand-600 transition hover:text-brand-700"
+                >
+                  Clear
+                </button>
+              ) : null}
+            </div>
+
             <ul className="mt-3 space-y-1">
-              {[ALL, ...shownCategories].map((c) => {
-                const on = filters.category === c;
-                const count = c === ALL ? freelancers.length : counts[c] ?? 0;
+              <li>
+                <button
+                  type="button"
+                  aria-pressed={filters.categories.length === 0}
+                  onClick={() => set({ categories: [] })}
+                  className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition ${
+                    filters.categories.length === 0
+                      ? "bg-slate-100 font-medium text-navy-800"
+                      : "text-slate-500 hover:text-navy-800"
+                  }`}
+                >
+                  <span className="flex-1">All categories</span>
+                  <span className="text-slate-400">{freelancers.length}</span>
+                </button>
+              </li>
+
+              {shownCategories.map((c) => {
+                const on = filters.categories.includes(c);
+                const count = counts[c] ?? 0;
                 return (
                   <li key={c}>
-                    <button
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => set({ category: c })}
-                      className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm transition ${
+                    <label
+                      className={`flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition ${
                         on ? "bg-slate-100 font-medium text-navy-800" : "text-slate-500 hover:text-navy-800"
                       }`}
                     >
-                      <span className={`h-3.5 w-1 shrink-0 rounded-full ${on ? "bg-brand-600" : "bg-transparent"}`} />
+                      <Checkbox checked={on} onChange={() => toggleCategory(c)} />
                       <span className="flex-1">{c}</span>
                       <span className={count === 0 ? "text-slate-300" : "text-slate-400"}>{count}</span>
-                    </button>
+                    </label>
                   </li>
                 );
               })}
             </ul>
+
             {CATEGORIES.length > CATEGORIES_COLLAPSED ? (
               <button
                 type="button"
@@ -298,7 +347,7 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
                 {showAllCategories ? "Show fewer" : `More (${CATEGORIES.length - CATEGORIES_COLLAPSED})`}
               </button>
             ) : null}
-          </div>
+          </fieldset>
 
           <div className="mt-6">
             <h3 className="text-sm font-semibold text-navy-800">Skills</h3>
@@ -414,17 +463,38 @@ export function BrowseFreelancers({ initialCategory }: { initialCategory?: strin
 
         {/* ------------------------------ results ---------------------------- */}
         <div ref={resultsRef} className="scroll-mt-24">
-          <p role="status" className="mb-4 text-sm text-slate-500">
+          <p role="status" className="mb-3 text-sm text-slate-500">
             {loading ? (
               "Loading freelancers…"
             ) : (
               <>
                 <span className="font-semibold text-navy-800">{results.length}</span>{" "}
                 {results.length === 1 ? "freelancer" : "freelancers"}
-                {filters.category !== ALL ? ` in ${filters.category}` : ""}
+                {filters.categories.length ? ` in ${describeCategories(filters.categories)}` : ""}
               </>
             )}
           </p>
+
+          {/* The picked categories, removable from here. Without this a choice
+              made before collapsing the "More" list would be filtering the page
+              with nothing on screen to say so. */}
+          {filters.categories.length ? (
+            <ul className="mb-4 flex flex-wrap gap-2">
+              {filters.categories.map((c) => (
+                <li key={c}>
+                  <button
+                    type="button"
+                    onClick={() => toggleCategory(c)}
+                    className="flex items-center gap-1.5 rounded-full bg-brand-50 py-1.5 pl-3 pr-2.5 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
+                  >
+                    {c}
+                    <Close className="h-3.5 w-3.5" />
+                    <span className="sr-only">Remove {c} filter</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
           {loadError ? (
             <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">

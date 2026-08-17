@@ -97,6 +97,43 @@ export function ChevronDown({ className }: IconProps) {
   );
 }
 
+export function Sun({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <circle cx="12" cy="12" r="4.2" {...s} strokeWidth={1.8} />
+      <path
+        d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2 5.5 5.5"
+        {...s}
+        strokeWidth={1.8}
+      />
+    </svg>
+  );
+}
+
+export function Moon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path d="M20.2 14.4A8.6 8.6 0 0 1 9.6 3.8a8.6 8.6 0 1 0 10.6 10.6Z" {...s} strokeWidth={1.8} />
+    </svg>
+  );
+}
+
+export function Menu({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path d="M4 7h16M4 12h16M4 17h16" {...s} strokeWidth={1.9} />
+    </svg>
+  );
+}
+
+export function Close({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path d="M6 6l12 12M18 6 6 18" {...s} strokeWidth={1.9} />
+    </svg>
+  );
+}
+
 export function ArrowRight({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>

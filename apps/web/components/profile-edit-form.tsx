@@ -201,7 +201,12 @@ export function ProfileEditForm() {
             {GATES.map((g, i) => (
               <li
                 key={g.title}
-                className="flex flex-col gap-3 rounded-xl bg-white/70 p-4 sm:flex-row sm:items-center sm:justify-between"
+                // This frosted row sits on the amber gate panel, but everywhere
+                // else in the app a translucent white sits on dark artwork — so
+                // globals.css pins `bg-white/70` to real white in dark mode, and
+                // that rule would win here. Spelling the light value out as a
+                // literal keeps this row out of that override's way.
+                className="flex flex-col gap-3 rounded-xl bg-[#ffffffb3] p-4 sm:flex-row sm:items-center sm:justify-between dark:bg-amber-100/60"
               >
                 <div className="flex gap-3">
                   <span
