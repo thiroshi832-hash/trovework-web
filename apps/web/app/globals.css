@@ -1,11 +1,23 @@
 @import "tailwindcss";
 
+/* Dark mode is a `dark` class on <html>, written before first paint by the
+   inline script in app/layout.tsx. Tailwind's stock `dark:` variant follows the
+   OS setting, which would fight an explicit choice made with the header toggle,
+   so point the variant at the class instead. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Only tokens that dereference another variable need `inline`. An inline token
+   is substituted at build time — `text-navy-800` compiles to `color:#0b1c38`,
+   with no variable left to reassign — so everything the dark palette has to
+   move lives in the plain @theme below and compiles to `var(--color-…)`. */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
 
+@theme {
   /* Brand — sampled from the design comp: buttons #0558f0, CTA band #0452e8 */
   --color-brand-50: #eef4ff;
   --color-brand-100: #dbe6fe;
@@ -59,7 +71,159 @@
 
   --background: #ffffff;
   --foreground: #0d2447;
+
+  /* Scrollbar, themed alongside everything else. */
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+  --scrollbar-track: transparent;
+
+  color-scheme: light;
 }
+
+/* ---------------------------------------------------------------------------
+   Dark palette.
+
+   The site is written in literal palette utilities (`bg-white`, `text-navy-800`,
+   `border-slate-200`) across ~800 usages in 33 files, so dark mode is done by
+   reassigning what those tokens mean rather than by adding a `dark:` twin to
+   every one of them. The neutral ramp simply inverts: slate-50 becomes the
+   darkest fill and slate-900 the lightest text, which keeps every existing
+   foreground/background pairing correct without touching a component.
+
+   Two tokens are used for two different jobs and so cannot be flipped this way
+   — `white` (card surface *and* the label on blue buttons) and a handful of
+   accent shades. Those are handled in the counter-override block further down.
+   --------------------------------------------------------------------------- */
+.dark {
+  --background: #080d18;
+  --foreground: #e6ecf7;
+
+  --scrollbar-thumb: #2f3b54;
+  --scrollbar-thumb-hover: #44526e;
+
+  color-scheme: dark;
+
+  /* `bg-white` is the card surface — one step lighter than the page. */
+  --color-white: #131c2e;
+
+  /* Neutral ramp, inverted. 50 is the darkest fill; 900 the brightest text.
+     slate-50 sits *below* the card (page tint, row hover) while slate-100 sits
+     above it (chips, filled controls) — the same relationship as in light mode,
+     mirrored. */
+  --color-slate-50: #0e1626;
+  --color-slate-100: #1b2439;
+  --color-slate-200: #27324a;
+  --color-slate-300: #3b4661;
+  --color-slate-400: #737f9b;
+  --color-slate-500: #97a3bd;
+  --color-slate-600: #b7c1d7;
+  --color-slate-700: #ced6e7;
+  --color-slate-800: #e1e7f3;
+  --color-slate-900: #f1f5fc;
+
+  /* navy-800 is heading text and flips to near-white. navy-900 is deliberately
+     left alone: it is only ever a background (the footer, the hero overlay
+     gradients) and those surfaces stay dark in both themes. */
+  --color-navy-700: #d5dded;
+  --color-navy-800: #eaf0fa;
+
+  /* Red: tints (50–300) become dark washes, text shades (600–900) become light.
+     400/500 stay saturated — they are solid fills and error borders. */
+  --color-red-50: #2b1116;
+  --color-red-100: #3b161d;
+  --color-red-200: #55202b;
+  --color-red-300: #7a2f3d;
+  --color-red-400: #f0616f;
+  --color-red-600: #ff8792;
+  --color-red-700: #ffa2ab;
+  --color-red-800: #ffbec5;
+  --color-red-900: #ffd8dd;
+
+  /* Amber and emerald: only the tint end moves. Their 400–700 shades are solid
+     badge fills that should stay saturated, so the *text* uses of those same
+     shades are corrected in the counter-override block instead. */
+  --color-amber-50: #2a2007;
+  --color-amber-100: #3b2c09;
+  --color-amber-200: #574010;
+  --color-amber-800: #fcd34d;
+  --color-amber-900: #fde68a;
+
+  --color-emerald-50: #062218;
+  --color-emerald-100: #082f21;
+  --color-emerald-200: #0d4832;
+  --color-emerald-800: #6ee7b7;
+  --color-emerald-900: #a7f3d0;
+
+  /* Brand: only the two shades used exclusively as a background (50) or as text
+     (800) can move. brand-100/200 are light text on blue panels *and* tinted
+     backgrounds, and brand-600/700 are both button fills and link text, so
+     those are split per-utility below. */
+  --color-brand-50: #101e3c;
+  --color-brand-800: #9dbcfd;
+}
+
+/* ---------------------------------------------------------------------------
+   Counter-overrides.
+
+   For the tokens above that carry two meanings, the variable holds whichever
+   meaning is the more common, and the minority use is corrected here per
+   utility. Deliberately unlayered so these are the last word over Tailwind's
+   utility layer; a component that needs a different dark value should reach for
+   a different token rather than a `dark:` twin of one of these classes.
+   --------------------------------------------------------------------------- */
+
+/* `white` as a foreground stays white. Every translucent white in the codebase
+   sits on permanently dark art — the footer, the hero, the auth side panels —
+   so those keep their real white too. */
+.dark .text-white { color: #fff; }
+.dark .text-white\/90 { color: rgb(255 255 255 / 0.9); }
+.dark .text-white\/80 { color: rgb(255 255 255 / 0.8); }
+.dark .text-white\/75 { color: rgb(255 255 255 / 0.75); }
+.dark .text-white\/70 { color: rgb(255 255 255 / 0.7); }
+.dark .text-white\/40 { color: rgb(255 255 255 / 0.4); }
+.dark .hover\:text-white:hover { color: #fff; }
+
+.dark .bg-white\/85 { background-color: rgb(255 255 255 / 0.85); }
+.dark .bg-white\/70 { background-color: rgb(255 255 255 / 0.7); }
+.dark .bg-white\/60 { background-color: rgb(255 255 255 / 0.6); }
+.dark .bg-white\/50 { background-color: rgb(255 255 255 / 0.5); }
+.dark .bg-white\/40 { background-color: rgb(255 255 255 / 0.4); }
+.dark .bg-white\/25 { background-color: rgb(255 255 255 / 0.25); }
+.dark .bg-white\/20 { background-color: rgb(255 255 255 / 0.2); }
+.dark .bg-white\/10 { background-color: rgb(255 255 255 / 0.1); }
+.dark .bg-white\/5 { background-color: rgb(255 255 255 / 0.05); }
+.dark .hover\:bg-white\/20:hover { background-color: rgb(255 255 255 / 0.2); }
+.dark .hover\:bg-white\/10:hover { background-color: rgb(255 255 255 / 0.1); }
+
+.dark .border-white\/25 { border-color: rgb(255 255 255 / 0.25); }
+.dark .border-white\/15 { border-color: rgb(255 255 255 / 0.15); }
+.dark .border-white\/10 { border-color: rgb(255 255 255 / 0.1); }
+.dark .ring-white { --tw-ring-color: #fff; }
+.dark .ring-white\/60 { --tw-ring-color: rgb(255 255 255 / 0.6); }
+.dark .ring-white\/20 { --tw-ring-color: rgb(255 255 255 / 0.2); }
+.dark .ring-white\/15 { --tw-ring-color: rgb(255 255 255 / 0.15); }
+
+/* Brand blue reads as a link on a dark surface only once it is lightened; the
+   same shade as a button fill must stay saturated. */
+.dark .text-brand-600 { color: #7ea6fb; }
+.dark .text-brand-700 { color: #a4c0fd; }
+.dark .hover\:text-brand-600:hover { color: #7ea6fb; }
+.dark .hover\:text-brand-700:hover { color: #a4c0fd; }
+.dark .bg-brand-100 { background-color: #14274d; }
+.dark .bg-brand-200 { background-color: #1b3568; }
+.dark .hover\:bg-brand-200:hover { background-color: #1b3568; }
+.dark .border-brand-200 { border-color: #2b4a86; }
+.dark .ring-brand-100 { --tw-ring-color: rgb(46 102 245 / 0.35); }
+.dark .ring-brand-200 { --tw-ring-color: rgb(46 102 245 / 0.45); }
+
+/* Amber and emerald text sitting on their own dark tint. */
+.dark .text-amber-600 { color: #fbbf24; }
+.dark .text-amber-700 { color: #fcd34d; }
+.dark .ring-amber-200 { --tw-ring-color: rgb(217 119 6 / 0.35); }
+.dark .ring-amber-300 { --tw-ring-color: rgb(217 119 6 / 0.45); }
+.dark .text-emerald-600 { color: #34d399; }
+.dark .text-emerald-700 { color: #6ee7b7; }
+.dark .ring-emerald-200 { --tw-ring-color: rgb(16 185 129 / 0.35); }
 
 body {
   background: var(--background);
@@ -83,5 +247,57 @@ html {
 @media (min-width: 48rem) {
   html {
     font-size: 112.5%;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Scrollbars.
+
+   The default Windows/Chrome scrollbar is a 17px light-grey trough that cuts a
+   hard band down the side of every dark surface. This replaces it with a thin
+   rounded thumb on a transparent track, in both themes, for the page and for
+   any inner scroller (the inbox thread list, long dialogs).
+
+   `scrollbar-width`/`scrollbar-color` cover Firefox; the ::-webkit rules cover
+   Chrome, Edge and Safari. Both read the same variables so the two engines stay
+   in step.
+   --------------------------------------------------------------------------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  /* Inset by a transparent border so the thumb reads as a floating pill rather
+     than filling the gutter edge to edge. */
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+/* Where a horizontal and vertical bar meet, the default corner is an opaque
+   light square that survives the theme change. */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Someone who has asked for less motion should not get smooth scrolling. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }

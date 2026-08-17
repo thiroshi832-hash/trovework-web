@@ -1,36 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "@/components/icons";
-import { api, homeFor, type SessionUser } from "@/lib/api";
+import { api, homeFor } from "@/lib/api";
+import { useSession } from "@/lib/use-session";
 
 /**
- * The header's auth actions, session-aware. Fetches the current user on mount
- * (and again on navigation, so it reflects a fresh login/logout) and shows a
- * user menu when signed in, Login/Register when not.
+ * The header's auth actions, session-aware. Shows a user menu when signed in,
+ * Login/Register when not. The session itself comes from useSession, which is
+ * shared with the mobile drawer so the two don't each hit /api/auth/me.
  */
 export function AuthNav() {
-  const [user, setUser] = useState<SessionUser | null>(null);
-  const [ready, setReady] = useState(false);
+  const { user, ready, clearSession } = useSession();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const pathname = usePathname();
   const router = useRouter();
-
-  useEffect(() => {
-    let live = true;
-    api
-      .me()
-      .then((u) => live && setUser(u))
-      .catch(() => live && setUser(null))
-      .finally(() => live && setReady(true));
-    return () => {
-      live = false;
-    };
-    // Re-check when the route changes — a login redirect lands on a new path.
-  }, [pathname]);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -43,7 +29,7 @@ export function AuthNav() {
   async function logout() {
     setOpen(false);
     await api.logout().catch(() => {});
-    setUser(null);
+    clearSession();
     router.replace("/");
     router.refresh();
   }
