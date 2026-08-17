@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import {
   COUNTRIES,
   Divider,
@@ -28,17 +28,6 @@ type FieldName =
   | "postalCode";
 
 type Errors = Partial<Record<FieldName, string>>;
-
-/** Every field the user must fill before the account can be created. */
-const REQUIRED_FIELDS: FieldName[] = [
-  "fullName",
-  "email",
-  "password",
-  "confirmPassword",
-  "country",
-  "state",
-  "postalCode",
-];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 // Loose on purpose: postal formats vary widely across the countries we serve.
@@ -81,10 +70,8 @@ function validate(fd: FormData): Errors {
 export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role }) {
   const [role, setRole] = useState<Role>(defaultRole);
   const [agreed, setAgreed] = useState(false);
-  const [complete, setComplete] = useState(false);
   const [country, setCountry] = useState("");
   const [stateValue, setStateValue] = useState("");
-  const formRef = useRef<HTMLFormElement>(null);
 
   const stateOptions = subdivisionsFor(country);
   // Countries we haven't listed fall back to free text so nobody is blocked.
@@ -100,8 +87,13 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
 
     const found = validate(fd);
     setErrors(found);
+    if (Object.keys(found).length) {
+      // The button is enabled once terms are accepted, so a click with blank or
+      // invalid fields lands here — tell them, and the per-field errors show why.
+      setFormError("Please fill in all the required fields correctly.");
+      return;
+    }
     setFormError(null);
-    if (Object.keys(found).length) return;
 
     setBusy(true);
     try {
@@ -130,28 +122,18 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
 
   // Clear a field's error as soon as the user edits it, so the form stops
   // shouting about something they're already fixing.
-  const recomputeComplete = useCallback(() => {
-    const form = formRef.current;
-    if (!form) return;
-    const fd = new FormData(form);
-    setComplete(REQUIRED_FIELDS.every((f) => String(fd.get(f) ?? "").trim() !== ""));
-  }, []);
-
-  // Controlled fields (country, state) settle after render, so re-check then.
-  useEffect(recomputeComplete, [country, stateValue, recomputeComplete]);
-
   function handleChange(e: ChangeEvent<HTMLFormElement>) {
-    recomputeComplete();
-
     const name = (e.target as unknown as HTMLInputElement).name as FieldName;
     setFormError(null);
     setErrors((prev) => (prev[name] ? { ...prev, [name]: undefined } : prev));
   }
 
-  const canSubmit = agreed && complete && !busy;
+  // Enabled as soon as the terms are accepted. Clicking with blank/invalid
+  // fields runs validation and surfaces the errors, rather than doing nothing.
+  const canSubmit = agreed && !busy;
 
   return (
-    <form ref={formRef} noValidate onSubmit={handleSubmit} onChange={handleChange} className="space-y-4">
+    <form noValidate onSubmit={handleSubmit} onChange={handleChange} className="space-y-4">
       <RoleSelect value={role} onChange={setRole} />
 
       <Field label="Full Name" error={errors.fullName}>
@@ -302,13 +284,7 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
         disabled={!canSubmit}
         aria-disabled={!canSubmit}
         aria-busy={busy}
-        title={
-          complete
-            ? agreed
-              ? undefined
-              : "Accept the Terms of Service and Privacy Policy to continue"
-            : "Fill in every field to continue"
-        }
+        title={agreed ? undefined : "Accept the Terms of Service and Privacy Policy to continue"}
         className={`w-full rounded-lg px-4 py-3.5 text-base font-semibold text-white transition ${
           canSubmit ? "bg-brand-600 hover:bg-brand-700" : "cursor-not-allowed bg-slate-300"
         }`}
