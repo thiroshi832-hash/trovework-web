@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand";
 import { AuthNav } from "@/components/auth-nav";
-import { ChevronDown, Globe } from "@/components/icons";
 
 /* Anchors are absolute so they still resolve from /login and /register. */
 const NAV = [
@@ -27,12 +26,6 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button type="button" className="hidden items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-navy-800 md:flex">
-            <Globe className="h-5 w-5" />
-            English
-            <ChevronDown className="h-4.5 w-4.5" />
-          </button>
-
           <AuthNav />
         </div>
       </nav>
