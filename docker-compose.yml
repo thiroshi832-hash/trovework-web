@@ -50,6 +50,11 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      # ID verification engine: "auto" = face-match + OCR; anything else = manual
+      # review only. The auto engine always falls back to manual on any failure.
+      ID_VERIFY_ENGINE: ${ID_VERIFY_ENGINE:-manual}
+      ID_VERIFY_VERIFY_MIN: ${ID_VERIFY_VERIFY_MIN:-0.6}
+      ID_VERIFY_REJECT_MAX: ${ID_VERIFY_REJECT_MAX:-0.4}
       # Public assets (profile photos) go here; nginx serves the same volume at
       # /uploads. SECURED_DIR (ID images/selfies) is never served.
       PUBLIC_DIR: /app/storage

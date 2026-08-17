@@ -354,6 +354,34 @@ Once `SMTP_USER` and `SMTP_PASS` are set, the API sends the reset link by email 
 them blank to keep the log-only stub. (Gmail free sending limits apply — for higher volume use a
 transactional provider by pointing `SMTP_HOST`/`SMTP_PORT` at it.)
 
+### Automated ID verification engine (optional)
+
+By default every ID submission goes to an admin in the `/admin` review queue. Setting
+`ID_VERIFY_ENGINE=auto` turns on an in-house engine that **face-matches** the selfie against the ID
+photo (face-api.js on the WASM TensorFlow backend — no native binaries, weights ship in the image)
+and **OCRs** the ID to cross-check the entered name:
+
+- **Strong match + name consistent** → auto-approved.
+- **Clear non-match** → auto-rejected.
+- **Borderline, name mismatch, no face found, or any error** → falls through to **manual review**.
+
+```bash
+# in /srv/trovework/.env
+ID_VERIFY_ENGINE=auto
+# optional tuning (0..1 face-similarity score):
+ID_VERIFY_VERIFY_MIN=0.6   # auto-approve at or above this
+ID_VERIFY_REJECT_MAX=0.4   # auto-reject below this
+```
+
+Then `docker compose up -d --force-recreate api` and watch the log for `Auto ID verification engine
+ready.` on the first submission.
+
+> **Important — no liveness detection.** This engine confirms the selfie *resembles* the ID photo; it
+> cannot tell a live person from a photo of a photo, so it's a first-pass filter, not proof of
+> presence. Keep an admin watching the review queue. It's **fail-safe**: if the models or libraries
+> aren't available it simply logs a warning and routes everything to manual review — it never blocks
+> submissions or auto-approves on a failure. Start with it off, verify the queue behaves, then enable.
+
 > **Create this as the `deploy` user, not root.** With `chmod 600` the file is readable only by
 > its owner, and CI logs in as `deploy` — a root-owned `.env` makes the automated deploy fail with
 > `POSTGRES_PASSWORD not set` even though the file is right there. If you already made it as root:
