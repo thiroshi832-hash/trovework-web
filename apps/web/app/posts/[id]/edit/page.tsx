@@ -1,16 +1,10 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { PostEditor } from "@/components/post-editor";
-import { POSTS, postById } from "@/lib/posts";
+import { EditPostLoader } from "@/components/edit-post-loader";
 
 export const metadata: Metadata = {
   title: "Edit post — Trovework",
   robots: { index: false, follow: false },
 };
-
-export function generateStaticParams() {
-  return POSTS.map((p) => ({ id: p.id }));
-}
 
 export default async function EditPostPage({
   params,
@@ -18,8 +12,6 @@ export default async function EditPostPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const post = postById(id);
-  if (!post) notFound();
 
   return (
     <div className="flex flex-1 flex-col bg-slate-50/60">
@@ -30,7 +22,8 @@ export default async function EditPostPage({
             Changes are re-checked for contact details before they go live.
           </p>
           <div className="mt-8">
-            <PostEditor post={post} />
+            {/* Fetched client-side (owner-gated), then handed to the shared editor. */}
+            <EditPostLoader id={id} />
           </div>
         </div>
       </main>

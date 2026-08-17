@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "@/components/icons";
 import { api, homeFor } from "@/lib/api";
+import { useDict } from "@/lib/i18n/provider";
 import { useSession } from "@/lib/use-session";
 
 /**
@@ -17,6 +18,7 @@ export function AuthNav() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const t = useDict();
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -42,13 +44,13 @@ export function AuthNav() {
     return (
       <>
         <Link href="/login" className="hidden text-sm font-medium text-slate-600 hover:text-navy-800 sm:block">
-          Login
+          {t.account.login}
         </Link>
         <Link
           href="/register"
           className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
         >
-          Register
+          {t.account.register}
         </Link>
       </>
     );
@@ -89,7 +91,7 @@ export function AuthNav() {
             onClick={() => setOpen(false)}
             className="block px-4 py-2.5 text-sm text-navy-800 transition hover:bg-slate-50"
           >
-            Dashboard
+            {t.account.dashboard}
           </Link>
           {user.role === "freelancer" ? (
             <Link
@@ -98,7 +100,7 @@ export function AuthNav() {
               onClick={() => setOpen(false)}
               className="block px-4 py-2.5 text-sm text-navy-800 transition hover:bg-slate-50"
             >
-              Edit profile
+              {t.account.editProfile}
             </Link>
           ) : null}
           <Link
@@ -107,7 +109,7 @@ export function AuthNav() {
             onClick={() => setOpen(false)}
             className="block px-4 py-2.5 text-sm text-navy-800 transition hover:bg-slate-50"
           >
-            Messages
+            {t.account.messages}
           </Link>
           <button
             type="button"
@@ -115,7 +117,7 @@ export function AuthNav() {
             onClick={logout}
             className="block w-full px-4 py-2.5 text-left text-sm text-red-600 transition hover:bg-red-50"
           >
-            Log out
+            {t.account.logout}
           </button>
         </div>
       ) : null}

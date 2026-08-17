@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConflictException, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
@@ -6,6 +6,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
+import { EMAIL_PROVIDER, type EmailProvider } from "./providers/email.provider";
 
 const BCRYPT_ROUNDS = 12;
 
@@ -23,13 +24,54 @@ export interface TokenPair {
   refreshExpiresAt: Date;
 }
 
+/** What the Google strategy hands us after validating the OAuth profile. */
+export interface GoogleProfile {
+  googleId: string;
+  email: string;
+  emailVerified: boolean;
+  fullName: string;
+}
+
+/**
+ * Either the Google user is known (or matched by email) and gets logged straight
+ * in, or they're new and must finish signing up (role + location) — in which case
+ * we hand back a short-lived token that carries their verified Google identity.
+ */
+export type GoogleAuthResult =
+  | { kind: "authenticated"; userId: string; role: string; tokens: TokenPair }
+  | { kind: "needs_signup"; pendingToken: string };
+
 @Injectable()
 export class AuthService {
+  /** Emails that should always be admins, from ADMIN_EMAILS (comma-separated). */
+  private readonly adminEmails: Set<string>;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
-  ) {}
+    @Inject(EMAIL_PROVIDER) private readonly email: EmailProvider,
+  ) {
+    this.adminEmails = new Set(
+      (this.config.get<string>("ADMIN_EMAILS", "") ?? "")
+        .split(",")
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean),
+    );
+  }
+
+  /**
+   * Bootstraps admins without a chicken-and-egg problem: an email listed in
+   * ADMIN_EMAILS is promoted to admin on login/register, since registration
+   * itself only allows client/freelancer. Returns the effective role. The
+   * env list is the source of truth — a DB role is never *demoted* here, so
+   * removing an email doesn't strip an existing admin (do that deliberately).
+   */
+  private async ensureAdminRole(userId: string, email: string, role: string): Promise<string> {
+    if (role === "admin" || !this.adminEmails.has(email.toLowerCase())) return role;
+    await this.prisma.user.update({ where: { id: userId }, data: { role: "admin" } });
+    return "admin";
+  }
 
   /* ------------------------------ registration ----------------------------- */
 
@@ -55,7 +97,8 @@ export class AuthService {
       },
     });
 
-    return { userId: user.id, ...(await this.issueTokens(user.id, user.role, false, false)) };
+    const role = await this.ensureAdminRole(user.id, user.email, user.role);
+    return { userId: user.id, ...(await this.issueTokens(user.id, role, false, false)) };
   }
 
   /* --------------------------------- login --------------------------------- */
@@ -73,9 +116,10 @@ export class AuthService {
     if (!user || !ok) throw new UnauthorizedException("Email or password is incorrect.");
     if (user.status === "banned") throw new UnauthorizedException("This account has been suspended.");
 
+    const role = await this.ensureAdminRole(user.id, user.email, user.role);
     return {
       userId: user.id,
-      ...(await this.issueTokens(user.id, user.role, user.phoneVerified, user.idVerified)),
+      ...(await this.issueTokens(user.id, role, user.phoneVerified, user.idVerified)),
     };
   }
 
@@ -140,6 +184,160 @@ export class AuthService {
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+  }
+
+  /* ---------------------------- password reset ----------------------------- */
+
+  /**
+   * Starts a reset. Emails a one-time link ONLY when the address exists, but
+   * the caller always gets the same answer, so this can't be used to discover
+   * which emails have accounts. Issuing a new token invalidates the user's
+   * older unused ones.
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    const normalised = email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({ where: { email: normalised } });
+    if (!user || user.status === "banned") return;
+
+    // Retire any still-usable tokens so only the newest link works.
+    await this.prisma.passwordResetToken.updateMany({
+      where: { userId: user.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    const token = randomBytes(32).toString("base64url");
+    const ttlMs = this.ttlToMs(this.config.get<string>("PASSWORD_RESET_TTL", "1h"));
+    await this.prisma.passwordResetToken.create({
+      data: { userId: user.id, tokenHash: this.hashToken(token), expiresAt: new Date(Date.now() + ttlMs) },
+    });
+
+    const origin = this.config.get<string>("WEB_ORIGIN", "https://trovework.com");
+    await this.email.sendPasswordReset(user.email, `${origin}/reset-password?token=${token}`);
+  }
+
+  /**
+   * Completes a reset: sets the new password, burns the token, and revokes every
+   * refresh token so any session opened with the old password is killed.
+   */
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const stored = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash: this.hashToken(token) },
+    });
+    if (!stored || stored.usedAt || stored.expiresAt <= new Date()) {
+      throw new UnauthorizedException("This reset link is invalid or has expired.");
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: stored.userId },
+        data: { passwordHash: await bcrypt.hash(newPassword, BCRYPT_ROUNDS) },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: stored.id },
+        data: { usedAt: new Date() },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId: stored.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+  }
+
+  /* ------------------------------- google oauth ---------------------------- */
+
+  /** Distinguishes the short-lived signup token from a normal access token. */
+  private static readonly GOOGLE_PENDING_TYP = "google_pending";
+
+  /**
+   * Called after Google validates the user. Logs in a known account (matched by
+   * Google id, or by a verified email — which links the two), otherwise returns
+   * a short-lived token so the new user can finish signing up with a role and
+   * location.
+   */
+  async loginOrPrepareGoogle(profile: GoogleProfile): Promise<GoogleAuthResult> {
+    if (!profile.emailVerified) {
+      // Google should always verify its own accounts; refuse if it somehow didn't.
+      throw new UnauthorizedException("Your Google email is not verified.");
+    }
+    const email = profile.email.trim().toLowerCase();
+
+    const existing =
+      (await this.prisma.user.findUnique({ where: { googleId: profile.googleId } })) ??
+      (await this.prisma.user.findUnique({ where: { email } }));
+
+    if (existing) {
+      if (existing.status === "banned") throw new UnauthorizedException("This account has been suspended.");
+      // First Google login for an email/password account links the two.
+      if (!existing.googleId) {
+        await this.prisma.user.update({ where: { id: existing.id }, data: { googleId: profile.googleId } });
+      }
+      const role = await this.ensureAdminRole(existing.id, existing.email, existing.role);
+      return {
+        kind: "authenticated",
+        userId: existing.id,
+        role,
+        tokens: await this.issueTokens(existing.id, role, existing.phoneVerified, existing.idVerified),
+      };
+    }
+
+    // New user — carry the verified identity in a signed, short-lived token.
+    const pendingToken = await this.jwt.signAsync(
+      { typ: AuthService.GOOGLE_PENDING_TYP, googleId: profile.googleId, email, name: profile.fullName },
+      { secret: this.config.getOrThrow<string>("JWT_ACCESS_SECRET"), expiresIn: "15m" },
+    );
+    return { kind: "needs_signup", pendingToken };
+  }
+
+  /**
+   * Finishes a Google signup: validates the pending token, creates the account
+   * with the role and location the user just chose, and logs them in.
+   */
+  async completeGoogleSignup(
+    pendingToken: string,
+    details: { role: "client" | "freelancer"; country: string; state: string; postalCode: string },
+  ): Promise<{ userId: string } & TokenPair> {
+    let payload: { typ?: string; googleId?: string; email?: string; name?: string };
+    try {
+      payload = await this.jwt.verifyAsync(pendingToken, {
+        secret: this.config.getOrThrow<string>("JWT_ACCESS_SECRET"),
+      });
+    } catch {
+      throw new UnauthorizedException("Your sign-up session expired. Please start again.");
+    }
+    if (payload.typ !== AuthService.GOOGLE_PENDING_TYP || !payload.googleId || !payload.email) {
+      throw new UnauthorizedException("Invalid sign-up session. Please start again.");
+    }
+
+    const email = payload.email.trim().toLowerCase();
+
+    // If the account was created in the meantime (double submit, or they linked
+    // via email elsewhere), just log them in rather than failing.
+    const already =
+      (await this.prisma.user.findUnique({ where: { googleId: payload.googleId } })) ??
+      (await this.prisma.user.findUnique({ where: { email } }));
+    if (already) {
+      const role = await this.ensureAdminRole(already.id, already.email, already.role);
+      return {
+        userId: already.id,
+        ...(await this.issueTokens(already.id, role, already.phoneVerified, already.idVerified)),
+      };
+    }
+
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        googleId: payload.googleId,
+        passwordHash: null, // no password — Google is the credential
+        fullName: (payload.name ?? "").trim() || email.split("@")[0],
+        role: details.role,
+        country: details.country.trim(),
+        state: details.state.trim(),
+        postalCode: details.postalCode.trim(),
+      },
+    });
+
+    const role = await this.ensureAdminRole(user.id, user.email, user.role);
+    return { userId: user.id, ...(await this.issueTokens(user.id, role, false, false)) };
   }
 
   /* --------------------------------- lookup -------------------------------- */

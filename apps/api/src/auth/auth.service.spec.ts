@@ -11,28 +11,73 @@ const CONFIG: Record<string, string> = {
   REFRESH_TOKEN_TTL: "7d",
 };
 
-function makeService(prisma: Partial<PrismaService>) {
+const sentEmails: Array<{ email: string; resetUrl: string }> = [];
+const emailProvider = {
+  sendPasswordReset: jest.fn(async (email: string, resetUrl: string) => {
+    sentEmails.push({ email, resetUrl });
+  }),
+};
+
+function makeService(prisma: Partial<PrismaService>, adminEmails = "") {
+  const cfg: Record<string, string> = { ...CONFIG, ADMIN_EMAILS: adminEmails };
   const config = {
-    get: (k: string, d?: string) => CONFIG[k] ?? d,
-    getOrThrow: (k: string) => CONFIG[k],
+    get: (k: string, d?: string) => cfg[k] ?? d,
+    getOrThrow: (k: string) => cfg[k],
   } as unknown as ConfigService;
-  return new AuthService(prisma as PrismaService, new JwtService(), config);
+  return new AuthService(prisma as PrismaService, new JwtService(), config, emailProvider as any);
 }
+
+beforeEach(() => {
+  sentEmails.length = 0;
+  emailProvider.sendPasswordReset.mockClear();
+});
 
 /** Minimal in-memory stand-ins for the two tables auth touches. */
 function prismaDouble() {
   const users: any[] = [];
   const tokens: any[] = [];
+  const resets: any[] = [];
   return {
     users,
     tokens,
+    resets,
+    // resetPassword runs an array of operations in one $transaction; our doubles
+    // already return promises, so awaiting them all reproduces the behaviour.
+    $transaction: jest.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
+    passwordResetToken: {
+      create: jest.fn(async ({ data }: any) => {
+        const r = { id: `pr${resets.length + 1}`, usedAt: null, ...data };
+        resets.push(r);
+        return r;
+      }),
+      findUnique: jest.fn(async ({ where }: any) => resets.find((r) => r.tokenHash === where.tokenHash) ?? null),
+      update: jest.fn(async ({ where, data }: any) => {
+        const r = resets.find((x) => x.id === where.id);
+        Object.assign(r, data);
+        return r;
+      }),
+      updateMany: jest.fn(async ({ where, data }: any) => {
+        resets
+          .filter((r) => r.userId === where.userId)
+          .filter((r) => (where.usedAt === null ? r.usedAt === null : true))
+          .forEach((r) => Object.assign(r, data));
+        return { count: 0 };
+      }),
+    },
     user: {
       findUnique: jest.fn(async ({ where }: any) =>
-        users.find((u) => (where.email ? u.email === where.email : u.id === where.id)) ?? null,
+        users.find((u) =>
+          where.email ? u.email === where.email : where.googleId ? u.googleId === where.googleId : u.id === where.id,
+        ) ?? null,
       ),
       create: jest.fn(async ({ data }: any) => {
         const u = { id: `u${users.length + 1}`, phoneVerified: false, idVerified: false, status: "active", ...data };
         users.push(u);
+        return u;
+      }),
+      update: jest.fn(async ({ where, data }: any) => {
+        const u = users.find((x) => x.id === where.id);
+        Object.assign(u, data);
         return u;
       }),
     },
@@ -218,5 +263,210 @@ describe("AuthService", () => {
     it("throws on nonsense", () => {
       expect(() => svc.ttlToMs("soon")).toThrow();
     });
+  });
+});
+
+describe("AuthService — password reset", () => {
+  it("emails a reset link with a token when the address exists", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await svc.register({ ...REGISTRATION });
+
+    await svc.requestPasswordReset("marisol@example.com");
+    expect(emailProvider.sendPasswordReset).toHaveBeenCalledTimes(1);
+    expect(sentEmails[0].email).toBe("marisol@example.com");
+    expect(sentEmails[0].resetUrl).toMatch(/\/reset-password\?token=.+/);
+    expect(db.resets).toHaveLength(1);
+    expect(db.resets[0].tokenHash).toHaveLength(64); // sha256 hex, not the raw token
+  });
+
+  it("stays silent for an unknown address (no enumeration)", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await expect(svc.requestPasswordReset("ghost@example.com")).resolves.toBeUndefined();
+    expect(emailProvider.sendPasswordReset).not.toHaveBeenCalled();
+    expect(db.resets).toHaveLength(0);
+  });
+
+  it("invalidates an earlier unused token when a new one is requested", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await svc.register({ ...REGISTRATION });
+
+    await svc.requestPasswordReset("marisol@example.com");
+    await svc.requestPasswordReset("marisol@example.com");
+    const usable = db.resets.filter((r: any) => r.usedAt === null);
+    expect(usable).toHaveLength(1);
+  });
+
+  it("sets the new password and kills existing sessions", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    const { refreshToken } = await svc.register({ ...REGISTRATION });
+
+    await svc.requestPasswordReset("marisol@example.com");
+    const token = new URL(sentEmails[0].resetUrl).searchParams.get("token")!;
+    await svc.resetPassword(token, "brandnew2027");
+
+    // old refresh token is dead
+    await expect(svc.refresh(refreshToken)).rejects.toThrow(UnauthorizedException);
+    // old password no longer works, new one does
+    await expect(
+      svc.login({ email: "marisol@example.com", password: REGISTRATION.password }),
+    ).rejects.toThrow(UnauthorizedException);
+    await expect(
+      svc.login({ email: "marisol@example.com", password: "brandnew2027" }),
+    ).resolves.toHaveProperty("accessToken");
+  });
+
+  it("rejects a token that was never issued", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await svc.register({ ...REGISTRATION });
+    await expect(svc.resetPassword("made-up-token", "brandnew2027")).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("rejects a token that was already used", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await svc.register({ ...REGISTRATION });
+    await svc.requestPasswordReset("marisol@example.com");
+    const token = new URL(sentEmails[0].resetUrl).searchParams.get("token")!;
+    await svc.resetPassword(token, "brandnew2027");
+    await expect(svc.resetPassword(token, "another2027")).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("rejects an expired token", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await svc.register({ ...REGISTRATION });
+    await svc.requestPasswordReset("marisol@example.com");
+    db.resets[0].expiresAt = new Date(Date.now() - 1000);
+    const token = new URL(sentEmails[0].resetUrl).searchParams.get("token")!;
+    await expect(svc.resetPassword(token, "brandnew2027")).rejects.toThrow(UnauthorizedException);
+  });
+});
+
+describe("AuthService — Google OAuth", () => {
+  const googleUser = {
+    googleId: "g-123",
+    email: "New.User@Gmail.com",
+    emailVerified: true,
+    fullName: "New User",
+  };
+
+  it("asks a brand-new Google user to finish signing up", async () => {
+    const db = prismaDouble();
+    const res = await makeService(db as any).loginOrPrepareGoogle({ ...googleUser });
+    expect(res.kind).toBe("needs_signup");
+    if (res.kind === "needs_signup") expect(res.pendingToken).toBeTruthy();
+    expect(db.users).toHaveLength(0); // no account until they finish
+  });
+
+  it("creates the account (no password) once the signup is completed", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    const prep = await svc.loginOrPrepareGoogle({ ...googleUser });
+    if (prep.kind !== "needs_signup") throw new Error("expected needs_signup");
+
+    const res = await svc.completeGoogleSignup(prep.pendingToken, {
+      role: "freelancer",
+      country: "Canada",
+      state: "Ontario",
+      postalCode: "M5V2T6",
+    });
+    expect(res).toHaveProperty("accessToken");
+    expect(db.users[0].email).toBe("new.user@gmail.com"); // normalised
+    expect(db.users[0].googleId).toBe("g-123");
+    expect(db.users[0].role).toBe("freelancer");
+    expect(db.users[0].passwordHash ?? null).toBeNull();
+  });
+
+  it("logs a returning Google user straight in", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    const prep = await svc.loginOrPrepareGoogle({ ...googleUser });
+    if (prep.kind !== "needs_signup") throw new Error("expected needs_signup");
+    await svc.completeGoogleSignup(prep.pendingToken, {
+      role: "client", country: "Canada", state: "Ontario", postalCode: "M5V2T6",
+    });
+
+    const again = await svc.loginOrPrepareGoogle({ ...googleUser });
+    expect(again.kind).toBe("authenticated");
+  });
+
+  it("links Google to an existing email/password account", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await svc.register({ ...REGISTRATION }); // marisol@example.com, password-based
+
+    const res = await svc.loginOrPrepareGoogle({
+      googleId: "g-marisol",
+      email: "Marisol@example.com",
+      emailVerified: true,
+      fullName: "Marisol Rivera",
+    });
+    expect(res.kind).toBe("authenticated");
+    expect(db.users[0].googleId).toBe("g-marisol"); // linked, not duplicated
+    expect(db.users).toHaveLength(1);
+  });
+
+  it("refuses an unverified Google email", async () => {
+    const db = prismaDouble();
+    await expect(
+      makeService(db as any).loginOrPrepareGoogle({ ...googleUser, emailVerified: false }),
+    ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it("refuses a banned account signing in with Google", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any);
+    await svc.register({ ...REGISTRATION });
+    db.users[0].status = "banned";
+    await expect(
+      svc.loginOrPrepareGoogle({ googleId: "g-x", email: "marisol@example.com", emailVerified: true, fullName: "M" }),
+    ).rejects.toThrow(/suspended/i);
+  });
+
+  it("rejects a bogus pending token at completion", async () => {
+    const db = prismaDouble();
+    await expect(
+      makeService(db as any).completeGoogleSignup("not-a-real-token", {
+        role: "client", country: "Canada", state: "Ontario", postalCode: "M5V2T6",
+      }),
+    ).rejects.toThrow(UnauthorizedException);
+  });
+});
+
+describe("AuthService — admin bootstrap", () => {
+  it("promotes an ADMIN_EMAILS address to admin on login", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any, "marisol@example.com, boss@trovework.com");
+    await svc.register({ ...REGISTRATION });
+    const res = await svc.login({ email: "marisol@example.com", password: REGISTRATION.password });
+    expect(res).toHaveProperty("accessToken");
+    expect(db.users[0].role).toBe("admin");
+  });
+
+  it("leaves a non-listed user's role untouched", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any, "someone-else@trovework.com");
+    await svc.register({ ...REGISTRATION });
+    await svc.login({ email: "marisol@example.com", password: REGISTRATION.password });
+    expect(db.users[0].role).toBe("freelancer");
+  });
+
+  it("promotes at registration when the email is listed", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any, "marisol@example.com");
+    await svc.register({ ...REGISTRATION });
+    expect(db.users[0].role).toBe("admin");
+  });
+
+  it("is case-insensitive on the email match", async () => {
+    const db = prismaDouble();
+    const svc = makeService(db as any, "MARISOL@EXAMPLE.COM");
+    await svc.register({ ...REGISTRATION });
+    expect(db.users[0].role).toBe("admin");
   });
 });

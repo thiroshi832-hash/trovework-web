@@ -9,6 +9,7 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 
 const PROTECTED = [
+  /^\/freelancers(\/|$)/,
   /^\/dashboard(\/|$)/,
   /^\/profile(\/|$)/,
   /^\/posts\/new(\/|$)/,

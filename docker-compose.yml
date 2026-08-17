@@ -35,9 +35,31 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-trovework}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-trovework}?schema=public
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in .env}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET in .env}
+      PII_ENCRYPTION_KEY: ${PII_ENCRYPTION_KEY:?set PII_ENCRYPTION_KEY in .env}
       ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-15m}
       REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL:-7d}
       WEB_ORIGIN: ${WEB_ORIGIN:-https://trovework.com}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      # Google OAuth (optional — sign-in routes 503 until these are set).
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-https://trovework.com/api/auth/google/callback}
+      # SMTP for password-reset email (optional — falls back to logging the link).
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      # ID verification engine: "auto" = face-match + OCR; anything else = manual
+      # review only. The auto engine always falls back to manual on any failure.
+      ID_VERIFY_ENGINE: ${ID_VERIFY_ENGINE:-manual}
+      ID_VERIFY_VERIFY_MIN: ${ID_VERIFY_VERIFY_MIN:-0.6}
+      ID_VERIFY_REJECT_MAX: ${ID_VERIFY_REJECT_MAX:-0.4}
+      # Public assets (profile photos) go here; nginx serves the same volume at
+      # /uploads. SECURED_DIR (ID images/selfies) is never served.
+      PUBLIC_DIR: /app/storage
+      PUBLIC_URL_BASE: /uploads
+      SECURED_DIR: /app/secured
     volumes:
       # Uploads live on the host. /secured holds ID images and selfies and is
       # never served by nginx (FR-F-3).

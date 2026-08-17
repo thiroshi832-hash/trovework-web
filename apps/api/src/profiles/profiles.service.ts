@@ -61,6 +61,24 @@ export class ProfilesService {
     return profile;
   }
 
+  /**
+   * Points the profile photo at an already-stored asset. Requires an existing
+   * profile so the photo can't be attached before the freelancer has saved one.
+   * Returns the old path (if any) so the caller can clean it up.
+   */
+  async setPhoto(owner: ProfileOwner, photoPath: string): Promise<{ photoPath: string; previous: string | null }> {
+    if (owner.role !== "freelancer") throw new ForbiddenException("Only freelancers have a profile.");
+    if (owner.status === "banned") throw new ForbiddenException("This account has been suspended.");
+
+    const existing = await this.prisma.freelancerProfile.findUnique({ where: { userId: owner.id } });
+    if (!existing) throw new NotFoundException("Create your profile before adding a photo.");
+    // Capture before the update — the row object may be mutated in place.
+    const previous = existing.photoPath;
+
+    await this.prisma.freelancerProfile.update({ where: { userId: owner.id }, data: { photoPath } });
+    return { photoPath, previous };
+  }
+
   /* --------------------------------- read ---------------------------------- */
 
   /**
@@ -76,11 +94,19 @@ export class ProfilesService {
     const [agg] = [(await this.reviews.aggregateFor([profile.userId])).get(profile.userId)];
     const reviews = await this.reviews.listFor(profile.userId);
 
+    // Their live service listings — never drafts or blocked ones.
+    const posts = await this.prisma.post.findMany({
+      where: { authorId: profile.userId, status: "active" },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true, title: true, description: true, category: true, priceFrom: true, updatedAt: true },
+    });
+
     return {
       ...this.shape(profile, canSeeContact),
       rating: agg?.average ?? 0,
       reviewCount: agg?.count ?? 0,
       reviews,
+      posts,
     };
   }
 

@@ -212,6 +212,30 @@ describe("PostsService", () => {
     });
   });
 
+  describe("getOwn", () => {
+    it("returns the author's own post", async () => {
+      const db = prismaDouble();
+      db.users.u1 = { ...verifiedFreelancer, strikeCount: 0 };
+      const svc = makeService(db);
+      const mine = await svc.create(verifiedFreelancer, { ...CLEAN, status: "draft" });
+      const fetched = await svc.getOwn(verifiedFreelancer.id, mine.post.id);
+      expect(fetched.id).toBe(mine.post.id);
+    });
+
+    it("404s for a post that isn't yours", async () => {
+      const db = prismaDouble();
+      db.users.u1 = { ...verifiedFreelancer, strikeCount: 0 };
+      const svc = makeService(db);
+      const mine = await svc.create(verifiedFreelancer, { ...CLEAN, status: "draft" });
+      await expect(svc.getOwn("u2", mine.post.id)).rejects.toThrow(NotFoundException);
+    });
+
+    it("404s for a post that doesn't exist", async () => {
+      const svc = makeService(prismaDouble());
+      await expect(svc.getOwn("u1", "missing")).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe("remove", () => {
     it("deletes the author's own post", async () => {
       const db = prismaDouble();

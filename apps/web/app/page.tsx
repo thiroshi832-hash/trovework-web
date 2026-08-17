@@ -271,13 +271,13 @@ const TRUST_ITEMS = [
 /* Tiles link into the browse page pre-filtered. Typing `name` as Category means
    a tile whose name drifts from the taxonomy fails the build. */
 const CATEGORIES: { icon: React.ReactNode; name: Category }[] = [
-  { icon: <CodeCircle className="h-12 w-12" />, name: "Web Development" },
+  { icon: <Briefcase className="h-12 w-12" />, name: "Home & Cleaning" },
+  { icon: <CodeCircle className="h-12 w-12" />, name: "Repairs & Trades" },
+  { icon: <PlayBox className="h-12 w-12" />, name: "Moving & Delivery" },
+  { icon: <AiSpark className="h-12 w-12" />, name: "Care & Wellbeing" },
+  { icon: <Document className="h-12 w-12" />, name: "Tutoring & Lessons" },
   { icon: <Pencil className="h-12 w-12" />, name: "Design & Creative" },
-  { icon: <Document className="h-12 w-12" />, name: "Writing & Translation" },
   { icon: <Megaphone className="h-12 w-12" />, name: "Marketing" },
-  { icon: <PlayBox className="h-12 w-12" />, name: "Video & Animation" },
-  { icon: <AiSpark className="h-12 w-12" />, name: "AI Services" },
-  { icon: <Briefcase className="h-12 w-12" />, name: "Business" },
 ];
 
 const STEPS = [

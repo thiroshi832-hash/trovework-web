@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Close, Globe, Menu } from "@/components/icons";
-import { NAV } from "@/lib/nav";
+import { Close, Menu } from "@/components/icons";
 import { homeFor } from "@/lib/api";
+import { useDict } from "@/lib/i18n/provider";
 import { useSession } from "@/lib/use-session";
 
 /**
@@ -17,6 +17,17 @@ import { useSession } from "@/lib/use-session";
 export function MobileNav() {
   const pathname = usePathname();
   const { user, ready } = useSession();
+  const t = useDict();
+
+  // Mirrors the list SiteHeader builds server-side. Both read the same
+  // dictionary, so the drawer and the desktop bar stay in step.
+  const NAV = [
+    { label: t.nav.browse, href: "/freelancers" },
+    { label: t.nav.how, href: "/#how" },
+    { label: t.nav.about, href: "/#about" },
+    { label: t.nav.trust, href: "/#trust" },
+    { label: t.nav.blog, href: "/#blog" },
+  ];
   const panelRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLButtonElement>(null);
 
@@ -86,7 +97,9 @@ export function MobileNav() {
             role="dialog"
             aria-modal="true"
             aria-label="Site menu"
-            className="absolute right-0 top-0 flex h-full w-[min(20rem,85vw)] flex-col overflow-y-auto bg-white shadow-2xl outline-none"
+            // `end-0`, not `right-0`: the layout now sets dir="rtl" for Arabic,
+            // and the drawer should come in from the side the text runs to.
+            className="absolute end-0 top-0 flex h-full w-[min(20rem,85vw)] flex-col overflow-y-auto bg-white shadow-2xl outline-none"
           >
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4">
               <span className="text-sm font-semibold text-navy-800">Menu</span>
@@ -119,36 +132,25 @@ export function MobileNav() {
                   {user ? (
                     <>
                       <Link href={homeFor(user.role)} onClick={close} className={linkClass}>
-                        Dashboard
+                        {t.account.dashboard}
                       </Link>
                       {user.role === "freelancer" ? (
                         <Link href="/profile/edit" onClick={close} className={linkClass}>
-                          Edit profile
+                          {t.account.editProfile}
                         </Link>
                       ) : null}
                       <Link href="/inbox" onClick={close} className={linkClass}>
-                        Messages
+                        {t.account.messages}
                       </Link>
                     </>
                   ) : (
                     <Link href="/login" onClick={close} className={linkClass}>
-                      Log in
+                      {t.account.login}
                     </Link>
                   )}
                 </div>
               ) : null}
             </nav>
-
-            <div className="border-t border-slate-200 px-3 py-3">
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-3 text-base font-medium text-slate-600 transition hover:bg-slate-100"
-              >
-                <Globe className="h-5 w-5" />
-                English
-                <ChevronDown className="ml-auto h-5 w-5 text-slate-400" />
-              </button>
-            </div>
           </div>
         </div>
       ) : null}

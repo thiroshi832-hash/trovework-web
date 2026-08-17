@@ -127,6 +127,16 @@ export class PostsService {
     });
   }
 
+  /**
+   * One of the author's own posts, for the edit screen. A missing post and
+   * someone else's post are the same 404 — we don't reveal which.
+   */
+  async getOwn(authorId: string, id: string): Promise<Post> {
+    const post = await this.prisma.post.findUnique({ where: { id } });
+    if (!post || post.authorId !== authorId) throw new NotFoundException("Post not found.");
+    return post;
+  }
+
   async remove(author: PostAuthor, id: string): Promise<void> {
     const existing = await this.prisma.post.findUnique({ where: { id } });
     if (!existing || existing.authorId !== author.id) throw new NotFoundException("Post not found.");

@@ -261,14 +261,18 @@ These hold user uploads. **ID images and selfies live outside the web root, perm
 this satisfies FR-F-3 and NFR-SEC-2.
 
 ```bash
-sudo mkdir -p /srv/trovework-data/storage    # resumes, portfolio photos (servable)
+sudo mkdir -p /srv/trovework-data/storage    # profile photos (servable)
 sudo mkdir -p /srv/trovework-data/secured    # ID cards + selfies — NEVER public
 sudo chown -R deploy:deploy /srv/trovework-data
 sudo chmod 755 /srv/trovework-data/storage
 sudo chmod 700 /srv/trovework-data/secured
 ```
 
-Both paths are gitignored and must never be committed or served by nginx.
+nginx serves `storage/` at `/uploads/` (see the `location /uploads/` block in
+`deploy/nginx/trovework.conf`); the API writes profile photos there via
+`PUBLIC_DIR`. The **secured** dir is a separate volume that nginx never exposes —
+only the API reads it, for admin ID review. Both paths are gitignored and must
+never be committed.
 
 ---
 
@@ -286,10 +290,97 @@ POSTGRES_DB=trovework
 POSTGRES_PASSWORD=$(openssl rand -hex 32)
 JWT_ACCESS_SECRET=$(openssl rand -base64 48)
 JWT_REFRESH_SECRET=$(openssl rand -base64 48)
+PII_ENCRYPTION_KEY=$(openssl rand -hex 32)
 WEB_ORIGIN=https://trovework.com
+ADMIN_EMAILS=you@yourdomain.com
 EOF
 chmod 600 .env
 ```
+
+`PII_ENCRYPTION_KEY` encrypts ID numbers and dates of birth at rest (NFR-SEC-2). It must decode to
+exactly 32 bytes — `openssl rand -hex 32` does that. **Do not rotate it after go-live** without a
+re-encryption step: existing ID records were sealed with the old key and would become unreadable
+(pending submissions would need re-review).
+
+`ADMIN_EMAILS` is a comma-separated list of addresses that become admins automatically on login —
+this is how you get the first admin, since registration only creates clients and freelancers.
+Register normally with that email, then log in: you're now an admin and can approve ID
+verifications. Removing an email here does not demote an existing admin.
+
+### Google sign-in (optional)
+
+"Continue with Google" stays disabled (the routes return 503) until you add OAuth credentials.
+To enable it:
+
+1. In the [Google Cloud Console](https://console.cloud.google.com/apis/credentials), create an
+   **OAuth 2.0 Client ID** (type: Web application).
+2. Add the **Authorized redirect URI**: `https://trovework.com/api/auth/google/callback`
+   (and `http://localhost:3000/api/auth/google/callback` for local dev).
+3. Append the credentials to `/srv/trovework/.env`:
+
+   ```bash
+   cat >> .env <<'EOF'
+   GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=your-client-secret
+   GOOGLE_CALLBACK_URL=https://trovework.com/api/auth/google/callback
+   EOF
+   ```
+
+New Google users are sent to `/complete-signup` to choose a role and enter their location before
+the account is created; returning users (matched by verified Google email) are logged straight in.
+
+### Password-reset email (Gmail SMTP, optional)
+
+Without SMTP credentials, "Forgot password?" still works but the API only **logs** the reset link
+(visible via `docker compose logs api`) instead of emailing it. To send real email through Gmail:
+
+1. On the Google account you'll send from, enable **2-Step Verification**, then create an
+   **App Password**: Google Account → Security → 2-Step Verification → **App passwords**. Copy the
+   16-character password.
+2. Add to `/srv/trovework/.env`:
+
+   ```bash
+   cat >> .env <<'EOF'
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=465
+   SMTP_USER=youraddress@gmail.com
+   SMTP_PASS=your-16-char-app-password
+   SMTP_FROM=Trovework <youraddress@gmail.com>
+   EOF
+   docker compose up -d --force-recreate api
+   ```
+
+Once `SMTP_USER` and `SMTP_PASS` are set, the API sends the reset link by email automatically; leave
+them blank to keep the log-only stub. (Gmail free sending limits apply — for higher volume use a
+transactional provider by pointing `SMTP_HOST`/`SMTP_PORT` at it.)
+
+### Automated ID verification engine (optional)
+
+By default every ID submission goes to an admin in the `/admin` review queue. Setting
+`ID_VERIFY_ENGINE=auto` turns on an in-house engine that **face-matches** the selfie against the ID
+photo (face-api.js on the WASM TensorFlow backend — no native binaries, weights ship in the image)
+and **OCRs** the ID to cross-check the entered name:
+
+- **Strong match + name consistent** → auto-approved.
+- **Clear non-match** → auto-rejected.
+- **Borderline, name mismatch, no face found, or any error** → falls through to **manual review**.
+
+```bash
+# in /srv/trovework/.env
+ID_VERIFY_ENGINE=auto
+# optional tuning (0..1 face-similarity score):
+ID_VERIFY_VERIFY_MIN=0.6   # auto-approve at or above this
+ID_VERIFY_REJECT_MAX=0.4   # auto-reject below this
+```
+
+Then `docker compose up -d --force-recreate api` and watch the log for `Auto ID verification engine
+ready.` on the first submission.
+
+> **Important — no liveness detection.** This engine confirms the selfie *resembles* the ID photo; it
+> cannot tell a live person from a photo of a photo, so it's a first-pass filter, not proof of
+> presence. Keep an admin watching the review queue. It's **fail-safe**: if the models or libraries
+> aren't available it simply logs a warning and routes everything to manual review — it never blocks
+> submissions or auto-approves on a failure. Start with it off, verify the queue behaves, then enable.
 
 > **Create this as the `deploy` user, not root.** With `chmod 600` the file is readable only by
 > its owner, and CI logs in as `deploy` — a root-owned `.env` makes the automated deploy fail with

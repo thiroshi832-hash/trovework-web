@@ -30,7 +30,7 @@ export const POSTS: Post[] = [
     title: "I will build a production-ready Next.js web app",
     description:
       "A complete front end in Next.js and TypeScript, wired to your API, with responsive layouts, accessible components and a deploy pipeline. Typical turnaround is two to three weeks.",
-    category: "Web Development",
+    category: "Home & Cleaning",
     priceFrom: 600,
     status: "active",
     updated: "2026-08-09",
@@ -41,7 +41,7 @@ export const POSTS: Post[] = [
     title: "I will audit and speed up your React application",
     description:
       "A written report on what is slowing your app down, plus the fixes applied: bundle size, render waterfalls, image handling and caching. Message me on telegram @alexmorgan to discuss scope.",
-    category: "Web Development",
+    category: "Repairs & Trades",
     priceFrom: 350,
     status: "blocked",
     updated: "2026-08-11",
@@ -53,7 +53,7 @@ export const POSTS: Post[] = [
     title: "I will design and build your SaaS dashboard",
     description:
       "Charts, tables and settings screens that stay fast with real data volumes. Includes a component library your team can carry forward.",
-    category: "Web Development",
+    category: "Web & Software",
     priceFrom: 900,
     status: "draft",
     updated: "2026-08-12",

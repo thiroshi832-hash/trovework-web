@@ -6,8 +6,17 @@ import type { PrismaService } from "../prisma/prisma.service";
 
 function prismaDouble() {
   const profiles: any[] = [];
+  const posts: any[] = [];
   return {
     profiles,
+    posts,
+    post: {
+      findMany: jest.fn(async ({ where }: any) =>
+        posts.filter(
+          (p) => p.authorId === where.authorId && (where.status ? p.status === where.status : true),
+        ),
+      ),
+    },
     freelancerProfile: {
       findUnique: jest.fn(async ({ where }: any) =>
         profiles.find((p) => (where.slug ? p.slug === where.slug : p.userId === where.userId)) ?? null,
@@ -116,6 +125,19 @@ describe("ProfilesService — contact gating (NFR-SEC-3)", () => {
     expect(res.reviewCount).toBe(12);
     expect(res.reviews).toHaveLength(1);
   });
+
+  it("lists the freelancer's active posts, not drafts or blocked ones", async () => {
+    const db = prismaDouble();
+    seedVisibleProfile(db);
+    db.posts.push(
+      { id: "p1", authorId: OWNER_ID, title: "Deep clean", status: "active", updatedAt: new Date() },
+      { id: "p2", authorId: OWNER_ID, title: "Draft idea", status: "draft", updatedAt: new Date() },
+      { id: "p3", authorId: OWNER_ID, title: "Blocked one", status: "blocked", updatedAt: new Date() },
+    );
+    const res: any = await makeService(db).getPublicBySlug(null, SLUG);
+    expect(res.posts).toHaveLength(1);
+    expect(res.posts[0].title).toBe("Deep clean");
+  });
 });
 
 describe("ProfilesService — visibility", () => {
@@ -191,5 +213,38 @@ describe("ProfilesService — upsert", () => {
   it("refuses a banned freelancer", async () => {
     const db = prismaDouble();
     await expect(makeService(db).upsert(freelancer({ status: "banned" }), dto)).rejects.toThrow(/suspended/i);
+  });
+});
+
+describe("ProfilesService — setPhoto", () => {
+  const owner: ProfileOwner = { id: OWNER_ID, role: "freelancer", status: "active", idVerified: true };
+
+  it("sets the photo path and reports no previous photo", async () => {
+    const db = prismaDouble();
+    seedVisibleProfile(db);
+    const res = await makeService(db).setPhoto(owner, "/uploads/f1/photo-abc.jpg");
+    expect(res.photoPath).toBe("/uploads/f1/photo-abc.jpg");
+    expect(res.previous ?? null).toBeNull();
+    expect(db.profiles[0].photoPath).toBe("/uploads/f1/photo-abc.jpg");
+  });
+
+  it("returns the old path so the caller can clean it up", async () => {
+    const db = prismaDouble();
+    seedVisibleProfile(db);
+    db.profiles[0].photoPath = "/uploads/f1/photo-old.jpg";
+    const res = await makeService(db).setPhoto(owner, "/uploads/f1/photo-new.jpg");
+    expect(res.previous).toBe("/uploads/f1/photo-old.jpg");
+  });
+
+  it("won't attach a photo before the profile exists", async () => {
+    const db = prismaDouble();
+    await expect(makeService(db).setPhoto(owner, "/uploads/f1/x.jpg")).rejects.toThrow(NotFoundException);
+  });
+
+  it("refuses a client", async () => {
+    const db = prismaDouble();
+    await expect(
+      makeService(db).setPhoto({ ...owner, role: "client" }, "/uploads/f1/x.jpg"),
+    ).rejects.toThrow(ForbiddenException);
   });
 });

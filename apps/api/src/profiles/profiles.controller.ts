@@ -1,15 +1,34 @@
-import { Body, Controller, Get, Param, Put, Query } from "@nestjs/common";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { ProfilesService } from "./profiles.service";
+import { PublicStorageService } from "../storage/public-storage.service";
 import { UpsertProfileDto } from "./dto/upsert-profile.dto";
 import { SearchDto } from "./dto/search.dto";
-import { Public } from "../auth/decorators/public.decorator";
 import { Roles } from "../auth/decorators/roles.decorator";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import type { AuthedUser } from "../auth/strategies/jwt.strategy";
 
+type UploadedImage = { buffer: Buffer; originalname: string; mimetype: string; size: number };
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+const ALLOWED_PHOTO = ["image/jpeg", "image/png", "image/webp"];
+
 @Controller()
 export class ProfilesController {
-  constructor(private readonly profiles: ProfilesService) {}
+  constructor(
+    private readonly profiles: ProfilesService,
+    private readonly storage: PublicStorageService,
+  ) {}
 
   /* ------------------------------- owner ------------------------------- */
 
@@ -25,19 +44,38 @@ export class ProfilesController {
     return this.profiles.getMine(user.id);
   }
 
-  /* ------------------------------- public ------------------------------ */
-  // @Public() here means "optional auth": anonymous browsing is allowed, but a
-  // logged-in viewer is still attached so contact info can be gated per-viewer.
+  /** Multipart single "photo" field. Stored publicly; sets profile.photoPath. */
+  @Roles("freelancer")
+  @Post("profile/photo")
+  @UseInterceptors(FileInterceptor("photo", { limits: { fileSize: MAX_PHOTO_BYTES } }))
+  async uploadPhoto(@CurrentUser() user: AuthedUser, @UploadedFile() photo?: UploadedImage) {
+    if (!photo) throw new BadRequestException("Choose a photo to upload.");
+    if (!ALLOWED_PHOTO.includes(photo.mimetype)) {
+      throw new BadRequestException("Upload a JPEG, PNG or WebP image.");
+    }
 
-  @Public()
+    const photoPath = await this.storage.save(user.id, "photo", {
+      buffer: photo.buffer,
+      originalName: photo.originalname,
+    });
+    const { previous } = await this.profiles.setPhoto(user, photoPath);
+    // Reclaim the old file now that the DB points at the new one.
+    if (previous) await this.storage.remove(previous);
+    return { photoPath };
+  }
+
+  /* ------------------------------- browse ------------------------------ */
+  // Any signed-in user may browse (client or freelancer, verified or not);
+  // anonymous visitors are refused. Contact handles are still gated per-viewer,
+  // so an unverified viewer sees the listing but never the contact details.
+
   @Get("freelancers")
   search(@Query() query: SearchDto) {
     return this.profiles.search(query);
   }
 
-  @Public()
   @Get("freelancers/:slug")
-  getPublic(@CurrentUser() viewer: AuthedUser | undefined, @Param("slug") slug: string) {
-    return this.profiles.getPublicBySlug(viewer ?? null, slug);
+  getPublic(@CurrentUser() viewer: AuthedUser, @Param("slug") slug: string) {
+    return this.profiles.getPublicBySlug(viewer, slug);
   }
 }

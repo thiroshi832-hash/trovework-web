@@ -34,7 +34,11 @@ enum VerificationStatus {
 model User {
   id           String        @id @default(uuid()) @db.Uuid
   email        String        @unique
-  passwordHash String        @map("password_hash")
+  // Null for accounts created via a social provider (e.g. Google) that have
+  // not set a password. Such users can still add one later via password reset.
+  passwordHash String?       @map("password_hash")
+  // Set when the account is linked to a Google identity.
+  googleId     String?       @unique @map("google_id")
   fullName     String        @map("full_name")
   role         Role
   status       AccountStatus @default(active)
@@ -55,7 +59,8 @@ model User {
 
   strikeCount Int @default(0) @map("strike_count")
 
-  refreshTokens    RefreshToken[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
   posts            Post[]
   violations       Violation[]
   profile          FreelancerProfile?
@@ -86,6 +91,10 @@ model Conversation {
   freelancer   User      @relation("freelancer", fields: [freelancerId], references: [id], onDelete: Cascade)
   messages     Message[]
   lastMessageAt DateTime? @map("last_message_at")
+  // When each party last opened the thread — drives unread counts. Null means
+  // never opened, so every message from the other side counts as unread.
+  clientLastReadAt     DateTime? @map("client_last_read_at")
+  freelancerLastReadAt DateTime? @map("freelancer_last_read_at")
   createdAt    DateTime  @default(now()) @map("created_at")
 
   @@unique([clientId, freelancerId])
@@ -145,8 +154,9 @@ model PhoneChallenge {
 /// An ID verification submission. The engine (or an admin) decides; approval
 /// flips users.id_verified and, for a freelancer, makes the profile visible.
 /// Images live in the secured, non-public store (FR-F-3); only their paths are
-/// here. idNumber/dob are sensitive — the DB volume must be encrypted at rest,
-/// and field-level encryption is a planned follow-up (NFR-SEC-2).
+/// here. idNumber/dob are sensitive and stored ENCRYPTED at rest via
+/// PiiCryptoService (AES-256-GCM, NFR-SEC-2); the admin review path decrypts
+/// them for display. The DB volume should still be encrypted at rest too.
 model IdVerification {
   id       String             @id @default(uuid()) @db.Uuid
   userId   String             @map("user_id") @db.Uuid
@@ -232,6 +242,23 @@ model Post {
   @@map("posts")
 }
 
+/// The service taxonomy, managed by admins (the freelancer's `category` and a
+/// post's `category` reference these by name). `sortOrder` drives display order;
+/// `isActive` hides a category from browse/new-post pickers without deleting the
+/// name off existing listings, which keep the plain string.
+model Category {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  slug      String   @unique
+  sortOrder Int      @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("categories")
+}
+
 /// One row per contact-info leak caught in a post. Feeds the admin panel and
 /// the 3-strike count on the user (FR-M-3/4).
 model Violation {
@@ -245,6 +272,23 @@ model Violation {
 
   @@index([userId])
   @@map("violations")
+}
+
+/// A one-time password-reset token, stored as a SHA-256 hash so a database read
+/// can't be replayed. Requesting a reset invalidates the user's older unused
+/// tokens; consuming one (or its expiry) makes it unusable, and a successful
+/// reset also revokes every refresh token so old sessions die.
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 /// One row per issued refresh token. Stored as a SHA-256 hash so a database

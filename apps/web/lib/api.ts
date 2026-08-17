@@ -22,6 +22,14 @@ export interface SessionUser {
   country?: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -119,11 +127,37 @@ export const api = {
 
   me: () => request<SessionUser>("/api/auth/me"),
 
+  /** Always resolves (the API answers 202 whether or not the email exists). */
+  forgotPassword: (email: string) =>
+    request<{ ok: true }>("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (token: string, password: string) =>
+    request<{ ok: true }>("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, password }),
+    }),
+
+  /** Finishes a Google signup (role + location) using the pending cookie the callback set. */
+  completeGoogleSignup: (input: { role: Role; country: string; state: string; postalCode: string }) =>
+    request<{ userId: string }>("/api/auth/google/complete", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+
   /* ------------------------------- profile ------------------------------- */
   profile: {
     getMine: () => request<unknown>("/api/profile/me"),
     upsert: (input: Record<string, unknown>) =>
       request<unknown>("/api/profile", { method: "PUT", body: JSON.stringify(input) }),
+    /** Multipart upload of a single "photo" file; returns the stored public path. */
+    uploadPhoto: (file: File) => {
+      const form = new FormData();
+      form.append("photo", file);
+      return upload<{ photoPath: string }>("/api/profile/photo", form);
+    },
   },
 
   /* ---------------------------- freelancers ------------------------------ */
@@ -141,6 +175,7 @@ export const api = {
   /* ------------------------------- posts --------------------------------- */
   posts: {
     listMine: () => request<unknown[]>("/api/posts/mine"),
+    get: (id: string) => request<unknown>(`/api/posts/${id}`),
     create: (input: Record<string, unknown>) =>
       request<PostWriteResult>("/api/posts", { method: "POST", body: JSON.stringify(input) }),
     update: (id: string, input: Record<string, unknown>) =>
@@ -164,6 +199,37 @@ export const api = {
     submitId: (form: FormData) => upload<{ status: string; message: string }>("/api/verify/id", form),
   },
 
+  /* ----------------------------- categories ------------------------------ */
+  categories: {
+    /** Public, active-only, in display order. */
+    list: () => request<Category[]>("/api/categories"),
+  },
+
+  /* ------------------------------- admin --------------------------------- */
+  admin: {
+    verifications: {
+      list: () => request<unknown[]>("/api/admin/verifications"),
+      approve: (id: string) => request<void>(`/api/admin/verifications/${id}/approve`, { method: "POST" }),
+      reject: (id: string, note?: string) =>
+        request<void>(`/api/admin/verifications/${id}/reject`, {
+          method: "POST",
+          body: JSON.stringify({ note }),
+        }),
+    },
+    violations: () => request<unknown[]>("/api/admin/violations"),
+    blockedPosts: () => request<unknown[]>("/api/admin/posts/blocked"),
+    bannedUsers: () => request<unknown[]>("/api/admin/users/banned"),
+    reinstate: (userId: string) => request<void>(`/api/admin/users/${userId}/reinstate`, { method: "POST" }),
+    categories: {
+      list: () => request<Category[]>("/api/admin/categories"),
+      create: (input: { name: string; slug?: string; sortOrder?: number; isActive?: boolean }) =>
+        request<Category>("/api/admin/categories", { method: "POST", body: JSON.stringify(input) }),
+      update: (id: string, input: Partial<{ name: string; slug: string; sortOrder: number; isActive: boolean }>) =>
+        request<Category>(`/api/admin/categories/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
+      remove: (id: string) => request<void>(`/api/admin/categories/${id}`, { method: "DELETE" }),
+    },
+  },
+
   /* -------------------------------- chat --------------------------------- */
   chat: {
     start: (freelancerId: string) =>
@@ -173,6 +239,8 @@ export const api = {
       }),
     list: () => request<unknown[]>("/api/conversations"),
     messages: (id: string) => request<unknown[]>(`/api/conversations/${id}/messages`),
+    /** Clears the thread's unread badge for the current user. */
+    markRead: (id: string) => request<void>(`/api/conversations/${id}/read`, { method: "POST" }),
     send: (id: string, body: string) =>
       request<unknown>(`/api/conversations/${id}/messages`, {
         method: "POST",

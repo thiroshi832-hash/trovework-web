@@ -1,30 +1,146 @@
 "use client";
 
-import { useState } from "react";
-import { Portrait } from "@/components/brand";
-import { PendingNotice } from "@/components/auth-fields";
+import { useEffect, useState } from "react";
 import { Check, Lock, ShieldCheck } from "@/components/icons";
-import { BANNED, REVIEW_QUEUE, VIOLATIONS } from "@/lib/moderation";
-import { POSTS } from "@/lib/posts";
+import { ApiError, api, type Category } from "@/lib/api";
 
-const TABS = ["Violations", "ID review", "Blocked posts", "Banned users"] as const;
+const TABS = ["ID review", "Categories", "Violations", "Blocked posts", "Banned users"] as const;
 type Tab = (typeof TABS)[number];
 
 const CARD = "rounded-2xl border border-slate-200 bg-white";
 
-export function AdminPanel() {
-  const [tab, setTab] = useState<Tab>("Violations");
-  const [action, setAction] = useState<string | null>(null);
+/* ------------------------------ data shapes ------------------------------- */
 
-  const blockedPosts = POSTS.filter((p) => p.status === "blocked");
+interface Verification {
+  id: string;
+  fullName: string;
+  dob: string;
+  idNumber: string;
+  score: number | string | null;
+  createdAt: string;
+  user?: { email: string; role: string };
+}
+interface Violation {
+  id: string;
+  detectedText: string;
+  createdAt: string;
+  user?: { fullName: string; email: string; strikeCount: number; status: string };
+  post?: { title: string } | null;
+}
+interface BlockedPost {
+  id: string;
+  title: string;
+  description: string;
+  blockedReason: string | null;
+  author?: { fullName: string; email: string };
+}
+interface BannedUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  strikeCount: number;
+}
+
+function initialsOf(name: string): string {
+  return name.split(/\s+/).map((p) => p[0] ?? "").join("").slice(0, 2).toUpperCase() || "?";
+}
+function Avatar({ name, className = "", muted = false }: { name: string; className?: string; muted?: boolean }) {
+  return (
+    <span
+      className={`grid shrink-0 place-items-center rounded-full font-semibold text-white ${
+        muted ? "bg-slate-400" : "bg-gradient-to-br from-brand-400 to-brand-700"
+      } ${className}`}
+    >
+      {initialsOf(name)}
+    </span>
+  );
+}
+function when(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(+d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+/* --------------------------------- panel ---------------------------------- */
+
+export function AdminPanel() {
+  const [tab, setTab] = useState<Tab>("ID review");
+
+  const [queue, setQueue] = useState<Verification[]>([]);
+  const [violations, setViolations] = useState<Violation[]>([]);
+  const [blocked, setBlocked] = useState<BlockedPost[]>([]);
+  const [banned, setBanned] = useState<BannedUser[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    Promise.all([
+      api.admin.verifications.list(),
+      api.admin.violations(),
+      api.admin.blockedPosts(),
+      api.admin.bannedUsers(),
+      api.admin.categories.list(),
+    ])
+      .then(([v, vi, bp, bu, cats]) => {
+        if (!live) return;
+        setQueue(v as Verification[]);
+        setViolations(vi as Violation[]);
+        setBlocked(bp as BlockedPost[]);
+        setBanned(bu as BannedUser[]);
+        setCategories(cats);
+        setLoaded(true);
+      })
+      .catch(() => {
+        if (live) setLoadError(true);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+
   const counts: Record<Tab, number> = {
-    Violations: VIOLATIONS.length,
-    "ID review": REVIEW_QUEUE.length,
-    "Blocked posts": blockedPosts.length,
-    "Banned users": BANNED.length,
+    "ID review": queue.length,
+    Categories: categories.length,
+    Violations: violations.length,
+    "Blocked posts": blocked.length,
+    "Banned users": banned.length,
   };
 
-  const act = (what: string) => setAction(what);
+  async function decide(id: string, action: "approve" | "reject") {
+    setBusyId(id);
+    try {
+      if (action === "approve") await api.admin.verifications.approve(id);
+      else await api.admin.verifications.reject(id);
+      setQueue((q) => q.filter((v) => v.id !== id));
+    } catch {
+      /* surfaced by leaving the row in place; a reload re-syncs */
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function reinstate(id: string) {
+    setBusyId(id);
+    try {
+      await api.admin.reinstate(id);
+      setBanned((b) => b.filter((u) => u.id !== id));
+    } catch {
+      /* no-op */
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  if (loadError) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+        We couldn&apos;t load the moderation data. Make sure you&apos;re signed in as an admin, then refresh.
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -33,15 +149,10 @@ export function AdminPanel() {
           <button
             key={t}
             type="button"
-            onClick={() => {
-              setTab(t);
-              setAction(null);
-            }}
+            onClick={() => setTab(t)}
             aria-current={tab === t ? "page" : undefined}
             className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition ${
-              tab === t
-                ? "border-brand-600 text-brand-600"
-                : "border-transparent text-slate-500 hover:text-navy-800"
+              tab === t ? "border-brand-600 text-brand-600" : "border-transparent text-slate-500 hover:text-navy-800"
             }`}
           >
             {t}
@@ -50,211 +161,188 @@ export function AdminPanel() {
                 tab === t ? "bg-brand-50 text-brand-700" : "bg-slate-100 text-slate-500"
               }`}
             >
-              {counts[t]}
+              {loaded ? counts[t] : "…"}
             </span>
           </button>
         ))}
       </div>
 
-      {action ? (
-        <div className="mt-6">
-          <PendingNotice>
-            Nothing changed — the moderation API does not exist yet. This would have {action}.
-          </PendingNotice>
+      {!loaded ? (
+        <div className="mt-6 space-y-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-28 animate-pulse rounded-2xl border border-slate-200 bg-slate-50" />
+          ))}
         </div>
       ) : null}
 
-      {/* ----------------------------- violations ---------------------------- */}
-      {tab === "Violations" ? (
+      {/* ----------------------------- ID review ----------------------------- */}
+      {loaded && tab === "ID review" ? (
         <ul className="mt-6 space-y-4">
-          {VIOLATIONS.map((v) => (
-            <li key={v.id} className={`${CARD} p-5`}>
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex min-w-0 gap-4">
-                  <Portrait src={v.photo} sizes="40px" className="h-10 w-10" />
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-navy-800">{v.user}</p>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold ring-1 ${
-                          v.strike >= 2
-                            ? "bg-red-50 text-red-700 ring-red-200"
-                            : "bg-amber-50 text-amber-700 ring-amber-200"
-                        }`}
-                      >
-                        Strike {v.strike} of 3
-                      </span>
+          {queue.map((c) => {
+            const score = c.score == null ? null : Number(c.score);
+            return (
+              <li key={c.id} className={`${CARD} p-5`}>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex min-w-0 gap-4">
+                    <Avatar name={c.fullName} className="h-10 w-10 text-sm" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-navy-800">{c.fullName}</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {c.user?.email} · DOB {c.dob} · ID {c.idNumber}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">Submitted {when(c.createdAt)}</p>
+
+                      {score != null ? (
+                        <div className="mt-3 flex items-center gap-3">
+                          <span className="text-xs text-slate-400">Match score</span>
+                          <span className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-100">
+                            <span
+                              className={`block h-full rounded-full ${score >= 0.7 ? "bg-amber-400" : "bg-red-400"}`}
+                              style={{ width: `${Math.round(score * 100)}%` }}
+                            />
+                          </span>
+                          <span className="text-xs font-semibold text-navy-800">{score.toFixed(2)}</span>
+                        </div>
+                      ) : (
+                        <p className="mt-3 text-xs text-slate-400">Manual review — no automated score.</p>
+                      )}
                     </div>
-                    <p className="mt-1 truncate text-sm text-slate-500">{v.postTitle}</p>
-                    <p className="mt-2.5 text-sm text-slate-600">
-                      <span className="text-slate-400">{v.kind}:</span>{" "}
-                      <mark className="rounded bg-red-100 px-1 text-red-900">{v.detectedText}</mark>
-                    </p>
-                    <p className="mt-2 text-xs text-slate-400">{v.at}</p>
+                  </div>
+
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={busyId === c.id}
+                      onClick={() => decide(c.id, "reject")}
+                      className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-navy-800 transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busyId === c.id}
+                      onClick={() => decide(c.id, "approve")}
+                      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      <Check className="h-5 w-5" />
+                      Approve
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => act(`dismissed the violation against ${v.user} and restored the post`)}
-                    className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-navy-800 transition hover:bg-slate-50"
-                  >
-                    Dismiss
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => act(`upheld the strike against ${v.user}`)}
-                    className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
-                  >
-                    Uphold strike
-                  </button>
-                </div>
-              </div>
-
-              {/* The doc is explicit that false positives are expected here. */}
-              {v.strike >= 2 ? (
-                <p className="mt-4 rounded-lg bg-red-50 px-3.5 py-3 text-sm leading-relaxed text-red-800">
-                  Upholding this is the account&apos;s third strike and will ban it. Check the text is
-                  really contact intent, not a price or a portfolio link.
+                <p className="mt-4 flex items-start gap-2 rounded-lg bg-slate-50 px-3.5 py-3 text-sm leading-relaxed text-slate-600">
+                  <Lock className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+                  The ID image and selfie are held in secured storage outside the web root. ID number
+                  and date of birth are decrypted here for review only.
                 </p>
-              ) : null}
-            </li>
-          ))}
+              </li>
+            );
+          })}
+          {queue.length === 0 ? (
+            <li className={`${CARD} p-10 text-center text-sm text-slate-500`}>No pending ID reviews.</li>
+          ) : null}
         </ul>
       ) : null}
 
-      {/* ----------------------------- ID review ----------------------------- */}
-      {tab === "ID review" ? (
+      {/* ----------------------------- categories ---------------------------- */}
+      {loaded && tab === "Categories" ? (
+        <CategoriesManager categories={categories} setCategories={setCategories} />
+      ) : null}
+
+      {/* ----------------------------- violations ---------------------------- */}
+      {loaded && tab === "Violations" ? (
         <ul className="mt-6 space-y-4">
-          {REVIEW_QUEUE.map((c) => (
-            <li key={c.id} className={`${CARD} p-5`}>
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex min-w-0 gap-4">
-                  <Portrait src={c.photo} sizes="40px" className="h-10 w-10" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-navy-800">{c.user}</p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {c.document} · {c.country} · submitted {c.submitted}
-                    </p>
-                    <p className="mt-2.5 text-sm text-slate-600">{c.reason}</p>
-
-                    <div className="mt-3 flex items-center gap-3">
-                      <span className="text-xs text-slate-400">Match score</span>
-                      <span className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-100">
-                        <span
-                          className={`block h-full rounded-full ${c.score >= 0.7 ? "bg-amber-400" : "bg-red-400"}`}
-                          style={{ width: `${Math.round(c.score * 100)}%` }}
-                        />
+          {violations.map((v) => (
+            <li key={v.id} className={`${CARD} p-5`}>
+              <div className="flex min-w-0 gap-4">
+                <Avatar name={v.user?.fullName ?? "?"} className="h-10 w-10 text-sm" />
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-navy-800">{v.user?.fullName}</p>
+                    {v.user ? (
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold ring-1 ${
+                          v.user.status === "banned"
+                            ? "bg-slate-100 text-slate-600 ring-slate-200"
+                            : v.user.strikeCount >= 2
+                              ? "bg-red-50 text-red-700 ring-red-200"
+                              : "bg-amber-50 text-amber-700 ring-amber-200"
+                        }`}
+                      >
+                        {v.user.status === "banned" ? "Banned" : `Strike ${v.user.strikeCount} of 3`}
                       </span>
-                      <span className="text-xs font-semibold text-navy-800">{c.score.toFixed(2)}</span>
-                    </div>
+                    ) : null}
                   </div>
-                </div>
-
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => act(`rejected ${c.user}'s verification and asked them to resubmit`)}
-                    className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-navy-800 transition hover:bg-slate-50"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => act(`approved ${c.user} and made their profile visible`)}
-                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
-                  >
-                    <Check className="h-5 w-5" />
-                    Approve
-                  </button>
+                  {v.post?.title ? <p className="mt-1 truncate text-sm text-slate-500">{v.post.title}</p> : null}
+                  <p className="mt-2.5 text-sm text-slate-600">
+                    <mark className="rounded bg-red-100 px-1 text-red-900">{v.detectedText}</mark>
+                  </p>
+                  <p className="mt-2 text-xs text-slate-400">{when(v.createdAt)}</p>
                 </div>
               </div>
-
-              <p className="mt-4 flex items-start gap-2 rounded-lg bg-slate-50 px-3.5 py-3 text-sm leading-relaxed text-slate-600">
-                <Lock className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
-                The ID image and selfie are held in secured storage outside the web root. Open them
-                through the review tool, which logs the access, rather than downloading copies.
-              </p>
             </li>
           ))}
+          {violations.length === 0 ? (
+            <li className={`${CARD} p-10 text-center text-sm text-slate-500`}>No violations recorded.</li>
+          ) : null}
         </ul>
       ) : null}
 
       {/* --------------------------- blocked posts --------------------------- */}
-      {tab === "Blocked posts" ? (
+      {loaded && tab === "Blocked posts" ? (
         <ul className="mt-6 space-y-4">
-          {blockedPosts.map((p) => (
+          {blocked.map((p) => (
             <li key={p.id} className={`${CARD} p-5`}>
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="font-semibold text-navy-800">{p.title}</p>
-                  <p className="mt-1.5 line-clamp-2 max-w-2xl text-sm leading-relaxed text-slate-500">
-                    {p.description}
-                  </p>
-                  {p.blockedText ? (
-                    <p className="mt-2.5 text-sm text-slate-600">
-                      <span className="text-slate-400">Detected:</span>{" "}
-                      <mark className="rounded bg-red-100 px-1 text-red-900">{p.blockedText}</mark>
-                    </p>
-                  ) : null}
-                </div>
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => act(`kept "${p.title}" blocked`)}
-                    className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-navy-800 transition hover:bg-slate-50"
-                  >
-                    Keep blocked
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => act(`restored "${p.title}"`)}
-                    className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
-                  >
-                    Restore
-                  </button>
-                </div>
-              </div>
+              <p className="font-semibold text-navy-800">{p.title}</p>
+              {p.author ? <p className="mt-0.5 text-xs text-slate-400">{p.author.fullName} · {p.author.email}</p> : null}
+              <p className="mt-1.5 line-clamp-2 max-w-2xl text-sm leading-relaxed text-slate-500">{p.description}</p>
+              {p.blockedReason ? (
+                <p className="mt-2.5 text-sm text-slate-600">
+                  <span className="text-slate-400">Detected:</span>{" "}
+                  <mark className="rounded bg-red-100 px-1 text-red-900">{p.blockedReason}</mark>
+                </p>
+              ) : null}
+              <p className="mt-2 text-xs text-slate-400">
+                The author fixes and republishes this themselves — removing the contact details clears the block.
+              </p>
             </li>
           ))}
-          {blockedPosts.length === 0 ? (
+          {blocked.length === 0 ? (
             <li className={`${CARD} p-10 text-center text-sm text-slate-500`}>Nothing blocked.</li>
           ) : null}
         </ul>
       ) : null}
 
       {/* --------------------------- banned users ---------------------------- */}
-      {tab === "Banned users" ? (
+      {loaded && tab === "Banned users" ? (
         <ul className="mt-6 space-y-4">
-          {BANNED.map((b) => (
+          {banned.map((b) => (
             <li key={b.id} className={`${CARD} p-5`}>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-4">
-                  <Portrait src={b.photo} sizes="40px" className="h-10 w-10 grayscale" />
+                  <Avatar name={b.fullName} muted className="h-10 w-10 text-sm" />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-navy-800">{b.user}</p>
+                      <p className="text-sm font-semibold text-navy-800">{b.fullName}</p>
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[0.625rem] font-medium text-slate-500">
                         {b.role}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {b.reason} · {b.bannedAt}
-                    </p>
+                    <p className="mt-1 text-sm text-slate-500">{b.email} · {b.strikeCount} strikes</p>
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => act(`reinstated ${b.user} and reset their strike count`)}
-                  className="shrink-0 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-navy-800 transition hover:bg-slate-50"
+                  disabled={busyId === b.id}
+                  onClick={() => reinstate(b.id)}
+                  className="shrink-0 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-navy-800 transition hover:bg-slate-50 disabled:opacity-50"
                 >
                   Reinstate
                 </button>
               </div>
             </li>
           ))}
-          {BANNED.length === 0 ? (
+          {banned.length === 0 ? (
             <li className={`${CARD} p-10 text-center text-sm text-slate-500`}>Nobody is banned.</li>
           ) : null}
         </ul>
@@ -262,9 +350,112 @@ export function AdminPanel() {
 
       <p className="mt-8 flex items-start gap-2 text-sm leading-relaxed text-slate-500">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
-        Every action here is enforced server-side. This screen only asks — it cannot itself change
-        anyone&apos;s verification state, and it is not a substitute for the permission checks in the API.
+        Every action here is enforced server-side. Strikes and the three-strike ban are applied
+        automatically; this screen is for ID review, the category taxonomy, and oversight.
       </p>
+    </div>
+  );
+}
+
+/* --------------------------- categories manager --------------------------- */
+
+function CategoriesManager({
+  categories,
+  setCategories,
+}: {
+  categories: Category[];
+  setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
+}) {
+  const [newName, setNewName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function add() {
+    const name = newName.trim();
+    if (!name) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const created = await api.admin.categories.create({ name });
+      setCategories((cs) => [...cs, created].sort((a, b) => a.sortOrder - b.sortOrder));
+      setNewName("");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Couldn't add the category.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function toggle(c: Category) {
+    try {
+      const updated = await api.admin.categories.update(c.id, { isActive: !c.isActive });
+      setCategories((cs) => cs.map((x) => (x.id === c.id ? updated : x)));
+    } catch {
+      /* no-op */
+    }
+  }
+
+  async function remove(id: string) {
+    try {
+      await api.admin.categories.remove(id);
+      setCategories((cs) => cs.filter((x) => x.id !== id));
+    } catch {
+      /* no-op */
+    }
+  }
+
+  return (
+    <div className="mt-6">
+      <div className={`${CARD} p-5`}>
+        <h2 className="text-sm font-bold text-navy-800">Add a category</h2>
+        <div className="mt-3 flex gap-3">
+          <input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && add()}
+            placeholder="e.g. Pet Care & Walking"
+            className="flex-1 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-navy-800 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          />
+          <button
+            type="button"
+            onClick={add}
+            disabled={busy || !newName.trim()}
+            className="shrink-0 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
+          >
+            Add
+          </button>
+        </div>
+        {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
+      </div>
+
+      <ul className="mt-4 space-y-2">
+        {categories.map((c) => (
+          <li key={c.id} className={`${CARD} flex items-center justify-between gap-4 px-5 py-3`}>
+            <div className="flex items-center gap-3">
+              <span className={`text-sm font-medium ${c.isActive ? "text-navy-800" : "text-slate-400 line-through"}`}>
+                {c.name}
+              </span>
+              <span className="text-xs text-slate-400">/{c.slug}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => toggle(c)}
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-navy-800 transition hover:bg-slate-50"
+              >
+                {c.isActive ? "Hide" : "Show"}
+              </button>
+              <button
+                type="button"
+                onClick={() => remove(c.id)}
+                className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+              >
+                Delete
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

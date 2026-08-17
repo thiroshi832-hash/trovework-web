@@ -197,13 +197,15 @@ export function RoleSelect({
 
 export function SocialButtons() {
   return (
-    <button
-      type="button"
+    // A full-page navigation (not fetch): this kicks off the server-side OAuth
+    // redirect, and Google sends the browser back to /api/auth/google/callback.
+    <a
+      href="/api/auth/google"
       className="flex w-full items-center justify-center gap-2.5 rounded-lg border border-slate-200 bg-white px-4 py-3 text-base font-medium text-navy-800 transition hover:bg-slate-50"
     >
       <GoogleMark className="h-5.5 w-5.5" />
       Continue with Google
-    </button>
+    </a>
   );
 }
 

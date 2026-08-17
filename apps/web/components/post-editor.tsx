@@ -13,7 +13,13 @@ import { ApiError, api, type PostWriteResult } from "@/lib/api";
 const TITLE_MAX = 90;
 const BODY_MAX = 1200;
 
-export function PostEditor({ post }: { post?: Post }) {
+/** Only the fields the editor reads — display-only ones (updated, views) aren't needed. */
+export type EditablePost = Pick<
+  Post,
+  "id" | "title" | "description" | "category" | "priceFrom" | "status" | "blockedText"
+>;
+
+export function PostEditor({ post }: { post?: EditablePost }) {
   const [title, setTitle] = useState(post?.title ?? "");
   const [description, setDescription] = useState(post?.description ?? "");
   const [category, setCategory] = useState<string>(post?.category ?? CATEGORIES[0]);

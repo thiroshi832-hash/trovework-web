@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { createHash, randomInt } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
+import { PiiCryptoService } from "../crypto/pii-crypto.service";
 import { SMS_PROVIDER, type SmsProvider } from "./providers/sms.provider";
 import {
   VERIFICATION_PROVIDER,
@@ -29,6 +30,7 @@ export class VerificationService {
     private readonly prisma: PrismaService,
     @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
     @Inject(VERIFICATION_PROVIDER) private readonly engine: VerificationProvider,
+    private readonly pii: PiiCryptoService,
   ) {}
 
   private hash(code: string): string {
@@ -100,8 +102,9 @@ export class VerificationService {
       data: {
         userId: actor.id,
         fullName: submission.fullName,
-        dob: submission.dob,
-        idNumber: submission.idNumber,
+        // dob and idNumber are sensitive — encrypted at rest (NFR-SEC-2).
+        dob: this.pii.encrypt(submission.dob),
+        idNumber: this.pii.encrypt(submission.idNumber),
         idFrontPath: submission.idFrontPath,
         idBackPath: submission.idBackPath ?? null,
         selfiePath: submission.selfiePath,
@@ -129,12 +132,14 @@ export class VerificationService {
 
   /* --------------------------------- admin --------------------------------- */
 
-  listPending() {
-    return this.prisma.idVerification.findMany({
+  /** Pending requests with dob/idNumber decrypted for the admin reviewer. */
+  async listPending() {
+    const records = await this.prisma.idVerification.findMany({
       where: { status: "pending" },
       orderBy: { createdAt: "asc" },
       include: { user: { select: { id: true, email: true, role: true } } },
     });
+    return records.map((r) => ({ ...r, dob: this.pii.decrypt(r.dob), idNumber: this.pii.decrypt(r.idNumber) }));
   }
 
   async approve(adminId: string, verificationId: string): Promise<void> {

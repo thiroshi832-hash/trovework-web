@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DashboardHeader, Section, Stat, VerificationCard } from "@/components/dashboard-parts";
 import { ArrowRight, Lock } from "@/components/icons";
-import { ApiError, api, type SessionUser } from "@/lib/api";
+import { ApiError, api, homeFor, type SessionUser } from "@/lib/api";
 
 type Post = {
   id: string;
@@ -56,6 +56,12 @@ export function FreelancerDashboard() {
       try {
         const session = await api.me();
         if (!live) return;
+        // Wrong dashboard for this role (e.g. an admin or client landed here) —
+        // send them to their own home instead of showing freelancer-only tools.
+        if (session.role !== "freelancer") {
+          router.replace(homeFor(session.role));
+          return;
+        }
         setMe(session);
 
         // Profile may not exist yet (404) — that's a normal first-run state.
