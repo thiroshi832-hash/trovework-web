@@ -61,7 +61,31 @@ function readMessage(body: unknown, fallback: string): string {
   return fallback;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+// Endpoints where a 401 is a real credential failure (wrong password, expired
+// reset link, …), not a stale access token — never try to refresh on these.
+const NO_REFRESH = [
+  "/api/auth/refresh",
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/logout",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
+  "/api/auth/google",
+];
+
+/** One in-flight refresh shared across concurrent 401s, so we don't stampede. */
+let refreshing: Promise<boolean> | null = null;
+function refreshSession(): Promise<boolean> {
+  refreshing ??= fetch("/api/auth/refresh", { method: "POST", credentials: "include" })
+    .then((r) => r.ok)
+    .catch(() => false)
+    .finally(() => {
+      refreshing = null;
+    });
+  return refreshing;
+}
+
+async function request<T>(path: string, init?: RequestInit, retry = true): Promise<T> {
   let res: Response;
   try {
     res = await fetch(path, {
@@ -72,6 +96,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     // Offline, DNS failure, or the API is not running.
     throw new ApiError(0, "Could not reach Trovework. Check your connection and try again.");
+  }
+
+  // The 15-minute access token lapsed — rotate it with the refresh token and
+  // replay the request once, so a long-open page doesn't 401 mid-action.
+  if (res.status === 401 && retry && !NO_REFRESH.some((p) => path.startsWith(p))) {
+    if (await refreshSession()) return request<T>(path, init, false);
   }
 
   if (res.status === 204) return undefined as T;
@@ -100,12 +130,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 /** Like request(), but for multipart uploads — never sets a JSON Content-Type,
  *  so the browser can add the multipart boundary itself. */
-async function upload<T>(path: string, form: FormData): Promise<T> {
+async function upload<T>(path: string, form: FormData, retry = true): Promise<T> {
   let res: Response;
   try {
     res = await fetch(path, { method: "POST", body: form, credentials: "include" });
   } catch {
     throw new ApiError(0, "Could not reach Trovework. Check your connection and try again.");
+  }
+  if (res.status === 401 && retry && !NO_REFRESH.some((p) => path.startsWith(p))) {
+    if (await refreshSession()) return upload<T>(path, form, false);
   }
   if (res.status === 204) return undefined as T;
   const body = await res.json().catch(() => null);
