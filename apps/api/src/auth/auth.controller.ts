@@ -7,6 +7,7 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  UseFilters,
   UseGuards,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
@@ -20,6 +21,7 @@ import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { CompleteGoogleDto } from "./dto/complete-google.dto";
 import { Public } from "./decorators/public.decorator";
 import { GoogleAuthGuard } from "./guards/google-auth.guard";
+import { GoogleOAuthExceptionFilter } from "./filters/google-oauth-exception.filter";
 import { CurrentUser } from "./decorators/current-user.decorator";
 import type { AuthedUser } from "./strategies/jwt.strategy";
 
@@ -146,6 +148,7 @@ export class AuthController {
    */
   @Public()
   @UseGuards(GoogleAuthGuard)
+  @UseFilters(GoogleOAuthExceptionFilter)
   @Get("google/callback")
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     const origin = this.config.get<string>("WEB_ORIGIN", "https://trovework.com");

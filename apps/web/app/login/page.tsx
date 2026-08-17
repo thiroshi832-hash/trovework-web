@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { Portrait } from "@/components/brand";
 import { PEOPLE } from "@/lib/people";
 import { LoginForm } from "@/components/login-form";
@@ -110,7 +111,10 @@ export default function LoginPage() {
                   </Link>
                 </p>
                 <div className="mt-6">
-                  <LoginForm />
+                  {/* useSearchParams (the ?error=google banner) needs a Suspense boundary. */}
+                  <Suspense fallback={<div className="h-80 animate-pulse rounded-lg bg-slate-50" />}>
+                    <LoginForm />
+                  </Suspense>
                 </div>
               </div>
             </div>

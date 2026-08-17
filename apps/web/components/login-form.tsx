@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import {
   Divider,
@@ -36,6 +36,15 @@ export function LoginForm() {
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const router = useRouter();
+
+  // The Google callback bounces here with ?error=google when sign-in fails.
+  const params = useSearchParams();
+  const googleFailed = params.get("error") === "google";
+  const shownError =
+    formError ??
+    (googleFailed
+      ? "Google sign-in didn't complete. Please try again, or use your email and password."
+      : null);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -102,9 +111,9 @@ export function LoginForm() {
         </div>
       </div>
 
-      {formError ? (
+      {shownError ? (
         <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700">
-          {formError}
+          {shownError}
         </p>
       ) : null}
 

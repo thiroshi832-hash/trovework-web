@@ -6,6 +6,7 @@ import { AuthService } from "./auth.service";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { GoogleStrategy } from "./strategies/google.strategy";
 import { GoogleAuthGuard } from "./guards/google-auth.guard";
+import { GoogleOAuthExceptionFilter } from "./filters/google-oauth-exception.filter";
 import { ConsoleEmailProvider, EMAIL_PROVIDER } from "./providers/email.provider";
 
 @Module({
@@ -17,6 +18,7 @@ import { ConsoleEmailProvider, EMAIL_PROVIDER } from "./providers/email.provider
     // Registers the "google" passport strategy; the guard gates it on config.
     GoogleStrategy,
     GoogleAuthGuard,
+    GoogleOAuthExceptionFilter,
     // Swap ConsoleEmailProvider for an SMTP one (same interface) when creds exist.
     { provide: EMAIL_PROVIDER, useClass: ConsoleEmailProvider },
   ],
