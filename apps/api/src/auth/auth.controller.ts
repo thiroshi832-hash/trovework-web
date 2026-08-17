@@ -29,6 +29,12 @@ const ACCESS_COOKIE = "access_token";
 const REFRESH_COOKIE = "refresh_token";
 const GOOGLE_PENDING_COOKIE = "google_pending";
 
+/** Where a role lands after auth — mirrors the web client's homeFor(). */
+function homeFor(role: string): string {
+  if (role === "admin") return "/admin";
+  return role === "freelancer" ? "/dashboard/freelancer" : "/dashboard/client";
+}
+
 @Controller("auth")
 export class AuthController {
   constructor(
@@ -156,7 +162,7 @@ export class AuthController {
       const result = await this.auth.loginOrPrepareGoogle(req.user as GoogleProfile);
       if (result.kind === "authenticated") {
         this.setCookies(res, result.tokens);
-        return res.redirect(`${origin}/dashboard`);
+        return res.redirect(`${origin}${homeFor(result.role)}`);
       }
       const secure = this.config.get<string>("NODE_ENV") !== "development";
       res.cookie(GOOGLE_PENDING_COOKIE, result.pendingToken, {

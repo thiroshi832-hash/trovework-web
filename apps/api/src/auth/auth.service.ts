@@ -38,7 +38,7 @@ export interface GoogleProfile {
  * we hand back a short-lived token that carries their verified Google identity.
  */
 export type GoogleAuthResult =
-  | { kind: "authenticated"; userId: string; tokens: TokenPair }
+  | { kind: "authenticated"; userId: string; role: string; tokens: TokenPair }
   | { kind: "needs_signup"; pendingToken: string };
 
 @Injectable()
@@ -275,6 +275,7 @@ export class AuthService {
       return {
         kind: "authenticated",
         userId: existing.id,
+        role,
         tokens: await this.issueTokens(existing.id, role, existing.phoneVerified, existing.idVerified),
       };
     }
