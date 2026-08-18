@@ -224,6 +224,11 @@ export function PostEditor({ post }: { post?: EditablePost }) {
             {blocked.banned ? "Your account has been suspended" : `Post blocked — strike ${blocked.strikeCount} of 3`}
           </p>
           <p className="mt-1 text-sm leading-relaxed text-red-800">{blocked.message}</p>
+          {blocked.detectedText ? (
+            <p className="mt-2 text-sm leading-relaxed text-red-800">
+              We found: <span className="font-semibold">“{blocked.detectedText}”</span>. Remove it and try again.
+            </p>
+          ) : null}
         </div>
       ) : null}
       {formError ? (

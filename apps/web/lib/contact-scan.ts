@@ -24,7 +24,10 @@ const PATTERNS: { kind: LeakKind; re: RegExp; label: string }[] = [
   { kind: "handle", re: /@[A-Za-z0-9_]{3,}/g, label: "an @username" },
   {
     kind: "app",
-    re: /\b(telegram|telgram|whatsapp|whatsap|discord|line|wechat|signal|skype)\b/gi,
+    // MUST stay identical to the server list in apps/api/src/moderation/contact-scan.ts.
+    // If this drifts, a post the server blocks can pass the client preview, so the
+    // user earns a strike with no warning — the exact outcome this mirror exists to prevent.
+    re: /\b(telegram|telgram|whatsapp|whatsap|wsap|discord|line|wechat|signal|skype|viber|snapchat|kakaotalk)\b/gi,
     label: "a messaging app",
   },
 ];
