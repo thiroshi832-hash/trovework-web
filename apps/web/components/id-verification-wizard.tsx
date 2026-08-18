@@ -7,8 +7,11 @@ import { ArrowLeft, Check, IdUpload, ShieldCheck } from "@/components/icons";
 import { ApiError, api } from "@/lib/api";
 
 const STEPS = ["Upload ID", "Take Selfie", "Your Info", "Review"] as const;
-const IMAGE_TYPES = ["image/jpeg", "image/png"];
-const MAX_BYTES = 5 * 1024 * 1024;
+// Kept in step with the server (apps/api/src/verification/verification.controller.ts):
+// same accepted types and the same 8MB cap, so nothing that passes here is
+// rejected there and vice versa.
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_BYTES = 8 * 1024 * 1024;
 
 type Shot = { url: string; name: string };
 type Info = { fullName: string; dob: string; idNumber: string };
@@ -16,10 +19,10 @@ type Info = { fullName: string; dob: string; idNumber: string };
 /** Reads an image File to a data URL, or returns why it was rejected. */
 function readImage(file: File): Promise<{ shot?: Shot; error?: string }> {
   if (!IMAGE_TYPES.includes(file.type)) {
-    return Promise.resolve({ error: "That file type isn't supported. Upload a JPG or PNG." });
+    return Promise.resolve({ error: "That file type isn't supported. Upload a JPG, PNG, or WebP." });
   }
   if (file.size > MAX_BYTES) {
-    return Promise.resolve({ error: "That file is over the 5MB limit." });
+    return Promise.resolve({ error: "That file is over the 8MB limit." });
   }
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -387,7 +390,7 @@ export function IdVerificationWizard() {
           <StepHeader title="Upload your ID card">
             Upload a clear photo of both sides of your government-issued ID card.
             <br />
-            Supported formats: JPG, PNG. Max size: 5MB per image.
+            Supported formats: JPG, PNG, WebP. Max size: 8MB per image.
           </StepHeader>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">

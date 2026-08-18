@@ -4,6 +4,7 @@ import { NestFactory } from "@nestjs/core";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { AppModule } from "./app.module";
+import { MulterExceptionFilter } from "./common/multer-exception.filter";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -31,6 +32,10 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // Turn Multer's non-HTTP upload errors (chiefly an over-cap file) into a
+  // clean 413/400 instead of a raw 500.
+  app.useGlobalFilters(new MulterExceptionFilter());
 
   // Credentials must be allowed for the httpOnly cookies to travel.
   app.enableCors({
