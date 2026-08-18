@@ -27,22 +27,41 @@ function prismaDouble() {
     verifications,
     profiles,
     phoneChallenge: {
-      upsert: jest.fn(async ({ where, create, update }: any) => {
-        const existing = challenges[where.userId];
-        if (!existing) {
-          challenges[where.userId] = { attempts: 0, sendCount: 0, ...create }; // schema defaults
-          return challenges[where.userId];
-        }
-        // Resolve Prisma's { increment } atomic writes the way the DB would.
-        const applied = Object.fromEntries(
-          Object.entries(update).map(([k, v]: [string, any]) =>
-            v && typeof v === "object" && "increment" in v
-              ? [k, (existing[k] ?? 0) + v.increment]
-              : [k, v],
+      // Resolve Prisma's { increment } atomic writes the way the DB would.
+      __apply: (row: any, data: any) =>
+        Object.fromEntries(
+          Object.entries(data).map(([k, v]: [string, any]) =>
+            v && typeof v === "object" && "increment" in v ? [k, (row[k] ?? 0) + v.increment] : [k, v],
           ),
-        );
-        challenges[where.userId] = { ...existing, ...applied };
-        return challenges[where.userId];
+        ),
+      /**
+       * Evaluates the conditional UPDATE the service relies on. Without the
+       * predicate here the double would happily "claim" a slot the real
+       * database would refuse, and the race test would prove nothing.
+       */
+      updateMany: jest.fn(async function (this: any, { where, data }: any) {
+        const row = challenges[where.userId];
+        if (!row) return { count: 0 };
+        const matches =
+          (where.lastSentAt?.lte === undefined || row.lastSentAt <= where.lastSentAt.lte) &&
+          (where.windowStartedAt?.gte === undefined ||
+            row.windowStartedAt >= where.windowStartedAt.gte) &&
+          (where.windowStartedAt?.lt === undefined ||
+            row.windowStartedAt < where.windowStartedAt.lt) &&
+          (where.sendCount?.lt === undefined || row.sendCount < where.sendCount.lt);
+        if (!matches) return { count: 0 };
+        challenges[where.userId] = { ...row, ...db.phoneChallenge.__apply(row, data) };
+        return { count: 1 };
+      }),
+      create: jest.fn(async ({ data }: any) => {
+        if (challenges[data.userId]) {
+          // Mirror the unique index on user_id.
+          const err: any = new Error("Unique constraint failed on the fields: (`user_id`)");
+          err.code = "P2002";
+          throw err;
+        }
+        challenges[data.userId] = { attempts: 0, sendCount: 0, ...data };
+        return challenges[data.userId];
       }),
       findUnique: jest.fn(async ({ where }: any) => challenges[where.userId] ?? null),
       update: jest.fn(async ({ where, data }: any) => {
@@ -90,7 +109,7 @@ function makeService(
   db: ReturnType<typeof prismaDouble>,
   opts: { sms?: SmsProvider; engine?: VerificationProvider; env?: Record<string, string> } = {},
 ) {
-  const sms = opts.sms ?? { sendCode: jest.fn(async () => undefined) };
+  const sms = opts.sms ?? { available: true, sendCode: jest.fn(async () => undefined) };
   const engine = opts.engine ?? new ManualVerificationProvider();
   const config = {
     get: (key: string, fallback?: unknown) => opts.env?.[key] ?? fallback,
@@ -111,6 +130,19 @@ const freelancer: Actor = { id: "f1", role: "freelancer", status: "active" };
 
 describe("VerificationService — phone send limits", () => {
   const german = "+4915112345678";
+
+  it("refuses cleanly when no SMS provider is configured, without spending an allowance", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, phoneVerified: false };
+    const sms = { available: false, sendCode: jest.fn(async () => undefined) };
+    const { svc } = makeService(db, { sms });
+
+    await expect(svc.requestPhoneCode(freelancer, german)).rejects.toMatchObject({ status: 503 });
+    expect(sms.sendCode).not.toHaveBeenCalled();
+    // No challenge row, so nothing was deducted from the daily cap — the user
+    // gets their full allowance the moment a key is added.
+    expect(db.challenges.f1).toBeUndefined();
+  });
 
   it("refuses a country priced at or above the block threshold, without sending", async () => {
     const db = prismaDouble();
@@ -239,10 +271,75 @@ describe("VerificationService — phone send limits", () => {
     expect(sms.sendCode).toHaveBeenCalledTimes(2);
   });
 
+  /*
+   * The limits are worthless if firing two requests at once slips both past
+   * them. These fail against a read-then-write implementation, where both calls
+   * observe the same pre-send state before either has written.
+   */
+  it("sends once when two requests arrive together", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, phoneVerified: false };
+    const { svc, sms } = makeService(db);
+
+    const results = await Promise.allSettled([
+      svc.requestPhoneCode(freelancer, german),
+      svc.requestPhoneCode(freelancer, german),
+    ]);
+
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((r) => r.status === "rejected")).toHaveLength(1);
+    expect(sms.sendCode).toHaveBeenCalledTimes(1);
+    expect(db.challenges.f1.sendCount).toBe(1);
+  });
+
+  it("does not let a parallel burst outrun the daily cap", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, phoneVerified: false };
+    const { svc, sms } = makeService(db, {
+      // No cooldown, so the daily cap is the only thing holding the line.
+      env: { PHONE_RESEND_COOLDOWN_SECONDS: "0", PHONE_MAX_SENDS_PER_DAY: "3" },
+    });
+
+    // One send first: a burst starting from no row at all contends on the
+    // insert instead, where the unique index lets exactly one through and the
+    // rest are refused — safe, but it tests a different thing.
+    await svc.requestPhoneCode(freelancer, german);
+
+    const results = await Promise.allSettled(
+      Array.from({ length: 10 }, () => svc.requestPhoneCode(freelancer, german)),
+    );
+
+    // Two slots were left, so two of the ten get through and no more.
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(2);
+    expect(sms.sendCode).toHaveBeenCalledTimes(3);
+    expect(db.challenges.f1.sendCount).toBe(3);
+  });
+
+  it("lets only one of a first-time burst through, and refuses the rest", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, phoneVerified: false };
+    const { svc, sms } = makeService(db, {
+      env: { PHONE_RESEND_COOLDOWN_SECONDS: "0", PHONE_MAX_SENDS_PER_DAY: "5" },
+    });
+
+    // With no row yet, all five race the insert. The unique index picks one
+    // winner; the losers are turned away rather than retried, which errs
+    // towards not spending money.
+    const results = await Promise.allSettled(
+      Array.from({ length: 5 }, () => svc.requestPhoneCode(freelancer, german)),
+    );
+
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(sms.sendCode).toHaveBeenCalledTimes(1);
+    for (const r of results.filter((x) => x.status === "rejected")) {
+      expect((r as PromiseRejectedResult).reason).toMatchObject({ status: 429 });
+    }
+  });
+
   it("charges the allowance even when the gateway rejects the send", async () => {
     const db = prismaDouble();
     db.users.f1 = { ...freelancer, phoneVerified: false };
-    const sms = { sendCode: jest.fn(async () => { throw new Error("gateway down"); }) };
+    const sms = { available: true, sendCode: jest.fn(async () => { throw new Error("gateway down"); }) };
     const { svc } = makeService(db, { sms });
 
     await expect(svc.requestPhoneCode(freelancer, german)).rejects.toThrow("gateway down");

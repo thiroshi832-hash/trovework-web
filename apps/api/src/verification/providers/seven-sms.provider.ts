@@ -43,6 +43,8 @@ export class SmsSendError extends Error {
  */
 @Injectable()
 export class SevenSmsProvider implements SmsProvider {
+  /** Only constructed when a key is present, so it can always attempt a send. */
+  readonly available = true;
   private readonly log = new Logger("SevenSms");
 
   constructor(private readonly config: ConfigService) {}

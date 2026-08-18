@@ -6,6 +6,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { createHash, randomInt } from "node:crypto";
@@ -27,6 +28,11 @@ const MAX_CODE_ATTEMPTS = 5;
 const DEFAULT_RESEND_COOLDOWN_S = 30;
 const DEFAULT_MAX_SENDS_PER_DAY = 5;
 const SEND_WINDOW_MS = 24 * 3_600_000;
+
+/** Prisma's unique-constraint code, narrowed without importing the namespace. */
+function isUniqueViolation(err: unknown): boolean {
+  return typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002";
+}
 
 export interface Actor {
   id: string;
@@ -81,6 +87,15 @@ export class VerificationService {
   ): Promise<{ sent: true; resendAfterSeconds: number }> {
     this.assertActive(actor);
 
+    // Checked before anything else: with no SMS credentials configured there is
+    // nothing to send, and refusing here means the attempt costs the user
+    // nothing from their daily allowance.
+    if (!this.sms.available) {
+      throw new ServiceUnavailableException(
+        "Phone verification is temporarily unavailable. Please try again later.",
+      );
+    }
+
     const parsed = parsePhone(phone);
     // No country means no rate, and no rate means we cannot agree to pay for
     // it. Reported as an invalid number rather than a blocked country, because
@@ -95,7 +110,87 @@ export class VerificationService {
     }
 
     const now = Date.now();
-    const existing = await this.prisma.phoneChallenge.findUnique({ where: { userId: actor.id } });
+    const sentAt = new Date(now);
+    const cooldownCutoff = new Date(now - this.resendCooldownMs);
+    const windowFloor = new Date(now - SEND_WINDOW_MS);
+
+    const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
+    const codeFields = {
+      phone: parsed.e164,
+      codeHash: this.hash(code),
+      expiresAt: new Date(now + CODE_TTL_MS),
+      attempts: 0,
+      lastSentAt: sentAt,
+    };
+
+    /*
+     * Claiming a send slot has to be one atomic statement, not a read followed
+     * by a write. Two requests that arrive together would otherwise both read
+     * the same `lastSentAt`, both conclude the cooldown had passed, and both
+     * send — so the limits could be bypassed simply by firing in parallel,
+     * which is precisely the abuse they exist to stop.
+     *
+     * Each branch below is a single conditional UPDATE, so the database decides
+     * the winner. The branches are mutually exclusive on `windowStartedAt`, and
+     * every one of them requires the cooldown to have elapsed.
+     */
+
+    // Still inside the 24h window, with allowance left.
+    let claimed = (
+      await this.prisma.phoneChallenge.updateMany({
+        where: {
+          userId: actor.id,
+          lastSentAt: { lte: cooldownCutoff },
+          windowStartedAt: { gte: windowFloor },
+          sendCount: { lt: this.maxSendsPerWindow },
+        },
+        data: { ...codeFields, sendCount: { increment: 1 } },
+      })
+    ).count;
+
+    // The window has rolled over, so the allowance restarts. Note this keys off
+    // time only — changing the phone number never resets the count.
+    if (!claimed) {
+      claimed = (
+        await this.prisma.phoneChallenge.updateMany({
+          where: {
+            userId: actor.id,
+            lastSentAt: { lte: cooldownCutoff },
+            windowStartedAt: { lt: windowFloor },
+          },
+          data: { ...codeFields, sendCount: 1, windowStartedAt: sentAt },
+        })
+      ).count;
+    }
+
+    // First code this user has ever asked for. The unique index on user_id is
+    // what makes the race safe: a concurrent create loses with P2002 and is
+    // refused below rather than sending a second message.
+    if (!claimed) {
+      try {
+        await this.prisma.phoneChallenge.create({
+          data: { userId: actor.id, ...codeFields, sendCount: 1, windowStartedAt: sentAt },
+        });
+        claimed = 1;
+      } catch (err) {
+        if (!isUniqueViolation(err)) throw err;
+      }
+    }
+
+    if (!claimed) await this.refuseSend(actor.id, now);
+
+    await this.sms.sendCode(parsed.e164, code);
+    return { sent: true, resendAfterSeconds: Math.ceil(this.resendCooldownMs / 1000) };
+  }
+
+  /**
+   * Works out which limit turned the request away, so the message and the wait
+   * are the real ones. Re-reads because the claim above deliberately says only
+   * yes or no — asking the database *why* is worth one extra query on a path
+   * that is, by definition, not sending anything.
+   */
+  private async refuseSend(userId: string, now: number): Promise<never> {
+    const existing = await this.prisma.phoneChallenge.findUnique({ where: { userId } });
 
     if (existing) {
       const waitedMs = now - existing.lastSentAt.getTime();
@@ -115,36 +210,13 @@ export class VerificationService {
       }
     }
 
-    // A fresh 24h window either because this is the first send or the old one
-    // has run out. Note the count is *not* reset when the number changes.
-    const windowExpired =
-      !existing || now - existing.windowStartedAt.getTime() >= SEND_WINDOW_MS;
-
-    const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
-    const sentAt = new Date(now);
-    const codeFields = {
-      phone: parsed.e164,
-      codeHash: this.hash(code),
-      expiresAt: new Date(now + CODE_TTL_MS),
-      attempts: 0,
-      lastSentAt: sentAt,
-    };
-
-    await this.prisma.phoneChallenge.upsert({
-      where: { userId: actor.id },
-      create: {
-        userId: actor.id,
-        ...codeFields,
-        sendCount: 1,
-        windowStartedAt: sentAt,
-      },
-      update: windowExpired
-        ? { ...codeFields, sendCount: 1, windowStartedAt: sentAt }
-        : { ...codeFields, sendCount: { increment: 1 } },
-    });
-
-    await this.sms.sendCode(parsed.e164, code);
-    return { sent: true, resendAfterSeconds: Math.ceil(this.resendCooldownMs / 1000) };
+    // Neither limit looks breached, so a request that arrived alongside this
+    // one took the slot in between. Treat it as the cooldown, which is what it
+    // effectively is.
+    this.tooManyRequests(
+      "Please wait before requesting another code.",
+      Math.ceil(this.resendCooldownMs / 1000),
+    );
   }
 
   /** 429 with the wait attached, so the UI can count down instead of guessing. */

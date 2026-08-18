@@ -55,6 +55,17 @@ services:
       ID_VERIFY_ENGINE: ${ID_VERIFY_ENGINE:-manual}
       ID_VERIFY_VERIFY_MIN: ${ID_VERIFY_VERIFY_MIN:-0.6}
       ID_VERIFY_REJECT_MAX: ${ID_VERIFY_REJECT_MAX:-0.4}
+
+      # Verification SMS (seven.io). Optional: leave it unset and the app runs
+      # normally with phone verification switched off — that one endpoint
+      # answers 503 instead of pretending a code was sent. Add the key when the
+      # account exists and the feature turns itself on, no code change needed.
+      SEVEN_API_KEY: ${SEVEN_API_KEY:-}
+      SEVEN_SMS_FROM: ${SEVEN_SMS_FROM:-Trovework}
+      # Cost controls; see apps/api/src/verification/sms-pricing.ts for the
+      # blocked-destination list.
+      PHONE_RESEND_COOLDOWN_SECONDS: ${PHONE_RESEND_COOLDOWN_SECONDS:-30}
+      PHONE_MAX_SENDS_PER_DAY: ${PHONE_MAX_SENDS_PER_DAY:-5}
       # Public assets (profile photos) go here; nginx serves the same volume at
       # /uploads. SECURED_DIR (ID images/selfies) is never served.
       PUBLIC_DIR: /app/storage
