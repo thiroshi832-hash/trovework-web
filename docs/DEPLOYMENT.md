@@ -297,6 +297,29 @@ EOF
 chmod 600 .env
 ```
 
+`SEVEN_API_KEY` is **optional and deliberately absent above.** Without it the site runs normally
+with phone verification switched off: `POST /api/verify/phone/request` answers 503 and the rest of
+the app — sign-up, browse, chat, ID verification — is untouched. It is never faked; nothing reports
+a code as sent that nobody will receive.
+
+When you have a seven.io account, add the key and restart the API; the feature turns itself on with
+no code change:
+
+```bash
+cd /srv/trovework
+echo 'SEVEN_API_KEY=your-key-here' >> .env
+docker compose up -d api
+```
+
+Get the key from app.seven.io -> Developer -> API keys, and keep the account topped up: a send costs
+from EUR 0.075.
+
+Two optional knobs default sensibly and only need setting to override:
+`PHONE_RESEND_COOLDOWN_SECONDS` (30) and `PHONE_MAX_SENDS_PER_DAY` (5). Expensive destinations are
+refused outright — the list is derived from a price table in
+`apps/api/src/verification/sms-pricing.ts`, currently anything at or above EUR 0.10 plus a policy
+entry for India.
+
 `PII_ENCRYPTION_KEY` encrypts ID numbers and dates of birth at rest (NFR-SEC-2). It must decode to
 exactly 32 bytes — `openssl rand -hex 32` does that. **Do not rotate it after go-live** without a
 re-encryption step: existing ID records were sealed with the old key and would become unreadable
