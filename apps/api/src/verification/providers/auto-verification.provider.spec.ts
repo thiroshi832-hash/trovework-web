@@ -1,5 +1,6 @@
 import { ConfigService } from "@nestjs/config";
 import { AutoVerificationProvider, decide, type Signals, type Thresholds } from "./auto-verification.provider";
+import type { MrzFields } from "./mrz-check";
 import type { IdSubmission } from "./verification.provider";
 
 const T: Thresholds = { verifyMin: 0.6, rejectMax: 0.4, minSelfieFaceRatio: 0.12 };
@@ -72,12 +73,16 @@ class StubProvider extends AutoVerificationProvider {
       name: boolean | null;
       faceRatio?: number;
       dup?: boolean;
+      mrz?: MrzFields | null;
     },
   ) {
     super({ get: (_k: string, d?: string) => d } as unknown as ConfigService);
   }
   protected async sameImage(): Promise<boolean> {
     return this.stub.dup ?? false;
+  }
+  protected async readMrz(): Promise<MrzFields | null> {
+    return this.stub.mrz ?? null;
   }
   protected async faceDistance(): Promise<{ distance: number; selfieFaceRatio: number } | null> {
     if (typeof this.stub.distance === "function") this.stub.distance();
@@ -132,5 +137,25 @@ describe("AutoVerificationProvider.assess", () => {
   it("reviews a too-small selfie face even on a close distance", async () => {
     const res = await new StubProvider({ distance: 0.2, name: true, faceRatio: 0.05 }).assess(submission);
     expect(res.decision).toBe("review");
+  });
+
+  it("reviews when the MRZ contradicts the entered details, despite a good face match", async () => {
+    // submission.dob is 1990-04-12 (900412); the MRZ says 1980-01-01.
+    const res = await new StubProvider({
+      distance: 0.3,
+      name: true,
+      mrz: { birthDate: "800101", documentNumber: "AB123456", firstName: "MARISOL", lastName: "RIVERA" },
+    }).assess(submission);
+    expect(res.decision).toBe("review");
+    expect(res.reason).toMatch(/machine-readable/i);
+  });
+
+  it("still verifies when the MRZ agrees with the entered details", async () => {
+    const res = await new StubProvider({
+      distance: 0.3,
+      name: true,
+      mrz: { birthDate: "900412", documentNumber: "AB123456", firstName: "MARISOL", lastName: "RIVERA" },
+    }).assess(submission);
+    expect(res.decision).toBe("verified");
   });
 });

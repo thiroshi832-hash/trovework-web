@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { Assessment, IdSubmission, VerificationProvider } from "./verification.provider";
+import { crossCheckMrz, findMrzLines, isDataMismatch, type MrzFields } from "./mrz-check";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- the ML libs are loaded
    dynamically and untyped; everything they touch is isolated in this file. */
@@ -19,6 +20,8 @@ export interface Signals {
   duplicateImage?: boolean;
   /** Selfie face width as a fraction of the selfie width; gates match reliability. */
   selfieFaceRatio?: number | null;
+  /** The ID's checksum-valid MRZ contradicts the entered DOB / doc number / name. */
+  dataMismatch?: boolean;
 }
 
 export interface Thresholds {
@@ -42,6 +45,15 @@ export function decide(signals: Signals, t: Thresholds): Assessment {
       decision: "rejected",
       score: 0,
       reason: "The selfie is the same image as the ID photo. Please take a live selfie.",
+    };
+  }
+  // The ID's own machine-readable data disagreeing with what was typed is a
+  // strong signal to stop and have a human look — never auto-verify past it.
+  if (signals.dataMismatch) {
+    return {
+      decision: "review",
+      score: null,
+      reason: "The ID's machine-readable details didn't match what was entered — sent for manual review.",
     };
   }
   if (!signals.faceDetected || signals.distance == null) {
@@ -116,16 +128,29 @@ export class AutoVerificationProvider implements VerificationProvider, OnModuleI
 
       const match = await this.faceDistance(submission.idFrontPath, submission.selfiePath);
       const nameMatch = await this.ocrNameMatch(submission.idFrontPath, submission.fullName);
+      const mrz = await this.readMrz(submission.idFrontPath, submission.idBackPath);
+      const dataMismatch = mrz
+        ? isDataMismatch(
+            crossCheckMrz(mrz, {
+              idNumber: submission.idNumber,
+              dob: submission.dob,
+              fullName: submission.fullName,
+            }),
+          )
+        : false;
+
       const signals: Signals = {
         faceDetected: match != null,
         distance: match?.distance ?? null,
         nameMatch,
         selfieFaceRatio: match?.selfieFaceRatio ?? null,
+        dataMismatch,
       };
       const result = decide(signals, this.thresholds);
       this.log.log(
         `ID check: detector=${this.detector} distance=${signals.distance?.toFixed(3) ?? "n/a"} ` +
           `selfieFace=${signals.selfieFaceRatio?.toFixed(2) ?? "n/a"} name=${nameMatch ?? "n/a"} ` +
+          `mrz=${mrz ? (dataMismatch ? "mismatch" : "ok") : "n/a"} ` +
           `score=${result.score?.toFixed(3) ?? "n/a"} -> ${result.decision}`,
       );
       return result;
@@ -162,22 +187,62 @@ export class AutoVerificationProvider implements VerificationProvider, OnModuleI
     };
   }
 
-  protected async ocrNameMatch(idPath: string, fullName: string): Promise<boolean | null> {
+  /** OCR one image to raw text, or null if OCR is unavailable / errors. */
+  protected async ocrText(imagePath: string): Promise<string | null> {
     try {
       const tesseract: any = await import("tesseract.js");
       const worker = await tesseract.createWorker("eng", 1, { cachePath: "/tmp/tessdata" });
       try {
-        const { data } = await worker.recognize(idPath);
-        const text = String(data?.text ?? "").toLowerCase();
-        const tokens = fullName.toLowerCase().split(/\s+/).filter((tk) => tk.length >= 2);
-        if (!tokens.length || !text) return null;
-        const hits = tokens.filter((tk) => text.includes(tk)).length;
-        return hits / tokens.length >= 0.5;
+        const { data } = await worker.recognize(imagePath);
+        return String(data?.text ?? "");
       } finally {
         await worker.terminate();
       }
     } catch (err) {
-      this.log.warn(`OCR unavailable, skipping the name check: ${(err as Error)?.message}`);
+      this.log.warn(`OCR unavailable: ${(err as Error)?.message}`);
+      return null;
+    }
+  }
+
+  protected async ocrNameMatch(idPath: string, fullName: string): Promise<boolean | null> {
+    const text = (await this.ocrText(idPath))?.toLowerCase();
+    if (!text) return null;
+    const tokens = fullName.toLowerCase().split(/\s+/).filter((tk) => tk.length >= 2);
+    if (!tokens.length) return null;
+    const hits = tokens.filter((tk) => text.includes(tk)).length;
+    return hits / tokens.length >= 0.5;
+  }
+
+  /**
+   * Reads the ID's MRZ (usually on the back of a card, the front of a passport)
+   * and returns its fields ONLY when the `mrz` parser confirms every checksum —
+   * so a bad OCR read can never masquerade as valid data and wrongly contradict
+   * an honest applicant. Returns null when there's no MRZ or it can't be trusted.
+   */
+  protected async readMrz(idFrontPath: string, idBackPath?: string): Promise<MrzFields | null> {
+    try {
+      const { parse }: any = await import("mrz");
+      // Back first — that's where an ID card's MRZ normally lives.
+      const paths = [idBackPath, idFrontPath].filter(Boolean) as string[];
+      for (const p of paths) {
+        const text = await this.ocrText(p);
+        if (!text) continue;
+        const lines = findMrzLines(text);
+        if (!lines) continue;
+        const result = parse(lines);
+        if (result?.valid) {
+          const f = result.fields;
+          return {
+            documentNumber: f.documentNumber,
+            birthDate: f.birthDate,
+            firstName: f.firstName,
+            lastName: f.lastName,
+          };
+        }
+      }
+      return null;
+    } catch (err) {
+      this.log.warn(`MRZ check unavailable: ${(err as Error)?.message}`);
       return null;
     }
   }

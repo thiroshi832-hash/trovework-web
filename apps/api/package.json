@@ -69,6 +69,7 @@
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-backend-wasm": "^4.22.0",
     "@vladmandic/face-api": "^1.7.15",
+    "mrz": "^5.0.2",
     "tesseract.js": "^7.0.0"
   }
 }
