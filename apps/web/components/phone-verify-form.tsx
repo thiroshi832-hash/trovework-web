@@ -6,8 +6,10 @@ import { useEffect, useState, type FormEvent } from "react";
 import { DIAL_CODES, Field } from "@/components/auth-fields";
 import { ArrowLeft, ChevronDown } from "@/components/icons";
 import { ApiError, api } from "@/lib/api";
+import { useSession } from "@/lib/use-session";
 
 export function PhoneVerifyForm() {
+  const { user, ready } = useSession();
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [dial, setDial] = useState(DIAL_CODES[0].code);
   const [number, setNumber] = useState("");
@@ -80,6 +82,35 @@ export function PhoneVerifyForm() {
       setFormError(err instanceof ApiError ? err.message : "Couldn't verify the code. Try again.");
       setBusy(false);
     }
+  }
+
+  // With no SMS provider linked, phone verification is switched off — sending a
+  // code would only 503. Rather than a dead-end form, tell the user it isn't
+  // needed and point them at the step that still is (identity).
+  if (ready && user && user.phoneVerificationRequired === false) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl">
+          Phone verification isn&apos;t required
+        </h1>
+        <p className="mt-3 text-base leading-relaxed text-slate-500">
+          You don&apos;t need to verify a phone number right now. Verify your identity to publish
+          your profile and posts.
+        </p>
+        <Link
+          href="/verify/id"
+          className="mt-7 inline-block rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
+        >
+          Verify my identity
+        </Link>
+        <Link
+          href="/dashboard/freelancer"
+          className="mt-4 flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-navy-800"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to dashboard
+        </Link>
+      </div>
+    );
   }
 
   if (step === "code") {
