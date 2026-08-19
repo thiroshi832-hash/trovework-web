@@ -121,6 +121,7 @@ export function ClientDashboard() {
         <VerificationCard
           phoneVerified={me.phoneVerified}
           idVerified={me.idVerified}
+          phoneRequired={me.phoneVerificationRequired ?? true}
           blockedConsequence="You can browse freely, but seeing a freelancer's contact details or starting a chat needs identity verification."
         />
 

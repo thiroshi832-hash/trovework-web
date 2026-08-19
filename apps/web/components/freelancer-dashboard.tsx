@@ -128,6 +128,7 @@ export function FreelancerDashboard() {
         <VerificationCard
           phoneVerified={me.phoneVerified}
           idVerified={me.idVerified}
+          phoneRequired={me.phoneVerificationRequired ?? true}
           blockedConsequence="Your profile stays out of search results until your identity is verified, so clients cannot find or contact you yet."
         />
 

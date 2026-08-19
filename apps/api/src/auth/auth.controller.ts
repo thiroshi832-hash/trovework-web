@@ -19,6 +19,7 @@ import { LoginDto } from "./dto/login.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { CompleteGoogleDto } from "./dto/complete-google.dto";
+import { phoneVerificationRequired } from "../verification/phone-policy";
 import { Public } from "./decorators/public.decorator";
 import { GoogleAuthGuard } from "./guards/google-auth.guard";
 import { GoogleOAuthExceptionFilter } from "./filters/google-oauth-exception.filter";
@@ -200,6 +201,9 @@ export class AuthController {
   /** Who am I — the frontend's session check. */
   @Get("me")
   async me(@CurrentUser() user: AuthedUser) {
-    return this.auth.findById(user.id);
+    const me = await this.auth.findById(user.id);
+    // A global flag, not a per-user one: the client uses it to stop presenting
+    // phone verification as a required step when no SMS provider is linked.
+    return { ...me, phoneVerificationRequired: phoneVerificationRequired(this.config) };
   }
 }

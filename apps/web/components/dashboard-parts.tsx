@@ -90,12 +90,21 @@ export function VerificationCard({
   phoneVerified,
   idVerified,
   blockedConsequence,
+  phoneRequired = true,
 }: {
   phoneVerified: boolean;
   idVerified: boolean;
   blockedConsequence: string;
+  /** When false (no SMS provider linked), the phone step is hidden and not gating. */
+  phoneRequired?: boolean;
 }) {
-  const done = phoneVerified && idVerified;
+  const steps = [
+    ...(phoneRequired ? [{ label: "Phone number", ok: phoneVerified, href: "/verify/phone" }] : []),
+    { label: "Identity document", ok: idVerified, href: "/verify/id" },
+  ];
+  const done = steps.every((s) => s.ok);
+  const nextHref = steps.find((s) => !s.ok)?.href ?? "/verify/id";
+  const phoneStepPending = phoneRequired && !phoneVerified;
 
   return (
     <section
@@ -115,10 +124,7 @@ export function VerificationCard({
             </p>
 
             <ul className="mt-4 space-y-2">
-              {[
-                { label: "Phone number", ok: phoneVerified, href: "/verify/phone" },
-                { label: "Identity document", ok: idVerified, href: "/verify/id" },
-              ].map((s) => (
+              {steps.map((s) => (
                 <li key={s.label} className="flex items-center gap-2.5 text-sm">
                   <span
                     className={`grid h-5 w-5 shrink-0 place-items-center rounded-full ${
@@ -139,10 +145,10 @@ export function VerificationCard({
 
         {!done ? (
           <Link
-            href={phoneVerified ? "/verify/id" : "/verify/phone"}
+            href={nextHref}
             className="shrink-0 rounded-lg bg-amber-600 px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-amber-700"
           >
-            {phoneVerified ? "Verify my identity" : "Verify my phone"}
+            {phoneStepPending ? "Verify my phone" : "Verify my identity"}
           </Link>
         ) : null}
       </div>

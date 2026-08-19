@@ -1,4 +1,5 @@
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
+import type { ConfigService } from "@nestjs/config";
 import { PostsService, type PostAuthor } from "./posts.service";
 import type { PrismaService } from "../prisma/prisma.service";
 
@@ -53,8 +54,9 @@ function prismaDouble() {
   return store;
 }
 
-function makeService(db: ReturnType<typeof prismaDouble>) {
-  return new PostsService(db as unknown as PrismaService);
+function makeService(db: ReturnType<typeof prismaDouble>, env: Record<string, string> = {}) {
+  const config = { get: (key: string) => env[key] } as unknown as ConfigService;
+  return new PostsService(db as unknown as PrismaService, config);
 }
 
 const verifiedFreelancer: PostAuthor = {
@@ -107,6 +109,22 @@ describe("PostsService", () => {
       const db = prismaDouble();
       const author: PostAuthor = { ...verifiedFreelancer, idVerified: false };
       await expect(makeService(db).create(author, CLEAN)).rejects.toThrow(/identity/i);
+    });
+
+    it("allows publishing without phone when phone verification is turned off", async () => {
+      const db = prismaDouble();
+      db.users.u1 = { strikeCount: 0 };
+      const author: PostAuthor = { ...verifiedFreelancer, phoneVerified: false, idVerified: true };
+      const res = await makeService(db, { PHONE_VERIFICATION_REQUIRED: "false" }).create(author, CLEAN);
+      expect(res.post.status).toBe("active");
+    });
+
+    it("still requires ID when phone verification is turned off", async () => {
+      const db = prismaDouble();
+      const author: PostAuthor = { ...verifiedFreelancer, phoneVerified: false, idVerified: false };
+      await expect(
+        makeService(db, { PHONE_VERIFICATION_REQUIRED: "false" }).create(author, CLEAN),
+      ).rejects.toThrow(/identity/i);
     });
 
     it("refuses a client outright", async () => {

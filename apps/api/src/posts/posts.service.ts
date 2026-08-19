@@ -1,7 +1,9 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { Prisma, type Post, type PostStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { scanPost } from "../moderation/contact-scan";
+import { phoneVerificationRequired } from "../verification/phone-policy";
 import { CreatePostDto } from "./dto/create-post.dto";
 import { UpdatePostDto } from "./dto/update-post.dto";
 
@@ -29,7 +31,10 @@ export interface WriteResult {
 
 @Injectable()
 export class PostsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
   /* --------------------------------- create -------------------------------- */
 
@@ -150,9 +155,15 @@ export class PostsService {
     if (author.role !== "freelancer") throw new ForbiddenException("Only freelancers can create posts.");
   }
 
-  /** The publish gate: a live post needs both verifications (amended FR-A-3). */
+  /**
+   * The publish gate: a live post needs ID verification, and phone verification
+   * too when it's required (it isn't when no SMS provider is linked — see
+   * phoneVerificationRequired — otherwise publishing would be impossible).
+   */
   private assertCanPublish(author: PostAuthor) {
-    if (!author.phoneVerified) throw new ForbiddenException("Verify your phone number before publishing.");
+    if (phoneVerificationRequired(this.config) && !author.phoneVerified) {
+      throw new ForbiddenException("Verify your phone number before publishing.");
+    }
     if (!author.idVerified) throw new ForbiddenException("Verify your identity before publishing.");
   }
 
