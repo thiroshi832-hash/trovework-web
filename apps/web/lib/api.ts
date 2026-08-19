@@ -283,6 +283,8 @@ export const api = {
     blockedPosts: () => request<unknown[]>("/api/admin/posts/blocked"),
     bannedUsers: () => request<unknown[]>("/api/admin/users/banned"),
     reinstate: (userId: string) => request<void>(`/api/admin/users/${userId}/reinstate`, { method: "POST" }),
+    users: () => request<unknown[]>("/api/admin/users"),
+    deleteUser: (userId: string) => request<void>(`/api/admin/users/${userId}`, { method: "DELETE" }),
     categories: {
       list: () => request<Category[]>("/api/admin/categories"),
       create: (input: { name: string; slug?: string; sortOrder?: number; isActive?: boolean }) =>

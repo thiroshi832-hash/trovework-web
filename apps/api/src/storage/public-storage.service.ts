@@ -49,4 +49,15 @@ export class PublicStorageService {
     if (relative.includes("..")) return;
     await rm(join(this.root, relative), { force: true }).catch(() => undefined);
   }
+
+  /** Best-effort removal of a user's whole asset folder (used when deleting them). */
+  async removeUserDir(userId: string): Promise<void> {
+    if (!isSafeSegment(userId)) return;
+    await rm(join(this.root, userId), { recursive: true, force: true }).catch(() => undefined);
+  }
+}
+
+/** A single, non-traversing path segment — a user id is a UUID, but be defensive. */
+export function isSafeSegment(seg: string): boolean {
+  return !!seg && !seg.includes("..") && !seg.includes("/") && !seg.includes("\\");
 }

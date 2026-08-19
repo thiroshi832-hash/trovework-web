@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Check, Lock, ShieldCheck } from "@/components/icons";
 import { ApiError, api, type Category } from "@/lib/api";
 
-const TABS = ["ID review", "Categories", "Violations", "Blocked posts", "Banned users"] as const;
+const TABS = ["ID review", "Users", "Categories", "Violations", "Blocked posts", "Banned users"] as const;
 type Tab = (typeof TABS)[number];
 
 const CARD = "rounded-2xl border border-slate-200 bg-white";
@@ -41,6 +41,16 @@ interface BannedUser {
   role: string;
   strikeCount: number;
 }
+interface AdminUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  status: string;
+  phoneVerified: boolean;
+  idVerified: boolean;
+  createdAt: string;
+}
 
 function initialsOf(name: string): string {
   return name.split(/\s+/).map((p) => p[0] ?? "").join("").slice(0, 2).toUpperCase() || "?";
@@ -70,6 +80,7 @@ export function AdminPanel() {
   const [violations, setViolations] = useState<Violation[]>([]);
   const [blocked, setBlocked] = useState<BlockedPost[]>([]);
   const [banned, setBanned] = useState<BannedUser[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -83,14 +94,16 @@ export function AdminPanel() {
       api.admin.blockedPosts(),
       api.admin.bannedUsers(),
       api.admin.categories.list(),
+      api.admin.users(),
     ])
-      .then(([v, vi, bp, bu, cats]) => {
+      .then(([v, vi, bp, bu, cats, us]) => {
         if (!live) return;
         setQueue(v as Verification[]);
         setViolations(vi as Violation[]);
         setBlocked(bp as BlockedPost[]);
         setBanned(bu as BannedUser[]);
         setCategories(cats);
+        setUsers(us as AdminUser[]);
         setLoaded(true);
       })
       .catch(() => {
@@ -103,6 +116,7 @@ export function AdminPanel() {
 
   const counts: Record<Tab, number> = {
     "ID review": queue.length,
+    Users: users.length,
     Categories: categories.length,
     Violations: violations.length,
     "Blocked posts": blocked.length,
@@ -129,6 +143,23 @@ export function AdminPanel() {
       setBanned((b) => b.filter((u) => u.id !== id));
     } catch {
       /* no-op */
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function deleteUser(u: AdminUser) {
+    // Deleting is permanent and cascades away all their data — make it deliberate.
+    if (!window.confirm(`Permanently delete ${u.fullName} (${u.email})? This removes their profile, posts, chats and files, and can't be undone.`)) {
+      return;
+    }
+    setBusyId(u.id);
+    try {
+      await api.admin.deleteUser(u.id);
+      setUsers((list) => list.filter((x) => x.id !== u.id));
+      setBanned((list) => list.filter((x) => x.id !== u.id));
+    } catch (err) {
+      window.alert(err instanceof ApiError ? err.message : "Couldn't delete that user. Try again.");
     } finally {
       setBusyId(null);
     }
@@ -348,10 +379,61 @@ export function AdminPanel() {
         </ul>
       ) : null}
 
+      {/* ------------------------------- users ------------------------------- */}
+      {loaded && tab === "Users" ? (
+        <ul className="mt-6 space-y-4">
+          {users.map((u) => (
+            <li key={u.id} className={`${CARD} p-5`}>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex min-w-0 items-center gap-4">
+                  <Avatar name={u.fullName} muted={u.status !== "active"} className="h-10 w-10 text-sm" />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-navy-800">{u.fullName}</p>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[0.625rem] font-medium text-slate-500">
+                        {u.role}
+                      </span>
+                      {u.status !== "active" ? (
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[0.625rem] font-medium text-red-700">
+                          {u.status}
+                        </span>
+                      ) : null}
+                      {u.idVerified ? (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[0.625rem] font-medium text-emerald-700">
+                          ID ✓
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1 truncate text-sm text-slate-500">
+                      {u.email} · joined {when(u.createdAt)}
+                    </p>
+                  </div>
+                </div>
+                {u.role === "admin" ? (
+                  <span className="shrink-0 text-xs text-slate-400">Admin — protected</span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={busyId === u.id}
+                    onClick={() => deleteUser(u)}
+                    className="shrink-0 rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                  >
+                    {busyId === u.id ? "Deleting…" : "Delete"}
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+          {users.length === 0 ? (
+            <li className={`${CARD} p-10 text-center text-sm text-slate-500`}>No users yet.</li>
+          ) : null}
+        </ul>
+      ) : null}
+
       <p className="mt-8 flex items-start gap-2 text-sm leading-relaxed text-slate-500">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
         Every action here is enforced server-side. Strikes and the three-strike ban are applied
-        automatically; this screen is for ID review, the category taxonomy, and oversight.
+        automatically; this screen is for ID review, users, the category taxonomy, and oversight.
       </p>
     </div>
   );

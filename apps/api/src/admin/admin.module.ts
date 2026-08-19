@@ -1,9 +1,11 @@
 import { Module } from "@nestjs/common";
 import { AdminModerationController } from "./admin-moderation.controller";
 import { AdminModerationService } from "./admin-moderation.service";
+import { PublicStorageService } from "../storage/public-storage.service";
+import { SecuredStorageService } from "../storage/secured-storage.service";
 
 @Module({
   controllers: [AdminModerationController],
-  providers: [AdminModerationService],
+  providers: [AdminModerationService, PublicStorageService, SecuredStorageService],
 })
 export class AdminModule {}

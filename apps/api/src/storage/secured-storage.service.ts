@@ -1,8 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { isSafeSegment } from "./public-storage.service";
 
 export interface StoredFile {
   buffer: Buffer;
@@ -35,5 +36,11 @@ export class SecuredStorageService {
     const full = join(dir, name);
     await writeFile(full, file.buffer, { mode: 0o600 });
     return full;
+  }
+
+  /** Best-effort removal of a user's whole secured folder (used when deleting them). */
+  async removeUserDir(userId: string): Promise<void> {
+    if (!isSafeSegment(userId)) return;
+    await rm(join(this.root, userId), { recursive: true, force: true }).catch(() => undefined);
   }
 }
