@@ -119,6 +119,14 @@ async function request<T>(path: string, init?: RequestInit, retry = true): Promi
         readRetryAfter(body),
       );
     }
+    // A 503 is a deliberate "this feature is switched off right now" — e.g.
+    // phone verification when no SMS provider is configured — and its body
+    // carries a message written for the user. Surface it, rather than making an
+    // intentionally-disabled feature look like a crash. Other 5xx are genuinely
+    // unexpected, so stay generic and leak nothing internal.
+    if (res.status === 503) {
+      throw new ApiError(503, readMessage(body, "This feature is temporarily unavailable. Please try again later."));
+    }
     if (res.status >= 500) {
       throw new ApiError(res.status, "Something went wrong on our side. Please try again.");
     }
@@ -145,6 +153,7 @@ async function upload<T>(path: string, form: FormData, retry = true): Promise<T>
   if (!res.ok) {
     if (res.status === 429) throw new ApiError(429, "Too many attempts. Wait a minute and try again.");
     if (res.status === 413) throw new ApiError(413, "Those files are too large. Use images under 8MB.");
+    if (res.status === 503) throw new ApiError(503, readMessage(body, "This feature is temporarily unavailable. Please try again later."));
     if (res.status >= 500) throw new ApiError(res.status, "Something went wrong on our side. Please try again.");
     throw new ApiError(res.status, readMessage(body, "Something went wrong. Please try again."));
   }
