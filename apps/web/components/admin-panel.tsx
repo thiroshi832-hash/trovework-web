@@ -18,6 +18,7 @@ interface Verification {
   idNumber: string;
   score: number | string | null;
   createdAt: string;
+  idBackPath?: string | null;
   user?: { email: string; role: string };
 }
 interface Violation {
@@ -261,11 +262,38 @@ export function AdminPanel() {
                   </div>
                 </div>
 
-                <p className="mt-4 flex items-start gap-2 rounded-lg bg-slate-50 px-3.5 py-3 text-sm leading-relaxed text-slate-600">
-                  <Lock className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
-                  The ID image and selfie are held in secured storage outside the web root. ID number
-                  and date of birth are decrypted here for review only.
-                </p>
+                <div className="mt-4">
+                  <div className="flex flex-wrap gap-3">
+                    {[
+                      { kind: "front", label: "ID front" },
+                      ...(c.idBackPath ? [{ kind: "back", label: "ID back" }] : []),
+                      { kind: "selfie", label: "Selfie" },
+                    ].map((img) => (
+                      <a
+                        key={img.kind}
+                        href={`/api/admin/verifications/${c.id}/image/${img.kind}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group"
+                        title="Open full size"
+                      >
+                        <span className="block text-[0.6875rem] font-medium text-slate-400">{img.label}</span>
+                        {/* Authed same-origin endpoint (secured store); next/image can't optimise it. */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`/api/admin/verifications/${c.id}/image/${img.kind}`}
+                          alt={img.label}
+                          className="mt-1 h-40 w-auto max-w-[16rem] rounded-lg border border-slate-200 bg-slate-50 object-contain transition group-hover:ring-2 group-hover:ring-brand-300"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                  <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-slate-400">
+                    <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+                    Confidential — held in secured storage, shown for review only. ID number and date of
+                    birth are decrypted here.
+                  </p>
+                </div>
               </li>
             );
           })}

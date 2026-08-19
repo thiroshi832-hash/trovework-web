@@ -334,6 +334,25 @@ export class VerificationService {
     return records.map((r) => ({ ...r, dob: this.pii.decrypt(r.dob), idNumber: this.pii.decrypt(r.idNumber) }));
   }
 
+  /**
+   * Streams one image from a verification record for an admin reviewer. The
+   * files live in the secured store that nginx never serves, so this authed
+   * endpoint is the only way to see them — the path comes from our own DB row,
+   * never the client, so there's nothing to traverse.
+   */
+  async getReviewImage(
+    verificationId: string,
+    kind: "front" | "back" | "selfie",
+  ): Promise<{ buffer: Buffer; contentType: string }> {
+    const record = await this.prisma.idVerification.findUnique({ where: { id: verificationId } });
+    if (!record) throw new NotFoundException("Verification request not found.");
+    const path = kind === "front" ? record.idFrontPath : kind === "back" ? record.idBackPath : record.selfiePath;
+    if (!path) throw new NotFoundException("That image isn't available.");
+    const buffer = await this.securedStorage.read(path);
+    if (!buffer) throw new NotFoundException("That image isn't available.");
+    return { buffer, contentType: imageContentType(path) };
+  }
+
   async approve(adminId: string, verificationId: string): Promise<void> {
     const record = await this.prisma.idVerification.findUnique({ where: { id: verificationId } });
     if (!record) throw new NotFoundException("Verification request not found.");
@@ -371,4 +390,13 @@ export class VerificationService {
       await tx.freelancerProfile.updateMany({ where: { userId }, data: { isVisible: true } });
     });
   }
+}
+
+/** Best-effort content type from a stored file's extension. */
+function imageContentType(path: string): string {
+  const ext = path.toLowerCase().match(/\.[a-z0-9]+$/)?.[0];
+  if (ext === ".png") return "image/png";
+  if (ext === ".webp") return "image/webp";
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  return "application/octet-stream";
 }

@@ -115,7 +115,10 @@ function makeService(
   const config = {
     get: (key: string, fallback?: unknown) => opts.env?.[key] ?? fallback,
   } as unknown as ConfigService;
-  const securedStorage = { removeFile: jest.fn(async () => undefined) };
+  const securedStorage = {
+    removeFile: jest.fn(async () => undefined),
+    read: jest.fn(async () => Buffer.from("image-bytes")),
+  };
   return {
     svc: new VerificationService(
       db as unknown as PrismaService,
@@ -500,6 +503,42 @@ describe("VerificationService — ID submission", () => {
     expect(res.status).toBe("approved");
     expect(db.users.f1.idVerified).toBe(true);
     expect(db.profiles.f1.isVisible).toBe(true); // FR-V-5
+  });
+});
+
+describe("VerificationService — review images", () => {
+  const submission = {
+    fullName: "Marisol Rivera",
+    dob: "1990-04-12",
+    idNumber: "AB123456",
+    idFrontPath: "/secured/f1/id-front.jpg",
+    selfiePath: "/secured/f1/selfie.png",
+  };
+
+  it("serves a stored image with a content type inferred from its extension", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, idVerified: false };
+    const { svc, securedStorage } = makeService(db);
+    await svc.submitId(freelancer, submission);
+    const id = db.verifications[0].id;
+
+    const front = await svc.getReviewImage(id, "front");
+    expect(front.contentType).toBe("image/jpeg");
+    const selfie = await svc.getReviewImage(id, "selfie");
+    expect(selfie.contentType).toBe("image/png");
+    expect(securedStorage.read).toHaveBeenCalledWith("/secured/f1/id-front.jpg");
+  });
+
+  it("404s an image the record doesn't have (no back uploaded)", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, idVerified: false };
+    const { svc } = makeService(db);
+    await svc.submitId(freelancer, submission);
+    await expect(svc.getReviewImage(db.verifications[0].id, "back")).rejects.toThrow(NotFoundException);
+  });
+
+  it("404s an unknown verification", async () => {
+    await expect(makeService(prismaDouble()).svc.getReviewImage("nope", "front")).rejects.toThrow(NotFoundException);
   });
 });
 

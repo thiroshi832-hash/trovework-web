@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { isSafeSegment } from "./public-storage.service";
@@ -46,7 +46,18 @@ export class SecuredStorageService {
 
   /** Best-effort removal of a single stored file, guarded to stay inside the store. */
   async removeFile(fullPath: string): Promise<void> {
-    if (!fullPath || fullPath.includes("..") || !fullPath.startsWith(this.root)) return;
+    if (!isInStore(fullPath, this.root)) return;
     await rm(fullPath, { force: true }).catch(() => undefined);
   }
+
+  /** Reads a stored file's bytes, or null if it's missing / outside the store. */
+  async read(fullPath: string): Promise<Buffer | null> {
+    if (!isInStore(fullPath, this.root)) return null;
+    return readFile(fullPath).catch(() => null);
+  }
+}
+
+/** A path is servable only if it sits inside the secured root and doesn't traverse. */
+function isInStore(fullPath: string, root: string): boolean {
+  return !!fullPath && !fullPath.includes("..") && fullPath.startsWith(root);
 }
