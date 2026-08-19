@@ -58,10 +58,17 @@ interface UserDetail extends AdminUser {
   phone?: string | null;
   country?: string;
   state?: string;
-  profile?: { slug: string; displayName: string; category: string; isVisible: boolean } | null;
+  profile?: { slug: string; displayName: string; category: string; isVisible: boolean; photoPath?: string | null } | null;
   postCount: number;
   conversationCount: number;
-  latestVerification?: { status: string; createdAt: string } | null;
+  latestVerification?: {
+    id: string;
+    status: string;
+    createdAt: string;
+    hasFront: boolean;
+    hasBack: boolean;
+    hasSelfie: boolean;
+  } | null;
 }
 
 type Paged<T> = Page<T>;
@@ -84,6 +91,38 @@ function Avatar({ name, className = "", muted = false }: { name: string; classNa
 function when(iso: string): string {
   const d = new Date(iso);
   return Number.isNaN(+d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+/** The ID/selfie images for one verification record, each viewable and downloadable. */
+function ReviewImages({ verificationId, back }: { verificationId: string; back: boolean }) {
+  const kinds = [
+    { kind: "front", label: "ID front" },
+    ...(back ? [{ kind: "back", label: "ID back" }] : []),
+    { kind: "selfie", label: "Selfie" },
+  ];
+  const url = (k: string, dl = false) =>
+    `/api/admin/verifications/${verificationId}/image/${k}${dl ? "?download=1" : ""}`;
+  return (
+    <div className="flex flex-wrap gap-4">
+      {kinds.map((img) => (
+        <figure key={img.kind} className="text-center">
+          <figcaption className="text-[0.6875rem] font-medium text-slate-400">{img.label}</figcaption>
+          <a href={url(img.kind)} target="_blank" rel="noreferrer" title="Open full size" className="group">
+            {/* Authed same-origin endpoint (secured store); next/image can't optimise it. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={url(img.kind)}
+              alt={img.label}
+              className="mt-1 h-40 w-auto max-w-[16rem] rounded-lg border border-slate-200 bg-slate-50 object-contain transition group-hover:ring-2 group-hover:ring-brand-300"
+            />
+          </a>
+          <a href={url(img.kind, true)} className="mt-1 inline-block text-xs font-semibold text-brand-600 hover:underline">
+            Download
+          </a>
+        </figure>
+      ))}
+    </div>
+  );
 }
 
 /** Prev/Next pager with an "x–y of N" readout. Hidden when a single page fits. */
@@ -334,20 +373,7 @@ export function AdminPanel() {
                   </div>
 
                   <div className="mt-4">
-                    <div className="flex flex-wrap gap-3">
-                      {[
-                        { kind: "front", label: "ID front" },
-                        ...(c.idBackPath ? [{ kind: "back", label: "ID back" }] : []),
-                        { kind: "selfie", label: "Selfie" },
-                      ].map((img) => (
-                        <a key={img.kind} href={`/api/admin/verifications/${c.id}/image/${img.kind}`} target="_blank" rel="noreferrer" className="group" title="Open full size">
-                          <span className="block text-[0.6875rem] font-medium text-slate-400">{img.label}</span>
-                          {/* Authed same-origin endpoint (secured store); next/image can't optimise it. */}
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={`/api/admin/verifications/${c.id}/image/${img.kind}`} alt={img.label} className="mt-1 h-40 w-auto max-w-[16rem] rounded-lg border border-slate-200 bg-slate-50 object-contain transition group-hover:ring-2 group-hover:ring-brand-300" />
-                        </a>
-                      ))}
-                    </div>
+                    <ReviewImages verificationId={c.id} back={!!c.idBackPath} />
                     <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-slate-400">
                       <Lock className="mt-0.5 h-4 w-4 shrink-0" />
                       Confidential — held in secured storage, shown for review only. ID number and date of birth are decrypted here.
@@ -453,13 +479,37 @@ export function AdminPanel() {
                 {detailId === u.id ? (
                   <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600">
                     {detailData ? (
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <span>Phone: {detailData.phone ?? "—"} {detailData.phoneVerified ? "(verified)" : ""}</span>
-                        <span>ID verified: {detailData.idVerified ? "yes" : "no"}</span>
-                        <span>Location: {[detailData.state, detailData.country].filter(Boolean).join(", ") || "—"}</span>
-                        <span>Posts: {detailData.postCount} · Conversations: {detailData.conversationCount}</span>
-                        <span>Profile: {detailData.profile ? `/${detailData.profile.slug} (${detailData.profile.isVisible ? "visible" : "hidden"})` : "none"}</span>
-                        <span>Latest ID check: {detailData.latestVerification?.status ?? "none"}</span>
+                      <div className="space-y-4">
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <span>Phone: {detailData.phone ?? "—"} {detailData.phoneVerified ? "(verified)" : ""}</span>
+                          <span>ID verified: {detailData.idVerified ? "yes" : "no"}</span>
+                          <span>Location: {[detailData.state, detailData.country].filter(Boolean).join(", ") || "—"}</span>
+                          <span>Posts: {detailData.postCount} · Conversations: {detailData.conversationCount}</span>
+                          <span>Profile: {detailData.profile ? `/${detailData.profile.slug} (${detailData.profile.isVisible ? "visible" : "hidden"})` : "none"}</span>
+                          <span>Latest ID check: {detailData.latestVerification?.status ?? "none"}</span>
+                        </div>
+
+                        {detailData.latestVerification ? (
+                          <div>
+                            <p className="mb-2 text-xs font-semibold text-slate-500">ID &amp; selfie ({detailData.latestVerification.status})</p>
+                            <ReviewImages verificationId={detailData.latestVerification.id} back={detailData.latestVerification.hasBack} />
+                          </div>
+                        ) : null}
+
+                        {detailData.profile?.photoPath ? (
+                          <div>
+                            <p className="mb-2 text-xs font-semibold text-slate-500">Profile photo</p>
+                            <figure className="inline-block text-center">
+                              <a href={detailData.profile.photoPath} target="_blank" rel="noreferrer" title="Open full size">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={detailData.profile.photoPath} alt="Profile photo" className="h-32 w-32 rounded-lg border border-slate-200 object-cover" />
+                              </a>
+                              <a href={detailData.profile.photoPath} download className="mt-1 block text-xs font-semibold text-brand-600 hover:underline">
+                                Download
+                              </a>
+                            </figure>
+                          </div>
+                        ) : null}
                       </div>
                     ) : (
                       <span className="text-slate-400">Loading…</span>

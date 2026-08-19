@@ -87,19 +87,32 @@ export class AdminModerationService {
     });
     if (!user) throw new NotFoundException("User not found.");
 
-    const [profile, postCount, conversationCount, latestVerification] = await Promise.all([
+    const [profile, postCount, conversationCount, verification] = await Promise.all([
       this.prisma.freelancerProfile.findUnique({
         where: { userId },
-        select: { slug: true, displayName: true, category: true, isVisible: true },
+        select: { slug: true, displayName: true, category: true, isVisible: true, photoPath: true },
       }),
       this.prisma.post.count({ where: { authorId: userId } }),
       this.prisma.conversation.count({ where: { OR: [{ clientId: userId }, { freelancerId: userId }] } }),
       this.prisma.idVerification.findFirst({
         where: { userId },
         orderBy: { createdAt: "desc" },
-        select: { status: true, createdAt: true },
+        select: { id: true, status: true, createdAt: true, idFrontPath: true, idBackPath: true, selfiePath: true },
       }),
     ]);
+
+    // Expose which images exist and the record id to build view/download URLs —
+    // never the raw filesystem paths.
+    const latestVerification = verification
+      ? {
+          id: verification.id,
+          status: verification.status,
+          createdAt: verification.createdAt,
+          hasFront: !!verification.idFrontPath,
+          hasBack: !!verification.idBackPath,
+          hasSelfie: !!verification.selfiePath,
+        }
+      : null;
 
     return { ...user, profile, postCount, conversationCount, latestVerification };
   }

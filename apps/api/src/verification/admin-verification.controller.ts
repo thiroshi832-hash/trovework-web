@@ -38,13 +38,20 @@ export class AdminVerificationController {
   async image(
     @Param("id") id: string,
     @Param("kind") kind: string,
+    @Query("download") download: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     if (kind !== "front" && kind !== "back" && kind !== "selfie") {
       throw new BadRequestException("Unknown image.");
     }
     const { buffer, contentType } = await this.verification.getReviewImage(id, kind);
-    res.set({ "Content-Type": contentType, "Cache-Control": "private, no-store" });
+    const ext = contentType.split("/")[1]?.replace("jpeg", "jpg") ?? "img";
+    res.set({
+      "Content-Type": contentType,
+      "Cache-Control": "private, no-store",
+      // ?download forces a save with a sensible name; otherwise it renders inline.
+      "Content-Disposition": `${download != null ? "attachment" : "inline"}; filename="${kind}-${id}.${ext}"`,
+    });
     return new StreamableFile(buffer);
   }
 
