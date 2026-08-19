@@ -35,4 +35,9 @@ export class UpsertProfileDto {
 
   @IsOptional() @IsString() @MaxLength(64)
   contactWhatsapp?: string;
+
+  // A LinkedIn handle or profile URL is longer than a chat username, so the cap
+  // is bigger. Still a gated contact field like the others.
+  @IsOptional() @IsString() @MaxLength(200)
+  contactLinkedin?: string;
 }

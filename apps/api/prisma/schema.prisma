@@ -218,6 +218,7 @@ model FreelancerProfile {
   contactTelegram String? @map("contact_telegram")
   contactDiscord  String? @map("contact_discord")
   contactWhatsapp String? @map("contact_whatsapp")
+  contactLinkedin String? @map("contact_linkedin")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

@@ -52,6 +52,7 @@ interface PublicProfileData {
   contactTelegram?: string | null;
   contactDiscord?: string | null;
   contactWhatsapp?: string | null;
+  contactLinkedin?: string | null;
 }
 
 function initialsOf(name: string): string {
@@ -162,10 +163,15 @@ export function PublicProfile({ slug }: { slug: string }) {
     { label: "Telegram", value: data.contactTelegram },
     { label: "Discord", value: data.contactDiscord },
     { label: "WhatsApp", value: data.contactWhatsapp },
+    { label: "LinkedIn", value: data.contactLinkedin },
   ].filter((c) => c.value);
   // The API only attaches contact handles for a verified client, so their mere
   // presence is the signal that this viewer is allowed to see them.
-  const canSeeContacts = "contactTelegram" in data || "contactDiscord" in data || "contactWhatsapp" in data;
+  const canSeeContacts =
+    "contactTelegram" in data ||
+    "contactDiscord" in data ||
+    "contactWhatsapp" in data ||
+    "contactLinkedin" in data;
 
   return (
     <div className="flex flex-1 flex-col bg-slate-50/60">

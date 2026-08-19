@@ -64,6 +64,7 @@ function seedVisibleProfile(db: ReturnType<typeof prismaDouble>) {
     contactTelegram: "@marisol",
     contactDiscord: "marisol#1",
     contactWhatsapp: "+1555",
+    contactLinkedin: "linkedin.com/in/marisol",
     updatedAt: new Date(),
   });
 }
@@ -73,7 +74,7 @@ const client = (over: Partial<Principal> = {}): Principal => ({
 });
 
 const hasContacts = (p: any) =>
-  "contactTelegram" in p || "contactDiscord" in p || "contactWhatsapp" in p;
+  "contactTelegram" in p || "contactDiscord" in p || "contactWhatsapp" in p || "contactLinkedin" in p;
 
 describe("ProfilesService — contact gating (NFR-SEC-3)", () => {
   it("gives contact handles to a VERIFIED client", async () => {
@@ -81,6 +82,7 @@ describe("ProfilesService — contact gating (NFR-SEC-3)", () => {
     seedVisibleProfile(db);
     const res: any = await makeService(db).getPublicBySlug(client({ idVerified: true }), SLUG);
     expect(res.contactTelegram).toBe("@marisol");
+    expect(res.contactLinkedin).toBe("linkedin.com/in/marisol");
   });
 
   it("HIDES contact handles from an UNVERIFIED client", async () => {

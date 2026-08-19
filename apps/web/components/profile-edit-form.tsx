@@ -31,6 +31,7 @@ export function ProfileEditForm() {
   const [telegram, setTelegram] = useState("");
   const [discord, setDiscord] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [linkedin, setLinkedin] = useState("");
   const [resume, setResume] = useState<File | null>(null);
   const [errors, setErrors] = useState<Errors>({});
   const [saved, setSaved] = useState(false);
@@ -75,6 +76,7 @@ export function ProfileEditForm() {
         setTelegram((profile.contactTelegram as string | null) ?? "");
         setDiscord((profile.contactDiscord as string | null) ?? "");
         setWhatsapp((profile.contactWhatsapp as string | null) ?? "");
+        setLinkedin((profile.contactLinkedin as string | null) ?? "");
         setPhoto((profile.photoPath as string | null) ?? null);
         setSlug((profile.slug as string | null) ?? null);
       } catch (err) {
@@ -147,6 +149,7 @@ export function ProfileEditForm() {
         contactTelegram: telegram.trim() || undefined,
         contactDiscord: discord.trim() || undefined,
         contactWhatsapp: whatsapp.trim() || undefined,
+        contactLinkedin: linkedin.trim() || undefined,
       });
       setSaved(true);
       router.refresh();
@@ -454,6 +457,17 @@ export function ProfileEditForm() {
               onChange={(e) => setWhatsapp(e.target.value)}
               placeholder="+1 555 123 4567"
               inputMode="tel"
+            />
+          </Field>
+        </div>
+
+        <div className="mt-5">
+          <Field label="LinkedIn">
+            <TextInput
+              value={linkedin}
+              onChange={(e) => setLinkedin(e.target.value)}
+              placeholder="linkedin.com/in/username"
+              inputMode="url"
             />
           </Field>
         </div>

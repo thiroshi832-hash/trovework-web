@@ -14,7 +14,7 @@ export interface ProfileOwner {
 }
 
 /** The gated handles, split out so it's obvious what must never leak. */
-const CONTACT_FIELDS = ["contactTelegram", "contactDiscord", "contactWhatsapp"] as const;
+const CONTACT_FIELDS = ["contactTelegram", "contactDiscord", "contactWhatsapp", "contactLinkedin"] as const;
 
 @Injectable()
 export class ProfilesService {
@@ -44,6 +44,7 @@ export class ProfilesService {
       contactTelegram: dto.contactTelegram ?? null,
       contactDiscord: dto.contactDiscord ?? null,
       contactWhatsapp: dto.contactWhatsapp ?? null,
+      contactLinkedin: dto.contactLinkedin ?? null,
       isVisible: owner.idVerified,
     };
 
