@@ -248,7 +248,6 @@ export function IdVerificationWizard() {
     }
   }
 
-  const selfieInput = useRef<HTMLInputElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   // The stream lives in a ref so unmount cleanup never has to touch state.
   const streamRef = useRef<MediaStream | null>(null);
@@ -286,7 +285,7 @@ export function IdVerificationWizard() {
       setCameraOn(true);
     } catch {
       setCameraError(
-        "The camera isn't available — allow access in your browser, or upload a photo instead.",
+        "The camera isn't available — allow camera access in your browser and try again.",
       );
     }
   }
@@ -434,7 +433,14 @@ export function IdVerificationWizard() {
             good light and remove hats or sunglasses.
           </StepHeader>
 
-          <Dropzone error={fileError} onFile={(f) => take(f, setSelfie)}>
+          {/* Selfie is camera-only: a live capture can't be a saved photo dropped
+              in, which raises the bar against the crudest spoofing. It's not full
+              liveness — a determined attacker can still point the camera at a print. */}
+          <div
+            className={`mt-6 rounded-xl border-2 border-dashed px-6 py-12 text-center transition ${
+              cameraError ? "border-red-300 bg-red-50/40" : "border-brand-200 bg-white"
+            }`}
+          >
             {selfie ? (
               <Preview shot={selfie} label="Your selfie" onClear={() => setSelfie(null)} />
             ) : cameraOn ? (
@@ -464,9 +470,11 @@ export function IdVerificationWizard() {
                 <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-brand-50 text-brand-600">
                   <IdUpload className="h-9 w-9" />
                 </span>
-                <p className="mt-4 font-semibold text-navy-800">Take a selfie with your camera</p>
-                <p className="mt-1 text-sm text-slate-400">or drop a photo here</p>
-                <div className="mt-3 flex flex-wrap justify-center gap-3">
+                <p className="mt-4 font-semibold text-navy-800">Take a live selfie</p>
+                <p className="mt-1 text-sm text-slate-400">
+                  For your protection the selfie must be captured live — uploads aren&apos;t accepted here.
+                </p>
+                <div className="mt-3 flex justify-center">
                   <button
                     type="button"
                     onClick={openCamera}
@@ -474,26 +482,10 @@ export function IdVerificationWizard() {
                   >
                     Open camera
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => selfieInput.current?.click()}
-                    className="rounded-lg border border-slate-200 px-6 py-2.5 text-sm font-semibold text-navy-800 transition hover:bg-slate-50"
-                  >
-                    Upload instead
-                  </button>
                 </div>
               </>
             )}
-            <input
-              ref={selfieInput}
-              type="file"
-              aria-label="Upload a selfie"
-              accept={IMAGE_TYPES.join(",")}
-              capture="user"
-              className="sr-only"
-              onChange={(e) => take(e.target.files?.[0], setSelfie)}
-            />
-          </Dropzone>
+          </div>
 
           {cameraError ? (
             <p role="alert" className="mt-3 text-sm text-amber-700">
