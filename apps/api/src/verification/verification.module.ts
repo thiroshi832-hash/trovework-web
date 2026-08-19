@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Logger, Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { VerificationController } from "./verification.controller";
 import { AdminVerificationController } from "./admin-verification.controller";
@@ -35,9 +35,22 @@ import { AutoVerificationProvider } from "./providers/auto-verification.provider
       inject: [ConfigService],
       useFactory: (config: ConfigService): SmsProvider => {
         if (config.get<string>("SEVEN_API_KEY")) return new SevenSmsProvider(config);
-        return config.get<string>("NODE_ENV") === "production"
-          ? new UnconfiguredSmsProvider()
-          : new ConsoleSmsProvider();
+        // The console stub logs the code instead of sending it, so the whole
+        // phone flow can be exercised before an SMS account exists — you read
+        // the code from the server log. It runs automatically outside
+        // production, and in a production-mode dev/staging deploy when
+        // SMS_DEV_LOG=true is set explicitly. It must never be on for real
+        // users: it would report a code as sent that nobody receives.
+        const devLog = config.get<string>("SMS_DEV_LOG") === "true";
+        if (devLog || config.get<string>("NODE_ENV") !== "production") {
+          if (devLog && config.get<string>("NODE_ENV") === "production") {
+            new Logger("SmsProvider").warn(
+              "SMS_DEV_LOG is on in production — verification codes are written to the log, not texted. Turn it off before real users sign up.",
+            );
+          }
+          return new ConsoleSmsProvider();
+        }
+        return new UnconfiguredSmsProvider();
       },
     },
     // ID_VERIFY_ENGINE=auto turns on the face-match + OCR engine; anything else

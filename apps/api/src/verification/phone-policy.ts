@@ -9,6 +9,7 @@ import { ConfigService } from "@nestjs/config";
 export function smsConfigured(config: ConfigService): boolean {
   return (
     Boolean(config.get<string>("SEVEN_API_KEY")) ||
+    config.get<string>("SMS_DEV_LOG") === "true" ||
     config.get<string>("NODE_ENV") !== "production"
   );
 }
