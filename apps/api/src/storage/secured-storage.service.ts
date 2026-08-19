@@ -43,4 +43,10 @@ export class SecuredStorageService {
     if (!isSafeSegment(userId)) return;
     await rm(join(this.root, userId), { recursive: true, force: true }).catch(() => undefined);
   }
+
+  /** Best-effort removal of a single stored file, guarded to stay inside the store. */
+  async removeFile(fullPath: string): Promise<void> {
+    if (!fullPath || fullPath.includes("..") || !fullPath.startsWith(this.root)) return;
+    await rm(fullPath, { force: true }).catch(() => undefined);
+  }
 }

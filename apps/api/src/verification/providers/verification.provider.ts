@@ -16,6 +16,14 @@ export interface Assessment {
   /** 0..1 confidence when an automated engine ran; null for manual. */
   score: number | null;
   reason?: string;
+  /**
+   * Only meaningful when decision is "review": true when the cause is something
+   * the applicant can fix and resubmit right now (an unreadable photo, a data
+   * mismatch), so we tell them instead of quietly queuing it for an admin.
+   * False/absent for reviews that genuinely need a human (borderline match) or a
+   * system issue (engine unavailable).
+   */
+  retryable?: boolean;
 }
 
 export interface VerificationProvider {

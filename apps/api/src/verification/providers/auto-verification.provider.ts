@@ -47,21 +47,33 @@ export function decide(signals: Signals, t: Thresholds): Assessment {
       reason: "The selfie is the same image as the ID photo. Please take a live selfie.",
     };
   }
-  // The ID's own machine-readable data disagreeing with what was typed is a
-  // strong signal to stop and have a human look — never auto-verify past it.
+  // The ID's own machine-readable data disagreeing with what was typed is
+  // usually a typo the applicant can fix — tell them and let them resubmit.
   if (signals.dataMismatch) {
     return {
       decision: "review",
       score: null,
-      reason: "The ID's machine-readable details didn't match what was entered — sent for manual review.",
+      retryable: true,
+      reason: "The details you entered didn't match your document. Check them and submit again.",
     };
   }
+  // No readable face is a photo-quality problem the applicant can retake.
   if (!signals.faceDetected || signals.distance == null) {
-    return { decision: "review", score: null, reason: "Couldn't read a face from the photos — sent for manual review." };
+    return {
+      decision: "review",
+      score: null,
+      retryable: true,
+      reason: "We couldn't detect a face in your photos. Retake them in good, even light and try again.",
+    };
   }
-  // Too small a selfie face makes the descriptor unreliable — defer, don't guess.
+  // Too small a selfie face makes the descriptor unreliable — also retryable.
   if (signals.selfieFaceRatio != null && signals.selfieFaceRatio < t.minSelfieFaceRatio) {
-    return { decision: "review", score: null, reason: "The selfie is too far away or unclear — sent for manual review." };
+    return {
+      decision: "review",
+      score: null,
+      retryable: true,
+      reason: "Your selfie was too far away or unclear. Move closer so your face fills the frame and try again.",
+    };
   }
   const score = Math.max(0, Math.min(1, 1 - signals.distance));
 
@@ -71,14 +83,17 @@ export function decide(signals: Signals, t: Thresholds): Assessment {
   if (score < t.rejectMax) {
     return { decision: "rejected", score, reason: "The selfie doesn't appear to match the ID photo." };
   }
-  return {
-    decision: "review",
-    score,
-    reason:
-      signals.nameMatch === false
-        ? "The name on the ID didn't match what was entered — sent for manual review."
-        : "Borderline face match — sent for manual review.",
-  };
+  // Name mismatch is fixable (a typo); a borderline face match is not — that one
+  // needs a human, and we don't hint how close it was.
+  if (signals.nameMatch === false) {
+    return {
+      decision: "review",
+      score,
+      retryable: true,
+      reason: "The name didn't match your document. Check the spelling and submit again.",
+    };
+  }
+  return { decision: "review", score, retryable: false, reason: "Borderline face match — sent for manual review." };
 }
 
 /** Detection result for one image: its descriptor and how big the face was. */
@@ -121,6 +136,12 @@ export class AutoVerificationProvider implements VerificationProvider, OnModuleI
 
   async assess(submission: IdSubmission): Promise<Assessment> {
     try {
+      // Engine down (models unavailable) is a system problem, not the user's —
+      // retrying won't help, so route it to a human rather than asking them to
+      // redo their photos. This is a non-retryable review.
+      if (!(await this.engineAvailable())) {
+        return { decision: "review", score: null, retryable: false, reason: "Your documents are in review." };
+      }
       // Cheapest, strongest signal first: an identical selfie is a spoof.
       if (await this.sameImage(submission.idFrontPath, submission.selfiePath)) {
         return decide({ faceDetected: false, distance: null, nameMatch: null, duplicateImage: true }, this.thresholds);
@@ -156,11 +177,16 @@ export class AutoVerificationProvider implements VerificationProvider, OnModuleI
       return result;
     } catch (err) {
       this.log.error(`Auto ID check errored; falling back to manual review: ${(err as Error)?.message}`);
-      return { decision: "review", score: null, reason: "The automatic check errored — sent for manual review." };
+      return { decision: "review", score: null, retryable: false, reason: "Your documents are in review." };
     }
   }
 
   /* ------------ overridable seams (the ML lives here; tests stub these) ------------ */
+
+  /** Whether the ML models are loaded and usable. Stubbed true in tests. */
+  protected async engineAvailable(): Promise<boolean> {
+    return (await this.load()) != null;
+  }
 
   /** True when the two files are byte-identical — the crudest selfie spoof. */
   protected async sameImage(idPath: string, selfiePath: string): Promise<boolean> {

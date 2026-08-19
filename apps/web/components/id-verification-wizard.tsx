@@ -239,6 +239,13 @@ export function IdVerificationWizard() {
       form.append("idNumber", info.idNumber.trim());
 
       const res = await api.verify.submitId(form);
+      // "retry" = a problem the user can fix now (unreadable photo, a detail that
+      // didn't match). Keep them on the form and show what to fix, rather than
+      // sending them to the "in review" screen to wait.
+      if (res.status === "retry") {
+        setFormError(res.message);
+        return;
+      }
       setResultMessage(res.message);
       setSubmitted(true);
     } catch (err) {

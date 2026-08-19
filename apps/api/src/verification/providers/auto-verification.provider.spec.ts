@@ -28,9 +28,10 @@ describe("decide (policy)", () => {
     expect(decide(sig({ distance: 0.3, nameMatch: null }), T).decision).toBe("verified");
   });
 
-  it("does NOT auto-verify a close face match if the name is a mismatch", () => {
+  it("does NOT auto-verify a close face match if the name is a mismatch (retryable)", () => {
     const a = decide(sig({ distance: 0.3, nameMatch: false }), T);
     expect(a.decision).toBe("review");
+    expect(a.retryable).toBe(true);
     expect(a.reason).toMatch(/name/i);
   });
 
@@ -39,9 +40,17 @@ describe("decide (policy)", () => {
     expect(decide(sig({ distance: 0.8 }), T).decision).toBe("rejected");
   });
 
-  it("reviews a borderline match", () => {
+  it("reviews a borderline match — NOT retryable (needs a human)", () => {
     // distance 0.5 -> score 0.5, between the thresholds
-    expect(decide(sig({ distance: 0.5 }), T).decision).toBe("review");
+    const a = decide(sig({ distance: 0.5 }), T);
+    expect(a.decision).toBe("review");
+    expect(a.retryable).toBe(false);
+  });
+
+  it("marks no-face, too-small, and data-mismatch reviews retryable", () => {
+    expect(decide(sig({ faceDetected: false, distance: null }), T).retryable).toBe(true);
+    expect(decide(sig({ distance: 0.2, selfieFaceRatio: 0.05 }), T).retryable).toBe(true);
+    expect(decide(sig({ dataMismatch: true }), T).retryable).toBe(true);
   });
 
   it("scores as 1 - distance, clamped", () => {
@@ -77,6 +86,9 @@ class StubProvider extends AutoVerificationProvider {
     },
   ) {
     super({ get: (_k: string, d?: string) => d } as unknown as ConfigService);
+  }
+  protected async engineAvailable(): Promise<boolean> {
+    return true;
   }
   protected async sameImage(): Promise<boolean> {
     return this.stub.dup ?? false;
@@ -147,7 +159,8 @@ describe("AutoVerificationProvider.assess", () => {
       mrz: { birthDate: "800101", documentNumber: "AB123456", firstName: "MARISOL", lastName: "RIVERA" },
     }).assess(submission);
     expect(res.decision).toBe("review");
-    expect(res.reason).toMatch(/machine-readable/i);
+    expect(res.retryable).toBe(true);
+    expect(res.reason).toMatch(/didn't match your document/i);
   });
 
   it("still verifies when the MRZ agrees with the entered details", async () => {

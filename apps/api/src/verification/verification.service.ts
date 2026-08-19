@@ -12,6 +12,7 @@ import { ConfigService } from "@nestjs/config";
 import { createHash, randomInt } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import { PiiCryptoService } from "../crypto/pii-crypto.service";
+import { SecuredStorageService } from "../storage/secured-storage.service";
 import { SMS_PROVIDER, type SmsProvider } from "./providers/sms.provider";
 import { parsePhone } from "./phone-number";
 import { isCountryBlocked } from "./sms-pricing";
@@ -48,7 +49,16 @@ export class VerificationService {
     @Inject(VERIFICATION_PROVIDER) private readonly engine: VerificationProvider,
     private readonly pii: PiiCryptoService,
     private readonly config: ConfigService,
+    private readonly securedStorage: SecuredStorageService,
   ) {}
+
+  /** Removes the images from a submission we're not keeping (a retryable review). */
+  private async discardSubmissionFiles(submission: IdSubmission): Promise<void> {
+    const paths = [submission.idFrontPath, submission.idBackPath, submission.selfiePath].filter(
+      (p): p is string => !!p,
+    );
+    await Promise.all(paths.map((p) => this.securedStorage.removeFile(p)));
+  }
 
   private get resendCooldownMs(): number {
     return (
@@ -267,6 +277,18 @@ export class VerificationService {
     this.assertActive(actor);
 
     const assessment = await this.engine.assess(submission);
+
+    // A retryable review is something the applicant can fix right now (an
+    // unreadable photo, a detail that didn't match the document). Don't store it
+    // or queue it for an admin — discard the just-uploaded files and tell them
+    // what to fix so they can resubmit, rather than leaving them waiting.
+    if (assessment.decision === "review" && assessment.retryable) {
+      await this.discardSubmissionFiles(submission);
+      return {
+        status: "retry" as const,
+        message: assessment.reason ?? "Please check your details and try again.",
+      };
+    }
 
     const record = await this.prisma.idVerification.create({
       data: {

@@ -6,6 +6,7 @@ import { ManualVerificationProvider, type VerificationProvider } from "./provide
 import { PiiCryptoService } from "../crypto/pii-crypto.service";
 import type { SmsProvider } from "./providers/sms.provider";
 import type { PrismaService } from "../prisma/prisma.service";
+import type { SecuredStorageService } from "../storage/secured-storage.service";
 
 // A real crypto service with a fixed test key, so the encrypt→decrypt roundtrip
 // is actually exercised rather than mocked away.
@@ -114,10 +115,19 @@ function makeService(
   const config = {
     get: (key: string, fallback?: unknown) => opts.env?.[key] ?? fallback,
   } as unknown as ConfigService;
+  const securedStorage = { removeFile: jest.fn(async () => undefined) };
   return {
-    svc: new VerificationService(db as unknown as PrismaService, sms, engine, pii, config),
+    svc: new VerificationService(
+      db as unknown as PrismaService,
+      sms,
+      engine,
+      pii,
+      config,
+      securedStorage as unknown as SecuredStorageService,
+    ),
     sms,
     engine,
+    securedStorage,
   };
 }
 
@@ -449,6 +459,33 @@ describe("VerificationService — ID submission", () => {
     expect(stored.fullName).toBe("Marisol Rivera");
     // It round-trips back to the original for an authorised reader.
     expect(pii.decrypt(stored.idNumber)).toBe("AB123456");
+  });
+
+  it("a retryable review is not stored or queued — files are discarded and the user is told to retry", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, idVerified: false };
+    const engine: VerificationProvider = {
+      assess: async () => ({ decision: "review", score: null, retryable: true, reason: "Retake your selfie." }),
+    };
+    const { svc, securedStorage } = makeService(db, { engine });
+    const res = await svc.submitId(freelancer, submission);
+
+    expect(res.status).toBe("retry");
+    expect(res.message).toMatch(/retake/i);
+    expect(db.verifications).toHaveLength(0); // nothing queued for an admin
+    expect(securedStorage.removeFile).toHaveBeenCalledWith(submission.idFrontPath);
+    expect(securedStorage.removeFile).toHaveBeenCalledWith(submission.selfiePath);
+  });
+
+  it("a NON-retryable review is still queued for an admin", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, idVerified: false };
+    const engine: VerificationProvider = {
+      assess: async () => ({ decision: "review", score: null, retryable: false, reason: "in review" }),
+    };
+    const res = await makeService(db, { engine }).svc.submitId(freelancer, submission);
+    expect(res.status).toBe("pending");
+    expect(db.verifications[0].status).toBe("pending");
   });
 
   it("an auto engine that verifies flips id_verified immediately", async () => {
