@@ -219,6 +219,7 @@ export function IdVerificationWizard() {
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [resultMessage, setResultMessage] = useState<string>("");
+  const [resultStatus, setResultStatus] = useState<"approved" | "rejected" | "pending">("pending");
 
   /** Shots hold data URLs; the API needs real files. Convert back to Blobs. */
   async function shotToBlob(shot: Shot): Promise<Blob> {
@@ -247,6 +248,7 @@ export function IdVerificationWizard() {
         return;
       }
       setResultMessage(res.message);
+      setResultStatus(res.status === "approved" || res.status === "rejected" ? res.status : "pending");
       setSubmitted(true);
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : "Couldn't submit your documents. Try again.");
@@ -351,45 +353,65 @@ export function IdVerificationWizard() {
   /* ------------------------------ submitted ----------------------------- */
 
   if (submitted) {
+    const outcome = {
+      approved: {
+        ring: "bg-emerald-100 text-emerald-600",
+        box: "border-emerald-200 bg-emerald-50 text-emerald-800",
+        title: "You're verified",
+        blurb: "Your identity is confirmed — your profile can now go live.",
+      },
+      rejected: {
+        ring: "bg-amber-100 text-amber-600",
+        box: "border-amber-200 bg-amber-50 text-amber-800",
+        title: "We couldn't verify you",
+        blurb: "The photos or details didn't pass our automated check. Review them and submit again.",
+      },
+      pending: {
+        ring: "bg-amber-100 text-amber-600",
+        box: "border-amber-200 bg-amber-50 text-amber-800",
+        title: "Verification pending",
+        blurb:
+          "We'll check your document and selfie and let you know the result. Most checks finish within a few minutes.",
+      },
+    }[resultStatus];
+
     return (
       <div className="text-center">
-        <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-amber-100 text-amber-600">
+        <span className={`mx-auto grid h-16 w-16 place-items-center rounded-full ${outcome.ring}`}>
           <ShieldCheck className="h-11 w-11" />
         </span>
-        <h1 className="mt-6 text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl">
-          Verification pending
-        </h1>
-        <p className="mx-auto mt-3 max-w-md text-base leading-relaxed text-slate-500">
-          We&apos;ll check your document and selfie and let you know the result. Most checks finish
-          within a few minutes.
-        </p>
+        <h1 className="mt-6 text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl">{outcome.title}</h1>
+        <p className="mx-auto mt-3 max-w-md text-base leading-relaxed text-slate-500">{outcome.blurb}</p>
 
         {resultMessage ? (
-          <div className="mx-auto mt-7 max-w-md rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm leading-relaxed text-amber-800">
+          <div className={`mx-auto mt-7 max-w-md rounded-lg border px-4 py-3 text-left text-sm leading-relaxed ${outcome.box}`}>
             {resultMessage}
           </div>
         ) : null}
 
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
-            href="/profile/edit"
+            href={resultStatus === "approved" ? "/dashboard/freelancer" : "/profile/edit"}
             className="rounded-lg border border-slate-200 px-6 py-3 text-sm font-semibold text-navy-800 transition hover:bg-slate-50"
           >
-            Back to my profile
+            {resultStatus === "approved" ? "Go to my dashboard" : "Back to my profile"}
           </Link>
-          <button
-            type="button"
-            onClick={() => {
-              setSubmitted(false);
-              goTo(0);
-              setIdFront(null);
-              setIdBack(null);
-              setSelfie(null);
-            }}
-            className="rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
-          >
-            Start again
-          </button>
+          {resultStatus !== "approved" ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSubmitted(false);
+                setFormError(null);
+                goTo(0);
+                setIdFront(null);
+                setIdBack(null);
+                setSelfie(null);
+              }}
+              className="rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
+            >
+              Start again
+            </button>
+          ) : null}
         </div>
       </div>
     );
