@@ -2,8 +2,14 @@ import { ConfigService } from "@nestjs/config";
 import { AutoVerificationProvider, decide, type Signals, type Thresholds } from "./auto-verification.provider";
 import type { IdSubmission } from "./verification.provider";
 
-const T: Thresholds = { verifyMin: 0.6, rejectMax: 0.4 };
-const sig = (over: Partial<Signals> = {}): Signals => ({ faceDetected: true, distance: 0.3, nameMatch: true, ...over });
+const T: Thresholds = { verifyMin: 0.6, rejectMax: 0.4, minSelfieFaceRatio: 0.12 };
+const sig = (over: Partial<Signals> = {}): Signals => ({
+  faceDetected: true,
+  distance: 0.3,
+  nameMatch: true,
+  selfieFaceRatio: 0.4,
+  ...over,
+});
 
 describe("decide (policy)", () => {
   it("reviews when no face was detected", () => {
@@ -40,18 +46,43 @@ describe("decide (policy)", () => {
   it("scores as 1 - distance, clamped", () => {
     expect(decide(sig({ distance: 0.25 }), T).score).toBeCloseTo(0.75);
   });
+
+  it("rejects a selfie that is the same image as the ID (spoof)", () => {
+    const a = decide(sig({ duplicateImage: true, distance: 0.1 }), T);
+    expect(a.decision).toBe("rejected");
+    expect(a.reason).toMatch(/live selfie/i);
+  });
+
+  it("reviews a selfie whose face is too small to trust", () => {
+    const a = decide(sig({ distance: 0.2, selfieFaceRatio: 0.05 }), T);
+    expect(a.decision).toBe("review");
+    expect(a.score).toBeNull();
+  });
+
+  it("still verifies when the selfie face is large enough", () => {
+    expect(decide(sig({ distance: 0.3, selfieFaceRatio: 0.3 }), T).decision).toBe("verified");
+  });
 });
 
 /** A subclass that stubs the ML seams so assess()'s orchestration is testable. */
 class StubProvider extends AutoVerificationProvider {
   constructor(
-    private readonly stub: { distance: number | null | (() => never); name: boolean | null },
+    private readonly stub: {
+      distance: number | null | (() => never);
+      name: boolean | null;
+      faceRatio?: number;
+      dup?: boolean;
+    },
   ) {
     super({ get: (_k: string, d?: string) => d } as unknown as ConfigService);
   }
-  protected async faceDistance(): Promise<number | null> {
+  protected async sameImage(): Promise<boolean> {
+    return this.stub.dup ?? false;
+  }
+  protected async faceDistance(): Promise<{ distance: number; selfieFaceRatio: number } | null> {
     if (typeof this.stub.distance === "function") this.stub.distance();
-    return this.stub.distance as number | null;
+    if (this.stub.distance == null) return null;
+    return { distance: this.stub.distance as number, selfieFaceRatio: this.stub.faceRatio ?? 0.4 };
   }
   protected async ocrNameMatch(): Promise<boolean | null> {
     return this.stub.name;
@@ -90,5 +121,16 @@ describe("AutoVerificationProvider.assess", () => {
     }).assess(submission);
     expect(res.decision).toBe("review");
     expect(res.score).toBeNull();
+  });
+
+  it("rejects a selfie identical to the ID image before any face match", async () => {
+    const res = await new StubProvider({ distance: 0.3, name: true, dup: true }).assess(submission);
+    expect(res.decision).toBe("rejected");
+    expect(res.reason).toMatch(/live selfie/i);
+  });
+
+  it("reviews a too-small selfie face even on a close distance", async () => {
+    const res = await new StubProvider({ distance: 0.2, name: true, faceRatio: 0.05 }).assess(submission);
+    expect(res.decision).toBe("review");
   });
 });
