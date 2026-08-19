@@ -53,6 +53,27 @@ function readRetryAfter(body: unknown): number | undefined {
   return undefined;
 }
 
+/** A page of results plus the total count, for the admin list endpoints. */
+export interface Page<T> {
+  items: T[];
+  total: number;
+}
+export interface PageQuery {
+  take?: number;
+  skip?: number;
+  // Lets a PageQuery (and its extensions, e.g. + q/status) satisfy qs()'s param.
+  [key: string]: string | number | undefined;
+}
+
+/** Builds a "?a=1&b=2" query string, dropping undefined/empty values. */
+function qs(params?: Record<string, string | number | undefined>): string {
+  if (!params) return "";
+  const pairs = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== "")
+    .map(([k, v]) => [k, String(v)] as [string, string]);
+  return pairs.length ? `?${new URLSearchParams(pairs).toString()}` : "";
+}
+
 /** Nest returns `message` as a string, or an array of them from the validation pipe. */
 function readMessage(body: unknown, fallback: string): string {
   if (body && typeof body === "object" && "message" in body) {
@@ -271,7 +292,7 @@ export const api = {
   /* ------------------------------- admin --------------------------------- */
   admin: {
     verifications: {
-      list: () => request<unknown[]>("/api/admin/verifications"),
+      list: (p?: PageQuery) => request<Page<unknown>>(`/api/admin/verifications${qs(p)}`),
       approve: (id: string) => request<void>(`/api/admin/verifications/${id}/approve`, { method: "POST" }),
       reject: (id: string, note?: string) =>
         request<void>(`/api/admin/verifications/${id}/reject`, {
@@ -279,11 +300,14 @@ export const api = {
           body: JSON.stringify({ note }),
         }),
     },
-    violations: () => request<unknown[]>("/api/admin/violations"),
-    blockedPosts: () => request<unknown[]>("/api/admin/posts/blocked"),
-    bannedUsers: () => request<unknown[]>("/api/admin/users/banned"),
+    violations: (p?: PageQuery) => request<Page<unknown>>(`/api/admin/violations${qs(p)}`),
+    blockedPosts: (p?: PageQuery) => request<Page<unknown>>(`/api/admin/posts/blocked${qs(p)}`),
+    bannedUsers: (p?: PageQuery) => request<Page<unknown>>(`/api/admin/users/banned${qs(p)}`),
+    users: (p?: PageQuery & { q?: string; status?: string }) => request<Page<unknown>>(`/api/admin/users${qs(p)}`),
+    userDetail: (id: string) => request<unknown>(`/api/admin/users/${id}`),
     reinstate: (userId: string) => request<void>(`/api/admin/users/${userId}/reinstate`, { method: "POST" }),
-    users: () => request<unknown[]>("/api/admin/users"),
+    ban: (userId: string) => request<void>(`/api/admin/users/${userId}/ban`, { method: "POST" }),
+    resetStrikes: (userId: string) => request<void>(`/api/admin/users/${userId}/reset-strikes`, { method: "POST" }),
     deleteUser: (userId: string) => request<void>(`/api/admin/users/${userId}`, { method: "DELETE" }),
     categories: {
       list: () => request<Category[]>("/api/admin/categories"),

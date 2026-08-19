@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Check, Lock, ShieldCheck } from "@/components/icons";
-import { ApiError, api, type Category } from "@/lib/api";
+import { ApiError, api, type Category, type Page } from "@/lib/api";
 
 const TABS = ["ID review", "Users", "Categories", "Violations", "Blocked posts", "Banned users"] as const;
 type Tab = (typeof TABS)[number];
 
 const CARD = "rounded-2xl border border-slate-200 bg-white";
+const PAGE_SIZE = 20;
 
 /* ------------------------------ data shapes ------------------------------- */
 
@@ -48,10 +49,23 @@ interface AdminUser {
   email: string;
   role: string;
   status: string;
+  strikeCount: number;
   phoneVerified: boolean;
   idVerified: boolean;
   createdAt: string;
 }
+interface UserDetail extends AdminUser {
+  phone?: string | null;
+  country?: string;
+  state?: string;
+  profile?: { slug: string; displayName: string; category: string; isVisible: boolean } | null;
+  postCount: number;
+  conversationCount: number;
+  latestVerification?: { status: string; createdAt: string } | null;
+}
+
+type Paged<T> = Page<T>;
+const emptyPage = <T,>(): Paged<T> => ({ items: [], total: 0 });
 
 function initialsOf(name: string): string {
   return name.split(/\s+/).map((p) => p[0] ?? "").join("").slice(0, 2).toUpperCase() || "?";
@@ -72,39 +86,88 @@ function when(iso: string): string {
   return Number.isNaN(+d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+/** Prev/Next pager with an "x–y of N" readout. Hidden when a single page fits. */
+function Pager({ page, total, onPage }: { page: number; total: number; onPage: (p: number) => void }) {
+  const pages = Math.ceil(total / PAGE_SIZE);
+  if (pages <= 1) return null;
+  const from = page * PAGE_SIZE + 1;
+  const to = Math.min((page + 1) * PAGE_SIZE, total);
+  const btn = "rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-navy-800 transition hover:bg-slate-50 disabled:opacity-40";
+  return (
+    <div className="mt-6 flex items-center justify-between">
+      <span className="text-sm text-slate-500">
+        {from}–{to} of {total}
+      </span>
+      <div className="flex gap-2">
+        <button type="button" className={btn} disabled={page === 0} onClick={() => onPage(page - 1)}>
+          Previous
+        </button>
+        <button type="button" className={btn} disabled={page >= pages - 1} onClick={() => onPage(page + 1)}>
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* --------------------------------- panel ---------------------------------- */
 
 export function AdminPanel() {
   const [tab, setTab] = useState<Tab>("ID review");
+  const [pages, setPages] = useState<Record<Tab, number>>(
+    () => Object.fromEntries(TABS.map((t) => [t, 0])) as Record<Tab, number>,
+  );
 
-  const [queue, setQueue] = useState<Verification[]>([]);
-  const [violations, setViolations] = useState<Violation[]>([]);
-  const [blocked, setBlocked] = useState<BlockedPost[]>([]);
-  const [banned, setBanned] = useState<BannedUser[]>([]);
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [queue, setQueue] = useState<Paged<Verification>>(emptyPage);
+  const [violations, setViolations] = useState<Paged<Violation>>(emptyPage);
+  const [blocked, setBlocked] = useState<Paged<BlockedPost>>(emptyPage);
+  const [banned, setBanned] = useState<Paged<BannedUser>>(emptyPage);
+  const [users, setUsers] = useState<Paged<AdminUser>>(emptyPage);
   const [categories, setCategories] = useState<Category[]>([]);
+
+  const [userQuery, setUserQuery] = useState("");
+  const [userStatus, setUserStatus] = useState("");
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [detailData, setDetailData] = useState<UserDetail | null>(null);
+
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  const fetchTab = useCallback(
+    async (t: Tab, page: number, q = userQuery, status = userStatus) => {
+      const p = { take: PAGE_SIZE, skip: page * PAGE_SIZE };
+      try {
+        if (t === "ID review") setQueue((await api.admin.verifications.list(p)) as Paged<Verification>);
+        else if (t === "Violations") setViolations((await api.admin.violations(p)) as Paged<Violation>);
+        else if (t === "Blocked posts") setBlocked((await api.admin.blockedPosts(p)) as Paged<BlockedPost>);
+        else if (t === "Banned users") setBanned((await api.admin.bannedUsers(p)) as Paged<BannedUser>);
+        else if (t === "Users") setUsers((await api.admin.users({ ...p, q, status })) as Paged<AdminUser>);
+      } catch {
+        setLoadError(true);
+      }
+    },
+    [userQuery, userStatus],
+  );
+
   useEffect(() => {
     let live = true;
     Promise.all([
-      api.admin.verifications.list(),
-      api.admin.violations(),
-      api.admin.blockedPosts(),
-      api.admin.bannedUsers(),
+      api.admin.verifications.list({ take: PAGE_SIZE, skip: 0 }),
+      api.admin.violations({ take: PAGE_SIZE, skip: 0 }),
+      api.admin.blockedPosts({ take: PAGE_SIZE, skip: 0 }),
+      api.admin.bannedUsers({ take: PAGE_SIZE, skip: 0 }),
+      api.admin.users({ take: PAGE_SIZE, skip: 0 }),
       api.admin.categories.list(),
-      api.admin.users(),
     ])
-      .then(([v, vi, bp, bu, cats, us]) => {
+      .then(([v, vi, bp, bu, us, cats]) => {
         if (!live) return;
-        setQueue(v as Verification[]);
-        setViolations(vi as Violation[]);
-        setBlocked(bp as BlockedPost[]);
-        setBanned(bu as BannedUser[]);
+        setQueue(v as Paged<Verification>);
+        setViolations(vi as Paged<Violation>);
+        setBlocked(bp as Paged<BlockedPost>);
+        setBanned(bu as Paged<BannedUser>);
+        setUsers(us as Paged<AdminUser>);
         setCategories(cats);
-        setUsers(us as AdminUser[]);
         setLoaded(true);
       })
       .catch(() => {
@@ -116,74 +179,86 @@ export function AdminPanel() {
   }, []);
 
   const counts: Record<Tab, number> = {
-    "ID review": queue.length,
-    Users: users.length,
+    "ID review": queue.total,
+    Users: users.total,
     Categories: categories.length,
-    Violations: violations.length,
-    "Blocked posts": blocked.length,
-    "Banned users": banned.length,
+    Violations: violations.total,
+    "Blocked posts": blocked.total,
+    "Banned users": banned.total,
   };
 
-  async function decide(id: string, action: "approve" | "reject") {
-    setBusyId(id);
-    try {
-      if (action === "approve") await api.admin.verifications.approve(id);
-      else await api.admin.verifications.reject(id);
-      setQueue((q) => q.filter((v) => v.id !== id));
-    } catch {
-      /* surfaced by leaving the row in place; a reload re-syncs */
-    } finally {
-      setBusyId(null);
-    }
+  function goToPage(t: Tab, p: number) {
+    setPages((prev) => ({ ...prev, [t]: p }));
+    void fetchTab(t, p);
   }
 
-  async function reinstate(id: string) {
+  /** Runs a mutating action, then refetches the current tab so totals stay right. */
+  async function runAction(id: string, fn: () => Promise<unknown>, refetch: Tab) {
     setBusyId(id);
     try {
-      await api.admin.reinstate(id);
-      setBanned((b) => b.filter((u) => u.id !== id));
-    } catch {
-      /* no-op */
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function deleteUser(u: AdminUser) {
-    // Deleting is permanent and cascades away all their data — make it deliberate.
-    if (!window.confirm(`Permanently delete ${u.fullName} (${u.email})? This removes their profile, posts, chats and files, and can't be undone.`)) {
-      return;
-    }
-    setBusyId(u.id);
-    try {
-      await api.admin.deleteUser(u.id);
-      setUsers((list) => list.filter((x) => x.id !== u.id));
-      setBanned((list) => list.filter((x) => x.id !== u.id));
+      await fn();
+      await fetchTab(refetch, pages[refetch]);
     } catch (err) {
-      window.alert(err instanceof ApiError ? err.message : "Couldn't delete that user. Try again.");
+      window.alert(err instanceof ApiError ? err.message : "That action failed. Try again.");
     } finally {
       setBusyId(null);
     }
   }
 
-  if (loadError) {
-    return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
-        We couldn&apos;t load the moderation data. Make sure you&apos;re signed in as an admin, then refresh.
-      </div>
+  async function decide(id: string, action: "approve" | "reject") {
+    await runAction(
+      id,
+      () => (action === "approve" ? api.admin.verifications.approve(id) : api.admin.verifications.reject(id)),
+      "ID review",
     );
   }
 
+  function searchUsers(e: React.FormEvent) {
+    e.preventDefault();
+    setPages((prev) => ({ ...prev, Users: 0 }));
+    void fetchTab("Users", 0, userQuery, userStatus);
+  }
+
+  async function viewDetail(id: string) {
+    if (detailId === id) {
+      setDetailId(null);
+      return;
+    }
+    setDetailId(id);
+    setDetailData(null);
+    try {
+      setDetailData((await api.admin.userDetail(id)) as UserDetail);
+    } catch {
+      setDetailData(null);
+    }
+  }
+
+  function confirmDelete(u: AdminUser) {
+    if (
+      !window.confirm(
+        `Permanently delete ${u.fullName} (${u.email})? This removes their profile, posts, chats and files, and can't be undone.`,
+      )
+    ) {
+      return;
+    }
+    void runAction(u.id, () => api.admin.deleteUser(u.id), tab);
+  }
+
+  const smallBtn =
+    "rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-navy-800 transition hover:bg-slate-50 disabled:opacity-50";
+  const dangerBtn =
+    "rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50";
+
   return (
     <div>
-      <div className="flex flex-wrap gap-2 border-b border-slate-200">
+      <div className="flex flex-wrap gap-1 border-b border-slate-200">
         {TABS.map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
             aria-current={tab === t ? "page" : undefined}
-            className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition ${
+            className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition ${
               tab === t ? "border-brand-600 text-brand-600" : "border-transparent text-slate-500 hover:text-navy-800"
             }`}
           >
@@ -199,7 +274,13 @@ export function AdminPanel() {
         ))}
       </div>
 
-      {!loaded ? (
+      {loadError ? (
+        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800">
+          Couldn&apos;t load this data. Make sure you&apos;re signed in as an admin, then reload.
+        </div>
+      ) : null}
+
+      {!loaded && !loadError ? (
         <div className="mt-6 space-y-4">
           {[0, 1, 2].map((i) => (
             <div key={i} className="h-28 animate-pulse rounded-2xl border border-slate-200 bg-slate-50" />
@@ -209,98 +290,78 @@ export function AdminPanel() {
 
       {/* ----------------------------- ID review ----------------------------- */}
       {loaded && tab === "ID review" ? (
-        <ul className="mt-6 space-y-4">
-          {queue.map((c) => {
-            const score = c.score == null ? null : Number(c.score);
-            return (
-              <li key={c.id} className={`${CARD} p-5`}>
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="flex min-w-0 gap-4">
-                    <Avatar name={c.fullName} className="h-10 w-10 text-sm" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-navy-800">{c.fullName}</p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {c.user?.email} · DOB {c.dob} · ID {c.idNumber}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-400">Submitted {when(c.createdAt)}</p>
+        <>
+          <ul className="mt-6 space-y-4">
+            {queue.items.map((c) => {
+              const score = c.score == null ? null : Number(c.score);
+              return (
+                <li key={c.id} className={`${CARD} p-5`}>
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex min-w-0 gap-4">
+                      <Avatar name={c.fullName} className="h-10 w-10 text-sm" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-navy-800">{c.fullName}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {c.user?.email} · DOB {c.dob} · ID {c.idNumber}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-400">Submitted {when(c.createdAt)}</p>
+                        {score != null ? (
+                          <div className="mt-3 flex items-center gap-3">
+                            <span className="text-xs text-slate-400">Match score</span>
+                            <span className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-100">
+                              <span
+                                className={`block h-full rounded-full ${score >= 0.7 ? "bg-amber-400" : "bg-red-400"}`}
+                                style={{ width: `${Math.round(score * 100)}%` }}
+                              />
+                            </span>
+                            <span className="text-xs font-semibold text-navy-800">{score.toFixed(2)}</span>
+                          </div>
+                        ) : (
+                          <p className="mt-3 text-xs text-slate-400">Manual review — no automated score.</p>
+                        )}
+                      </div>
+                    </div>
 
-                      {score != null ? (
-                        <div className="mt-3 flex items-center gap-3">
-                          <span className="text-xs text-slate-400">Match score</span>
-                          <span className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-100">
-                            <span
-                              className={`block h-full rounded-full ${score >= 0.7 ? "bg-amber-400" : "bg-red-400"}`}
-                              style={{ width: `${Math.round(score * 100)}%` }}
-                            />
-                          </span>
-                          <span className="text-xs font-semibold text-navy-800">{score.toFixed(2)}</span>
-                        </div>
-                      ) : (
-                        <p className="mt-3 text-xs text-slate-400">Manual review — no automated score.</p>
-                      )}
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <button type="button" disabled={busyId === c.id} onClick={() => decide(c.id, "reject")} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-navy-800 transition hover:bg-slate-50 disabled:opacity-50">
+                        Reject
+                      </button>
+                      <button type="button" disabled={busyId === c.id} onClick={() => decide(c.id, "approve")} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50">
+                        <Check className="h-5 w-5" />
+                        Approve
+                      </button>
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 flex-wrap gap-2">
-                    <button
-                      type="button"
-                      disabled={busyId === c.id}
-                      onClick={() => decide(c.id, "reject")}
-                      className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-navy-800 transition hover:bg-slate-50 disabled:opacity-50"
-                    >
-                      Reject
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busyId === c.id}
-                      onClick={() => decide(c.id, "approve")}
-                      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      <Check className="h-5 w-5" />
-                      Approve
-                    </button>
+                  <div className="mt-4">
+                    <div className="flex flex-wrap gap-3">
+                      {[
+                        { kind: "front", label: "ID front" },
+                        ...(c.idBackPath ? [{ kind: "back", label: "ID back" }] : []),
+                        { kind: "selfie", label: "Selfie" },
+                      ].map((img) => (
+                        <a key={img.kind} href={`/api/admin/verifications/${c.id}/image/${img.kind}`} target="_blank" rel="noreferrer" className="group" title="Open full size">
+                          <span className="block text-[0.6875rem] font-medium text-slate-400">{img.label}</span>
+                          {/* Authed same-origin endpoint (secured store); next/image can't optimise it. */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={`/api/admin/verifications/${c.id}/image/${img.kind}`} alt={img.label} className="mt-1 h-40 w-auto max-w-[16rem] rounded-lg border border-slate-200 bg-slate-50 object-contain transition group-hover:ring-2 group-hover:ring-brand-300" />
+                        </a>
+                      ))}
+                    </div>
+                    <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-slate-400">
+                      <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+                      Confidential — held in secured storage, shown for review only. ID number and date of birth are decrypted here.
+                    </p>
                   </div>
-                </div>
-
-                <div className="mt-4">
-                  <div className="flex flex-wrap gap-3">
-                    {[
-                      { kind: "front", label: "ID front" },
-                      ...(c.idBackPath ? [{ kind: "back", label: "ID back" }] : []),
-                      { kind: "selfie", label: "Selfie" },
-                    ].map((img) => (
-                      <a
-                        key={img.kind}
-                        href={`/api/admin/verifications/${c.id}/image/${img.kind}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group"
-                        title="Open full size"
-                      >
-                        <span className="block text-[0.6875rem] font-medium text-slate-400">{img.label}</span>
-                        {/* Authed same-origin endpoint (secured store); next/image can't optimise it. */}
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={`/api/admin/verifications/${c.id}/image/${img.kind}`}
-                          alt={img.label}
-                          className="mt-1 h-40 w-auto max-w-[16rem] rounded-lg border border-slate-200 bg-slate-50 object-contain transition group-hover:ring-2 group-hover:ring-brand-300"
-                        />
-                      </a>
-                    ))}
-                  </div>
-                  <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-slate-400">
-                    <Lock className="mt-0.5 h-4 w-4 shrink-0" />
-                    Confidential — held in secured storage, shown for review only. ID number and date of
-                    birth are decrypted here.
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-          {queue.length === 0 ? (
-            <li className={`${CARD} p-10 text-center text-sm text-slate-500`}>No pending ID reviews.</li>
-          ) : null}
-        </ul>
+                </li>
+              );
+            })}
+            {queue.items.length === 0 ? (
+              <li className={`${CARD} p-10 text-center text-sm text-slate-500`}>No pending ID reviews.</li>
+            ) : null}
+          </ul>
+          <Pager page={pages["ID review"]} total={queue.total} onPage={(p) => goToPage("ID review", p)} />
+        </>
       ) : null}
 
       {/* ----------------------------- categories ---------------------------- */}
@@ -308,154 +369,212 @@ export function AdminPanel() {
         <CategoriesManager categories={categories} setCategories={setCategories} />
       ) : null}
 
+      {/* ------------------------------- users ------------------------------- */}
+      {loaded && tab === "Users" ? (
+        <>
+          <form onSubmit={searchUsers} className="mt-6 flex flex-wrap gap-3">
+            <input
+              value={userQuery}
+              onChange={(e) => setUserQuery(e.target.value)}
+              placeholder="Search by name or email"
+              className="min-w-[12rem] flex-1 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-navy-800 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            />
+            <select
+              value={userStatus}
+              onChange={(e) => {
+                setUserStatus(e.target.value);
+                setPages((prev) => ({ ...prev, Users: 0 }));
+                void fetchTab("Users", 0, userQuery, e.target.value);
+              }}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-navy-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            >
+              <option value="">All statuses</option>
+              <option value="active">Active</option>
+              <option value="banned">Suspended</option>
+              <option value="pending">Pending</option>
+            </select>
+            <button type="submit" className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700">
+              Search
+            </button>
+          </form>
+
+          <ul className="mt-4 space-y-4">
+            {users.items.map((u) => (
+              <li key={u.id} className={`${CARD} p-5`}>
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-4">
+                    <Avatar name={u.fullName} muted={u.status !== "active"} className="h-10 w-10 text-sm" />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-navy-800">{u.fullName}</p>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[0.625rem] font-medium text-slate-500">{u.role}</span>
+                        {u.status !== "active" ? (
+                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-[0.625rem] font-medium text-red-700">{u.status === "banned" ? "suspended" : u.status}</span>
+                        ) : null}
+                        {u.idVerified ? (
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[0.625rem] font-medium text-emerald-700">ID ✓</span>
+                        ) : null}
+                        {u.strikeCount > 0 ? (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[0.625rem] font-medium text-amber-700">{u.strikeCount} strikes</span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 truncate text-sm text-slate-500">{u.email} · joined {when(u.createdAt)}</p>
+                    </div>
+                  </div>
+
+                  {u.role === "admin" ? (
+                    <span className="shrink-0 text-xs text-slate-400">Admin — protected</span>
+                  ) : (
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <button type="button" className={smallBtn} onClick={() => viewDetail(u.id)}>
+                        {detailId === u.id ? "Hide" : "View"}
+                      </button>
+                      {u.strikeCount > 0 ? (
+                        <button type="button" className={smallBtn} disabled={busyId === u.id} onClick={() => runAction(u.id, () => api.admin.resetStrikes(u.id), tab)}>
+                          Reset strikes
+                        </button>
+                      ) : null}
+                      {u.status === "banned" ? (
+                        <button type="button" className={smallBtn} disabled={busyId === u.id} onClick={() => runAction(u.id, () => api.admin.reinstate(u.id), tab)}>
+                          Reinstate
+                        </button>
+                      ) : (
+                        <button type="button" className={smallBtn} disabled={busyId === u.id} onClick={() => runAction(u.id, () => api.admin.ban(u.id), tab)}>
+                          Suspend
+                        </button>
+                      )}
+                      <button type="button" className={dangerBtn} disabled={busyId === u.id} onClick={() => confirmDelete(u)}>
+                        {busyId === u.id ? "…" : "Delete"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {detailId === u.id ? (
+                  <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600">
+                    {detailData ? (
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <span>Phone: {detailData.phone ?? "—"} {detailData.phoneVerified ? "(verified)" : ""}</span>
+                        <span>ID verified: {detailData.idVerified ? "yes" : "no"}</span>
+                        <span>Location: {[detailData.state, detailData.country].filter(Boolean).join(", ") || "—"}</span>
+                        <span>Posts: {detailData.postCount} · Conversations: {detailData.conversationCount}</span>
+                        <span>Profile: {detailData.profile ? `/${detailData.profile.slug} (${detailData.profile.isVisible ? "visible" : "hidden"})` : "none"}</span>
+                        <span>Latest ID check: {detailData.latestVerification?.status ?? "none"}</span>
+                      </div>
+                    ) : (
+                      <span className="text-slate-400">Loading…</span>
+                    )}
+                  </div>
+                ) : null}
+              </li>
+            ))}
+            {users.items.length === 0 ? (
+              <li className={`${CARD} p-10 text-center text-sm text-slate-500`}>No users match.</li>
+            ) : null}
+          </ul>
+          <Pager page={pages.Users} total={users.total} onPage={(p) => goToPage("Users", p)} />
+        </>
+      ) : null}
+
       {/* ----------------------------- violations ---------------------------- */}
       {loaded && tab === "Violations" ? (
-        <ul className="mt-6 space-y-4">
-          {violations.map((v) => (
-            <li key={v.id} className={`${CARD} p-5`}>
-              <div className="flex min-w-0 gap-4">
-                <Avatar name={v.user?.fullName ?? "?"} className="h-10 w-10 text-sm" />
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-navy-800">{v.user?.fullName}</p>
-                    {v.user ? (
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold ring-1 ${
-                          v.user.status === "banned"
-                            ? "bg-slate-100 text-slate-600 ring-slate-200"
-                            : v.user.strikeCount >= 2
-                              ? "bg-red-50 text-red-700 ring-red-200"
-                              : "bg-amber-50 text-amber-700 ring-amber-200"
-                        }`}
-                      >
-                        {v.user.status === "banned" ? "Banned" : `Strike ${v.user.strikeCount} of 3`}
-                      </span>
-                    ) : null}
+        <>
+          <ul className="mt-6 space-y-4">
+            {violations.items.map((v) => (
+              <li key={v.id} className={`${CARD} p-5`}>
+                <div className="flex min-w-0 gap-4">
+                  <Avatar name={v.user?.fullName ?? "?"} className="h-10 w-10 text-sm" />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-navy-800">{v.user?.fullName}</p>
+                      {v.user ? (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold ring-1 ${
+                            v.user.status === "banned"
+                              ? "bg-slate-100 text-slate-600 ring-slate-200"
+                              : v.user.strikeCount >= 2
+                                ? "bg-red-50 text-red-700 ring-red-200"
+                                : "bg-amber-50 text-amber-700 ring-amber-200"
+                          }`}
+                        >
+                          {v.user.status === "banned" ? "Suspended" : `Strike ${v.user.strikeCount} of 3`}
+                        </span>
+                      ) : null}
+                    </div>
+                    {v.post?.title ? <p className="mt-1 truncate text-sm text-slate-500">{v.post.title}</p> : null}
+                    <p className="mt-2.5 text-sm text-slate-600">
+                      <mark className="rounded bg-red-100 px-1 text-red-900">{v.detectedText}</mark>
+                    </p>
+                    <p className="mt-2 text-xs text-slate-400">{when(v.createdAt)}</p>
                   </div>
-                  {v.post?.title ? <p className="mt-1 truncate text-sm text-slate-500">{v.post.title}</p> : null}
-                  <p className="mt-2.5 text-sm text-slate-600">
-                    <mark className="rounded bg-red-100 px-1 text-red-900">{v.detectedText}</mark>
-                  </p>
-                  <p className="mt-2 text-xs text-slate-400">{when(v.createdAt)}</p>
                 </div>
-              </div>
-            </li>
-          ))}
-          {violations.length === 0 ? (
-            <li className={`${CARD} p-10 text-center text-sm text-slate-500`}>No violations recorded.</li>
-          ) : null}
-        </ul>
+              </li>
+            ))}
+            {violations.items.length === 0 ? (
+              <li className={`${CARD} p-10 text-center text-sm text-slate-500`}>No violations recorded.</li>
+            ) : null}
+          </ul>
+          <Pager page={pages.Violations} total={violations.total} onPage={(p) => goToPage("Violations", p)} />
+        </>
       ) : null}
 
       {/* --------------------------- blocked posts --------------------------- */}
       {loaded && tab === "Blocked posts" ? (
-        <ul className="mt-6 space-y-4">
-          {blocked.map((p) => (
-            <li key={p.id} className={`${CARD} p-5`}>
-              <p className="font-semibold text-navy-800">{p.title}</p>
-              {p.author ? <p className="mt-0.5 text-xs text-slate-400">{p.author.fullName} · {p.author.email}</p> : null}
-              <p className="mt-1.5 line-clamp-2 max-w-2xl text-sm leading-relaxed text-slate-500">{p.description}</p>
-              {p.blockedReason ? (
-                <p className="mt-2.5 text-sm text-slate-600">
-                  <span className="text-slate-400">Detected:</span>{" "}
-                  <mark className="rounded bg-red-100 px-1 text-red-900">{p.blockedReason}</mark>
+        <>
+          <ul className="mt-6 space-y-4">
+            {blocked.items.map((p) => (
+              <li key={p.id} className={`${CARD} p-5`}>
+                <p className="font-semibold text-navy-800">{p.title}</p>
+                {p.author ? <p className="mt-0.5 text-xs text-slate-400">{p.author.fullName} · {p.author.email}</p> : null}
+                <p className="mt-1.5 line-clamp-2 max-w-2xl text-sm leading-relaxed text-slate-500">{p.description}</p>
+                {p.blockedReason ? (
+                  <p className="mt-2.5 text-sm text-slate-600">
+                    <span className="text-slate-400">Detected:</span>{" "}
+                    <mark className="rounded bg-red-100 px-1 text-red-900">{p.blockedReason}</mark>
+                  </p>
+                ) : null}
+                <p className="mt-2 text-xs text-slate-400">
+                  The author fixes and republishes this themselves — removing the contact details clears the block.
                 </p>
-              ) : null}
-              <p className="mt-2 text-xs text-slate-400">
-                The author fixes and republishes this themselves — removing the contact details clears the block.
-              </p>
-            </li>
-          ))}
-          {blocked.length === 0 ? (
-            <li className={`${CARD} p-10 text-center text-sm text-slate-500`}>Nothing blocked.</li>
-          ) : null}
-        </ul>
+              </li>
+            ))}
+            {blocked.items.length === 0 ? (
+              <li className={`${CARD} p-10 text-center text-sm text-slate-500`}>Nothing blocked.</li>
+            ) : null}
+          </ul>
+          <Pager page={pages["Blocked posts"]} total={blocked.total} onPage={(p) => goToPage("Blocked posts", p)} />
+        </>
       ) : null}
 
       {/* --------------------------- banned users ---------------------------- */}
       {loaded && tab === "Banned users" ? (
-        <ul className="mt-6 space-y-4">
-          {banned.map((b) => (
-            <li key={b.id} className={`${CARD} p-5`}>
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex min-w-0 items-center gap-4">
-                  <Avatar name={b.fullName} muted className="h-10 w-10 text-sm" />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-navy-800">{b.fullName}</p>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[0.625rem] font-medium text-slate-500">
-                        {b.role}
-                      </span>
+        <>
+          <ul className="mt-6 space-y-4">
+            {banned.items.map((b) => (
+              <li key={b.id} className={`${CARD} p-5`}>
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-4">
+                    <Avatar name={b.fullName} muted className="h-10 w-10 text-sm" />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-navy-800">{b.fullName}</p>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[0.625rem] font-medium text-slate-500">{b.role}</span>
+                      </div>
+                      <p className="mt-1 text-sm text-slate-500">{b.email} · {b.strikeCount} strikes</p>
                     </div>
-                    <p className="mt-1 text-sm text-slate-500">{b.email} · {b.strikeCount} strikes</p>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  disabled={busyId === b.id}
-                  onClick={() => reinstate(b.id)}
-                  className="shrink-0 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-navy-800 transition hover:bg-slate-50 disabled:opacity-50"
-                >
-                  Reinstate
-                </button>
-              </div>
-            </li>
-          ))}
-          {banned.length === 0 ? (
-            <li className={`${CARD} p-10 text-center text-sm text-slate-500`}>Nobody is banned.</li>
-          ) : null}
-        </ul>
-      ) : null}
-
-      {/* ------------------------------- users ------------------------------- */}
-      {loaded && tab === "Users" ? (
-        <ul className="mt-6 space-y-4">
-          {users.map((u) => (
-            <li key={u.id} className={`${CARD} p-5`}>
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex min-w-0 items-center gap-4">
-                  <Avatar name={u.fullName} muted={u.status !== "active"} className="h-10 w-10 text-sm" />
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-navy-800">{u.fullName}</p>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[0.625rem] font-medium text-slate-500">
-                        {u.role}
-                      </span>
-                      {u.status !== "active" ? (
-                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[0.625rem] font-medium text-red-700">
-                          {u.status}
-                        </span>
-                      ) : null}
-                      {u.idVerified ? (
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[0.625rem] font-medium text-emerald-700">
-                          ID ✓
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-1 truncate text-sm text-slate-500">
-                      {u.email} · joined {when(u.createdAt)}
-                    </p>
-                  </div>
-                </div>
-                {u.role === "admin" ? (
-                  <span className="shrink-0 text-xs text-slate-400">Admin — protected</span>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={busyId === u.id}
-                    onClick={() => deleteUser(u)}
-                    className="shrink-0 rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
-                  >
-                    {busyId === u.id ? "Deleting…" : "Delete"}
+                  <button type="button" disabled={busyId === b.id} onClick={() => runAction(b.id, () => api.admin.reinstate(b.id), "Banned users")} className="shrink-0 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-navy-800 transition hover:bg-slate-50 disabled:opacity-50">
+                    Reinstate
                   </button>
-                )}
-              </div>
-            </li>
-          ))}
-          {users.length === 0 ? (
-            <li className={`${CARD} p-10 text-center text-sm text-slate-500`}>No users yet.</li>
-          ) : null}
-        </ul>
+                </div>
+              </li>
+            ))}
+            {banned.items.length === 0 ? (
+              <li className={`${CARD} p-10 text-center text-sm text-slate-500`}>Nobody is suspended.</li>
+            ) : null}
+          </ul>
+          <Pager page={pages["Banned users"]} total={banned.total} onPage={(p) => goToPage("Banned users", p)} />
+        </>
       ) : null}
 
       <p className="mt-8 flex items-start gap-2 text-sm leading-relaxed text-slate-500">
