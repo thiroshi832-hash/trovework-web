@@ -88,6 +88,8 @@ function prismaDouble() {
       }),
       findUnique: jest.fn(async ({ where }: any) => verifications.find((v) => v.id === where.id) ?? null),
       findMany: jest.fn(async ({ where }: any) => verifications.filter((v) => v.status === where.status)),
+      findFirst: jest.fn(async ({ where }: any) => verifications.find((v) => v.status === where.status) ?? null),
+      count: jest.fn(async ({ where }: any) => verifications.filter((v) => v.status === where.status).length),
       update: jest.fn(async ({ where, data }: any) => {
         const v = verifications.find((x) => x.id === where.id);
         Object.assign(v, data);
@@ -610,10 +612,11 @@ describe("VerificationService — admin review", () => {
     await svc.approve(admin, "v1");
 
     const pending = await svc.listPending();
-    expect(pending).toHaveLength(1);
-    expect(pending[0].id).toBe("v2");
+    expect(pending.total).toBe(1);
+    expect(pending.items).toHaveLength(1);
+    expect(pending.items[0].id).toBe("v2");
     // The reviewer sees decrypted PII, not the stored ciphertext.
-    expect(pending[0].idNumber).toBe("AB123456");
-    expect(pending[0].dob).toBe("1990-04-12");
+    expect(pending.items[0].idNumber).toBe("AB123456");
+    expect(pending.items[0].dob).toBe("1990-04-12");
   });
 });

@@ -324,14 +324,23 @@ export class VerificationService {
 
   /* --------------------------------- admin --------------------------------- */
 
-  /** Pending requests with dob/idNumber decrypted for the admin reviewer. */
-  async listPending() {
-    const records = await this.prisma.idVerification.findMany({
-      where: { status: "pending" },
-      orderBy: { createdAt: "asc" },
-      include: { user: { select: { id: true, email: true, role: true } } },
-    });
-    return records.map((r) => ({ ...r, dob: this.pii.decrypt(r.dob), idNumber: this.pii.decrypt(r.idNumber) }));
+  /** A page of pending requests with dob/idNumber decrypted for the reviewer. */
+  async listPending(opts: { take?: number; skip?: number } = {}) {
+    const take = Math.min(Math.max(Math.trunc(opts.take ?? 25), 1), 100);
+    const skip = Math.max(Math.trunc(opts.skip ?? 0), 0);
+    const where = { status: "pending" as const };
+    const [records, total] = await Promise.all([
+      this.prisma.idVerification.findMany({
+        where,
+        orderBy: { createdAt: "asc" },
+        take,
+        skip,
+        include: { user: { select: { id: true, email: true, role: true } } },
+      }),
+      this.prisma.idVerification.count({ where }),
+    ]);
+    const items = records.map((r) => ({ ...r, dob: this.pii.decrypt(r.dob), idNumber: this.pii.decrypt(r.idNumber) }));
+    return { items, total };
   }
 
   /**

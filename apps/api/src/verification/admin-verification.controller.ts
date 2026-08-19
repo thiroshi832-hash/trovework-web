@@ -6,6 +6,7 @@ import {
   HttpCode,
   Param,
   Post,
+  Query,
   Res,
   StreamableFile,
 } from "@nestjs/common";
@@ -23,8 +24,9 @@ export class AdminVerificationController {
   constructor(private readonly verification: VerificationService) {}
 
   @Get()
-  listPending() {
-    return this.verification.listPending();
+  listPending(@Query("take") take?: string, @Query("skip") skip?: string) {
+    const n = (v?: string) => (v != null && Number.isFinite(Number(v)) ? Number(v) : undefined);
+    return this.verification.listPending({ take: n(take), skip: n(skip) });
   }
 
   /**

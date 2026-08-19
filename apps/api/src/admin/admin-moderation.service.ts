@@ -1,12 +1,44 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { PublicStorageService } from "../storage/public-storage.service";
 import { SecuredStorageService } from "../storage/secured-storage.service";
 
+export interface PageOpts {
+  take?: number;
+  skip?: number;
+}
+
+/** A page of results plus the total, so the UI can show "x of N" and paginate. */
+export interface Page<T> {
+  items: T[];
+  total: number;
+}
+
+/** Clamp paging so a client can't ask for everything or a negative offset. */
+function paging(opts: PageOpts = {}): { take: number; skip: number } {
+  return {
+    take: Math.min(Math.max(Math.trunc(opts.take ?? 25), 1), 100),
+    skip: Math.max(Math.trunc(opts.skip ?? 0), 0),
+  };
+}
+
+const USER_CARD_SELECT = {
+  id: true,
+  fullName: true,
+  email: true,
+  role: true,
+  status: true,
+  strikeCount: true,
+  phoneVerified: true,
+  idVerified: true,
+  createdAt: true,
+} satisfies Prisma.UserSelect;
+
 /**
- * Read-mostly oversight for admins. Strikes and the 3-strike ban are applied
- * automatically at scan time (see PostsService), so these are audit views plus
- * the one manual override an admin genuinely needs: reinstating a banned user.
+ * Oversight and user management for admins. Strikes and the 3-strike ban are
+ * applied automatically at scan time (see PostsService); these are the audit
+ * views plus the manual overrides — suspend, reinstate, reset strikes, delete.
  */
 @Injectable()
 export class AdminModerationService {
@@ -16,22 +48,85 @@ export class AdminModerationService {
     private readonly securedStorage: SecuredStorageService,
   ) {}
 
-  /** All accounts, newest first, for the admin users list. */
-  listUsers(take = 200) {
-    return this.prisma.user.findMany({
-      orderBy: { createdAt: "desc" },
-      take,
+  /* --------------------------------- users --------------------------------- */
+
+  /** A page of accounts, newest first, optionally filtered by search and status. */
+  async listUsers(
+    opts: PageOpts & { q?: string; status?: string } = {},
+  ): Promise<Page<Prisma.UserGetPayload<{ select: typeof USER_CARD_SELECT }>>> {
+    const { take, skip } = paging(opts);
+    const q = opts.q?.trim();
+    const where: Prisma.UserWhereInput = {
+      ...(opts.status ? { status: opts.status as Prisma.EnumAccountStatusFilter["equals"] } : {}),
+      ...(q
+        ? {
+            OR: [
+              { email: { contains: q, mode: "insensitive" } },
+              { fullName: { contains: q, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    };
+    const [items, total] = await Promise.all([
+      this.prisma.user.findMany({ where, orderBy: { createdAt: "desc" }, take, skip, select: USER_CARD_SELECT }),
+      this.prisma.user.count({ where }),
+    ]);
+    return { items, total };
+  }
+
+  /** A user with the extra context an admin wants before acting: profile + counts. */
+  async getUserDetail(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
       select: {
-        id: true,
-        fullName: true,
-        email: true,
-        role: true,
-        status: true,
-        phoneVerified: true,
-        idVerified: true,
-        createdAt: true,
+        ...USER_CARD_SELECT,
+        phone: true,
+        country: true,
+        state: true,
       },
     });
+    if (!user) throw new NotFoundException("User not found.");
+
+    const [profile, postCount, conversationCount, latestVerification] = await Promise.all([
+      this.prisma.freelancerProfile.findUnique({
+        where: { userId },
+        select: { slug: true, displayName: true, category: true, isVisible: true },
+      }),
+      this.prisma.post.count({ where: { authorId: userId } }),
+      this.prisma.conversation.count({ where: { OR: [{ clientId: userId }, { freelancerId: userId }] } }),
+      this.prisma.idVerification.findFirst({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        select: { status: true, createdAt: true },
+      }),
+    ]);
+
+    return { ...user, profile, postCount, conversationCount, latestVerification };
+  }
+
+  /** Suspends an active account. Guarded against self and other admins. */
+  async ban(actingAdminId: string, userId: string): Promise<void> {
+    if (userId === actingAdminId) throw new BadRequestException("You can't suspend your own account.");
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, role: true, status: true } });
+    if (!user) throw new NotFoundException("User not found.");
+    if (user.role === "admin") throw new ForbiddenException("Admin accounts can't be suspended.");
+    if (user.status === "banned") throw new BadRequestException("That account is already suspended.");
+    await this.prisma.user.update({ where: { id: userId }, data: { status: "banned" } });
+  }
+
+  /** Lifts a ban and clears the strike count so the account starts fresh. */
+  async reinstate(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("User not found.");
+    if (user.status !== "banned") throw new BadRequestException("That account isn't banned.");
+    await this.prisma.user.update({ where: { id: userId }, data: { status: "active", strikeCount: 0 } });
+  }
+
+  /** Clears a user's strike count without touching their status. */
+  async resetStrikes(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!user) throw new NotFoundException("User not found.");
+    await this.prisma.user.update({ where: { id: userId }, data: { strikeCount: 0 } });
   }
 
   /**
@@ -51,41 +146,57 @@ export class AdminModerationService {
     await Promise.all([this.publicStorage.removeUserDir(userId), this.securedStorage.removeUserDir(userId)]);
   }
 
-  /** Recent contact-info violations, newest first. */
-  listViolations(take = 100) {
-    return this.prisma.violation.findMany({
-      orderBy: { createdAt: "desc" },
-      take,
-      include: {
-        user: { select: { id: true, fullName: true, email: true, strikeCount: true, status: true } },
-        post: { select: { id: true, title: true } },
-      },
-    });
+  /* ------------------------------- audit lists ----------------------------- */
+
+  /** A page of contact-info violations, newest first. */
+  async listViolations(opts: PageOpts = {}): Promise<Page<unknown>> {
+    const { take, skip } = paging(opts);
+    const [items, total] = await Promise.all([
+      this.prisma.violation.findMany({
+        orderBy: { createdAt: "desc" },
+        take,
+        skip,
+        include: {
+          user: { select: { id: true, fullName: true, email: true, strikeCount: true, status: true } },
+          post: { select: { id: true, title: true } },
+        },
+      }),
+      this.prisma.violation.count(),
+    ]);
+    return { items, total };
   }
 
-  /** Posts the scanner blocked, with their author. */
-  listBlockedPosts() {
-    return this.prisma.post.findMany({
-      where: { status: "blocked" },
-      orderBy: { updatedAt: "desc" },
-      include: { author: { select: { id: true, fullName: true, email: true } } },
-    });
+  /** A page of posts the scanner blocked, with their author. */
+  async listBlockedPosts(opts: PageOpts = {}): Promise<Page<unknown>> {
+    const { take, skip } = paging(opts);
+    const where = { status: "blocked" as const };
+    const [items, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        orderBy: { updatedAt: "desc" },
+        take,
+        skip,
+        include: { author: { select: { id: true, fullName: true, email: true } } },
+      }),
+      this.prisma.post.count({ where }),
+    ]);
+    return { items, total };
   }
 
-  /** Currently-banned accounts. */
-  listBannedUsers() {
-    return this.prisma.user.findMany({
-      where: { status: "banned" },
-      orderBy: { updatedAt: "desc" },
-      select: { id: true, fullName: true, email: true, role: true, strikeCount: true, updatedAt: true },
-    });
-  }
-
-  /** Lifts a ban and clears the strike count so the account starts fresh. */
-  async reinstate(userId: string): Promise<void> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("User not found.");
-    if (user.status !== "banned") throw new BadRequestException("That account isn't banned.");
-    await this.prisma.user.update({ where: { id: userId }, data: { status: "active", strikeCount: 0 } });
+  /** A page of currently-banned accounts. */
+  async listBannedUsers(opts: PageOpts = {}): Promise<Page<unknown>> {
+    const { take, skip } = paging(opts);
+    const where = { status: "banned" as const };
+    const [items, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        orderBy: { updatedAt: "desc" },
+        take,
+        skip,
+        select: { id: true, fullName: true, email: true, role: true, strikeCount: true, updatedAt: true },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+    return { items, total };
   }
 }
