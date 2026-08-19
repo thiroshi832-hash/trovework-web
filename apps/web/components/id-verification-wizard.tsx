@@ -280,17 +280,26 @@ export function IdVerificationWizard() {
     try {
       const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
       streamRef.current = s;
+      // The <video> renders only once cameraOn is true, so it isn't in the DOM
+      // yet — video.current is still null here. The effect below attaches the
+      // stream after React mounts the element.
       setCameraOn(true);
-      if (video.current) {
-        video.current.srcObject = s;
-        await video.current.play();
-      }
     } catch {
       setCameraError(
         "The camera isn't available — allow access in your browser, or upload a photo instead.",
       );
     }
   }
+
+  // Attach the live stream once the <video> is actually mounted. Doing this in
+  // openCamera would race the render and leave the preview blank.
+  useEffect(() => {
+    const v = video.current;
+    if (cameraOn && v && streamRef.current) {
+      v.srcObject = streamRef.current;
+      void v.play().catch(() => {});
+    }
+  }, [cameraOn]);
 
   function capture() {
     const v = video.current;
