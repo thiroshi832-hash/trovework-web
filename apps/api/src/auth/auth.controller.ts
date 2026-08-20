@@ -28,6 +28,7 @@ import type { AuthedUser } from "./strategies/jwt.strategy";
 
 const ACCESS_COOKIE = "access_token";
 const REFRESH_COOKIE = "refresh_token";
+const SESSION_COOKIE = "session";
 const GOOGLE_PENDING_COOKIE = "google_pending";
 
 /** Where a role lands after auth — mirrors the web client's homeFor(). */
@@ -61,6 +62,12 @@ export class AuthController {
       path: "/api/auth",
       expires: tokens.refreshExpiresAt,
     });
+    // A non-secret marker the edge middleware can see on every path (the refresh
+    // token is scoped to /api/auth and the access token expires in 15 min, so
+    // neither is visible for a navigation gate). It just says "this browser has
+    // a refreshable session" — real authorization still happens on every API
+    // call. Same lifetime as the refresh token.
+    res.cookie(SESSION_COOKIE, "1", { ...common, expires: tokens.refreshExpiresAt });
   }
 
   private clearCookies(res: Response) {
@@ -68,6 +75,7 @@ export class AuthController {
     const common = { httpOnly: true, secure, sameSite: "lax" as const };
     res.clearCookie(ACCESS_COOKIE, { ...common, path: "/" });
     res.clearCookie(REFRESH_COOKIE, { ...common, path: "/api/auth" });
+    res.clearCookie(SESSION_COOKIE, { ...common, path: "/" });
   }
 
   @Public()
