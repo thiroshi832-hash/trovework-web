@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Portrait } from "@/components/brand";
 import { Checkbox } from "@/components/checkbox";
-import { ChevronDown, Close, Search, Star } from "@/components/icons";
+import { Close, Search, Star } from "@/components/icons";
+import { Select } from "@/components/select";
 import { AVAILABILITY, CATEGORIES, CATEGORIES_COLLAPSED } from "@/lib/categories";
 import { ApiError, api } from "@/lib/api";
 
@@ -100,19 +101,8 @@ function describeCategories(picked: string[]): string {
   return `${picked.length} categories`;
 }
 
-const selectBase =
-  "w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 pl-3.5 pr-9 text-sm text-navy-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100";
 const numberBase =
   "w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-navy-800 placeholder:text-slate-400 focus:outline-none focus:ring-2";
-
-function SelectShell({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="relative block">
-      {children}
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-    </span>
-  );
-}
 
 export function BrowseFreelancers({ initialCategories = [] }: { initialCategories?: string[] }) {
   // Every control filters as you change it. An explicit "apply" step made the
@@ -254,18 +244,13 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
 
         <div className="flex items-center gap-3 sm:shrink-0">
           <span className="text-sm text-slate-500">Sort by</span>
-          <SelectShell>
-            <select
-              aria-label="Sort by"
-              value={sort}
-              onChange={(e) => setSort(e.target.value as Sort)}
-              className={`${selectBase} sm:w-44`}
-            >
-              {SORTS.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </SelectShell>
+          <Select
+            ariaLabel="Sort by"
+            value={sort}
+            onChange={(v) => setSort(v as Sort)}
+            options={SORTS.map((s) => ({ value: s, label: s }))}
+            className="sm:w-44"
+          />
         </div>
       </div>
 
@@ -351,19 +336,13 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
 
           <div className="mt-6">
             <h3 className="text-sm font-semibold text-navy-800">Skills</h3>
-            <SelectShell>
-              <select
-                aria-label="Skills"
-                value={filters.skill}
-                onChange={(e) => set({ skill: e.target.value })}
-                className={`${selectBase} mt-3`}
-              >
-                <option value="">All skills</option>
-                {skills.map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
-            </SelectShell>
+            <Select
+              ariaLabel="Skills"
+              value={filters.skill}
+              onChange={(v) => set({ skill: v })}
+              options={[{ value: "", label: "All skills" }, ...skills.map((s) => ({ value: s, label: s }))]}
+              className="mt-3"
+            />
           </div>
 
           <div className="mt-6">
@@ -409,18 +388,13 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
 
           <div className="mt-6">
             <h3 className="text-sm font-semibold text-navy-800">Availability</h3>
-            <SelectShell>
-              <select
-                aria-label="Availability"
-                value={filters.availability}
-                onChange={(e) => set({ availability: e.target.value })}
-                className={`${selectBase} mt-3`}
-              >
-                {AVAILABILITY.map((a) => (
-                  <option key={a}>{a}</option>
-                ))}
-              </select>
-            </SelectShell>
+            <Select
+              ariaLabel="Availability"
+              value={filters.availability}
+              onChange={(v) => set({ availability: v })}
+              options={AVAILABILITY.map((a) => ({ value: a, label: a }))}
+              className="mt-3"
+            />
           </div>
 
           <fieldset className="mt-6">
@@ -516,15 +490,15 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
           ) : (
           <div className="space-y-5">
             {results.map((f) => (
-              <article key={f.slug} className="rounded-xl border border-slate-200 bg-white p-6">
-                <div className="flex flex-col gap-5 sm:flex-row">
+              <article key={f.slug} className="overflow-hidden rounded-xl border border-slate-200 bg-white p-6 sm:h-52">
+                <div className="flex h-full flex-col gap-5 sm:flex-row">
                   {f.photo ? (
-                    <Portrait src={f.photo} sizes="96px" className="h-24 w-24" />
+                    <Portrait src={f.photo} sizes="96px" className="h-24 w-24 shrink-0" />
                   ) : (
-                    <InitialsAvatar name={f.name} className="h-24 w-24 text-2xl" />
+                    <InitialsAvatar name={f.name} className="h-24 w-24 shrink-0 text-2xl" />
                   )}
 
-                  <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 flex-1 flex-col">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
@@ -564,16 +538,21 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
                       </div>
                     </div>
 
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {f.skills.map((s) => (
+                    <div className="mt-3 flex h-7 flex-wrap gap-2 overflow-hidden">
+                      {f.skills.slice(0, 6).map((s) => (
                         <span key={s} className="rounded-md bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
                           {s}
                         </span>
                       ))}
+                      {f.skills.length > 6 ? (
+                        <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs text-slate-400">
+                          +{f.skills.length - 6}
+                        </span>
+                      ) : null}
                     </div>
 
-                    <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-                      <p className="max-w-lg text-sm leading-relaxed text-slate-500">{f.blurb}</p>
+                    <div className="mt-auto flex flex-wrap items-end justify-between gap-4 pt-4">
+                      <p className="line-clamp-2 max-w-lg text-sm leading-relaxed text-slate-500">{f.blurb}</p>
                       <Link
                         href={`/freelancers/${f.slug}`}
                         className="shrink-0 rounded-lg border border-brand-200 px-5 py-2.5 text-sm font-semibold text-brand-600 transition hover:bg-brand-50"

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Check, Lock, ShieldCheck } from "@/components/icons";
+import { Select } from "@/components/select";
 import { ApiError, api, type Category, type Page } from "@/lib/api";
 
 const TABS = ["ID review", "Users", "Categories", "Violations", "Blocked posts", "Banned users"] as const;
@@ -405,20 +406,22 @@ export function AdminPanel() {
               placeholder="Search by name or email"
               className="min-w-[12rem] flex-1 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-navy-800 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
             />
-            <select
+            <Select
+              ariaLabel="Filter by status"
               value={userStatus}
-              onChange={(e) => {
-                setUserStatus(e.target.value);
+              onChange={(v) => {
+                setUserStatus(v);
                 setPages((prev) => ({ ...prev, Users: 0 }));
-                void fetchTab("Users", 0, userQuery, e.target.value);
+                void fetchTab("Users", 0, userQuery, v);
               }}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-navy-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-            >
-              <option value="">All statuses</option>
-              <option value="active">Active</option>
-              <option value="banned">Suspended</option>
-              <option value="pending">Pending</option>
-            </select>
+              options={[
+                { value: "", label: "All statuses" },
+                { value: "active", label: "Active" },
+                { value: "banned", label: "Suspended" },
+                { value: "pending", label: "Pending" },
+              ]}
+              className="w-40"
+            />
             <button type="submit" className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700">
               Search
             </button>
