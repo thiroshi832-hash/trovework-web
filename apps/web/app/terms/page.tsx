@@ -19,7 +19,7 @@ export default function TermsPage() {
         {
           heading: "Who can use Trovework",
           blocks: [
-            "You must be at least 18 years old and able to form a binding contract. You must not be barred from using the Service under the laws of your country or [jurisdiction].",
+            "You must be at least 18 years old and able to form a binding contract. You must not be barred from using the Service under the laws of your country or the United States.",
             "You agree to provide accurate information about yourself and to keep it up to date. Every user who interacts on the platform must complete identity verification.",
           ],
         },
@@ -120,7 +120,7 @@ export default function TermsPage() {
         {
           heading: "Governing law and disputes",
           blocks: [
-            "These Terms are governed by the laws of [jurisdiction], without regard to its conflict-of-laws rules. The courts of [jurisdiction] will have exclusive jurisdiction over any dispute, unless applicable law requires otherwise.",
+            "These Terms are governed by the laws of the United States, without regard to its conflict-of-laws rules. The courts of the United States will have exclusive jurisdiction over any dispute, unless applicable law requires otherwise.",
           ],
         },
         {
