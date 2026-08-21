@@ -24,8 +24,7 @@ export function MobileNav() {
   const NAV = [
     { label: t.nav.browse, href: "/freelancers" },
     { label: t.nav.how, href: "/#how" },
-    { label: t.nav.about, href: "/#about" },
-    { label: t.nav.trust, href: "/#trust" },
+    { label: t.nav.trust, href: "/safety" },
     { label: t.nav.blog, href: "/#blog" },
   ];
   const panelRef = useRef<HTMLDivElement>(null);

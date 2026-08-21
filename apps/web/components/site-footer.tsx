@@ -2,11 +2,31 @@ import Link from "next/link";
 import { Logo } from "@/components/brand";
 import { SOCIALS } from "@/components/icons";
 
-const COLUMNS = [
-  { heading: "For Clients", links: ["Browse Freelancers", "How It Works", "Safety & Trust", "Help Center"] },
-  { heading: "For Freelancers", links: ["Create Profile", "How It Works", "Freelancer Tips", "Community"] },
-  { heading: "Company", links: ["About Us", "Blog", "Careers", "Contact Us"] },
-  { heading: "Legal", links: ["Terms of Service", "Privacy Policy", "Cookie Policy", "Acceptable Use"] },
+// Only real, working destinations — no placeholder links to pages that don't exist.
+const COLUMNS: { heading: string; links: { label: string; href: string }[] }[] = [
+  {
+    heading: "Marketplace",
+    links: [
+      { label: "Browse Freelancers", href: "/freelancers" },
+      { label: "How It Works", href: "/#how" },
+      { label: "Safety & Trust", href: "/safety" },
+      { label: "Blog", href: "/#blog" },
+    ],
+  },
+  {
+    heading: "Get Started",
+    links: [
+      { label: "Create an account", href: "/register" },
+      { label: "Log in", href: "/login" },
+    ],
+  },
+  {
+    heading: "Legal",
+    links: [
+      { label: "Terms of Service", href: "/terms" },
+      { label: "Privacy Policy", href: "/privacy" },
+    ],
+  },
 ];
 
 function SocialLink({ path, label }: { path: string; label: string }) {
@@ -31,7 +51,7 @@ export function SiteFooter({ newsletter = false }: { newsletter?: boolean }) {
       <div className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-24">
         <div
           className={`grid gap-10 ${
-            newsletter ? "lg:grid-cols-[1.3fr_repeat(4,0.8fr)_1.2fr]" : "lg:grid-cols-[1.4fr_repeat(4,1fr)]"
+            newsletter ? "lg:grid-cols-[1.3fr_repeat(3,0.9fr)_1.2fr]" : "lg:grid-cols-[1.4fr_repeat(3,1fr)]"
           }`}
         >
           <div>
@@ -52,9 +72,9 @@ export function SiteFooter({ newsletter = false }: { newsletter?: boolean }) {
               <h3 className="text-sm font-semibold text-white">{col.heading}</h3>
               <ul className="mt-4 space-y-2.5">
                 {col.links.map((l) => (
-                  <li key={l}>
-                    <Link href="#" className="text-sm text-slate-400 transition hover:text-white">
-                      {l}
+                  <li key={l.label}>
+                    <Link href={l.href} className="text-sm text-slate-400 transition hover:text-white">
+                      {l.label}
                     </Link>
                   </li>
                 ))}

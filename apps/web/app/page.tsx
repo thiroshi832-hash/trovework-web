@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Portrait } from "@/components/brand";
-import { PEOPLE } from "@/lib/people";
 import { VISIBLE_FREELANCERS as FREELANCERS } from "@/lib/freelancers";
 import { CATEGORIES as ALL_CATEGORIES, type Category } from "@/lib/categories";
 import { BLOG_POSTS as POSTS } from "@/lib/blog";
@@ -83,14 +82,6 @@ function ArrowRight({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
       <path d="M4.5 12h15m-5.6-5.6L19.5 12l-5.6 5.6" {...stroke} strokeWidth={1.8} />
-    </svg>
-  );
-}
-
-function Quote({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M9.4 5.5c-3 1.6-4.7 4.1-4.7 7.4v5.6h6.2v-6H7.6c0-2 .8-3.4 2.6-4.4l-.8-2.6Zm9.3 0c-3 1.6-4.7 4.1-4.7 7.4v5.6h6.2v-6h-3.3c0-2 .8-3.4 2.6-4.4l-.8-2.6Z" />
     </svg>
   );
 }
@@ -299,13 +290,24 @@ const STATS = [
   { icon: <Globe className="h-9 w-9" />, value: "Global", label: "Clients and freelancers" },
 ];
 
-/* the overlapping faces in the hero's social-proof row */
-const COMMUNITY = [1, 2, 3, 4, 5].map((n) => `/avatars/community-${n}.jpg`);
-
-const TESTIMONIALS = [
-  { ...PEOPLE.sarah, quote: "Trovework made it easy to find amazing talent I can trust. The verification gives me peace of mind." },
-  { ...PEOPLE.michael, quote: "As a freelancer, I love working with serious clients here. The platform is clean, safe, and easy to use." },
-  { ...PEOPLE.jessica, quote: "I found a long-term designer within days. Communication is smooth and everything just works." },
+// Real reasons to trust the platform, in place of testimonials we can't
+// honestly show before the community exists.
+const WHY = [
+  {
+    icon: <ShieldCheck className="h-6 w-6" />,
+    title: "Verified people only",
+    body: "Everyone completes ID verification before they can build a profile, post work, or message — so you always know who you're dealing with.",
+  },
+  {
+    icon: <Lock className="h-6 w-6" />,
+    title: "Your contact stays private",
+    body: "Your phone, email and handles are released only to a verified client, enforced on our servers — never exposed on your public profile.",
+  },
+  {
+    icon: <Gift className="h-6 w-6" />,
+    title: "Free while we grow",
+    body: "No commissions and no fees. Connect and collaborate at no cost while we build the marketplace.",
+  },
 ];
 
 
@@ -521,17 +523,12 @@ export default function Home() {
               </div>
 
               <div className="mt-12 flex flex-wrap items-center gap-4 lg:mt-0 lg:pt-12">
-                <div className="flex -space-x-3.5">
-                  {COMMUNITY.map((src) => (
-                    <Portrait key={src} src={src} className="h-14 w-14 ring-2 ring-white" sizes="56px" />
-                  ))}
-                </div>
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-600">
+                  <ShieldCheck className="h-7 w-7" />
+                </span>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <Stars rating={5} />
-                    <span className="text-sm font-semibold text-navy-800">4.9 out of 5</span>
-                  </div>
-                  <p className="text-xs text-slate-500">Trusted by thousands of users worldwide</p>
+                  <p className="text-sm font-semibold text-navy-800">Every member is ID-verified</p>
+                  <p className="text-xs text-slate-500">Real people only — no anonymous accounts, ever.</p>
                 </div>
               </div>
             </div>
@@ -686,24 +683,20 @@ export default function Home() {
           </div>
         </section>
 
-        {/* --------------------------- testimonials ------------------------- */}
+        {/* ---------------------------- why trovework ----------------------- */}
         <section className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-14">
           <h2 className="text-center text-2xl font-bold tracking-tight text-navy-800 sm:text-3xl">
-            What Our Users Say
+            Built so you can work with confidence
           </h2>
           <div className="mt-9 grid gap-5 md:grid-cols-3">
-            {TESTIMONIALS.map((t) => (
-              <figure key={t.name} className={`p-6 ${CARD}`}>
-                <Quote className="h-7 w-7 text-brand-300" />
-                <blockquote className="mt-3.5 text-sm leading-relaxed text-slate-600">{t.quote}</blockquote>
-                <figcaption className="mt-6 flex items-center gap-3">
-                  <Portrait src={t.photo} className="h-9 w-9" sizes="36px" />
-                  <div>
-                    <p className="text-sm font-semibold text-navy-800">{t.name}</p>
-                    <p className="text-xs text-slate-500">{t.role}</p>
-                  </div>
-                </figcaption>
-              </figure>
+            {WHY.map((w) => (
+              <div key={w.title} className={`p-6 ${CARD}`}>
+                <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-600">
+                  {w.icon}
+                </span>
+                <h3 className="mt-4 text-base font-bold text-navy-800">{w.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{w.body}</p>
+              </div>
             ))}
           </div>
         </section>
