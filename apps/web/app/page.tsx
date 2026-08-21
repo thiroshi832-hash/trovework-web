@@ -242,7 +242,7 @@ const STEPS = [
  * have signed up. The category count is derived, so it cannot drift.
  */
 const STATS = [
-  { icon: <ShieldCheck className="h-9 w-9" />, value: "100%", label: "ID-verified members" },
+  { icon: <ShieldCheck className="h-9 w-9" />, value: "100%", label: "Verified members" },
   { icon: <Gift className="h-9 w-9" />, value: "0%", label: "Commission or fees" },
   { icon: <Briefcase className="h-9 w-9" />, value: `${ALL_CATEGORIES.length}`, label: "Fields of work" },
   { icon: <Globe className="h-9 w-9" />, value: "Global", label: "Clients and freelancers" },
@@ -254,7 +254,7 @@ const WHY = [
   {
     icon: <ShieldCheck className="h-6 w-6" />,
     title: "Verified people only",
-    body: "Everyone completes ID verification before they can build a profile, post work, or message — so you always know who you're dealing with.",
+    body: "Everyone completes verification before they can build a profile, post work, or message — so you always know who you're dealing with.",
   },
   {
     icon: <Lock className="h-6 w-6" />,
@@ -485,7 +485,7 @@ export default function Home() {
                   <ShieldCheck className="h-7 w-7" />
                 </span>
                 <div>
-                  <p className="text-sm font-semibold text-navy-800">Every member is ID-verified</p>
+                  <p className="text-sm font-semibold text-navy-800">Every member is verified</p>
                   <p className="text-xs text-slate-500">Real people only — no anonymous accounts, ever.</p>
                 </div>
               </div>
