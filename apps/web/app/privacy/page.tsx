@@ -88,7 +88,7 @@ export default function PrivacyPage() {
             "We do not sell your personal information. There is no advertising business here to sell it to. We share limited data with service providers who help us run the Service, only as needed, including:",
             {
               list: [
-                "an SMS provider, to deliver your phone verification code;",
+                "seven.io, our SMS provider, to deliver your phone verification code;",
                 "an email provider, to deliver messages such as password-reset links;",
                 "Google, if you choose to sign in with Google.",
               ],
