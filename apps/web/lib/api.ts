@@ -245,14 +245,17 @@ export const api = {
 
   /* ---------------------------- freelancers ------------------------------ */
   freelancers: {
-    /** Public browse. `qs` may carry category, skill, q, minPrice, maxPrice, take, skip. */
+    /** Browse. `qs` may carry q, categories, skill, availability, minRating,
+     *  minPrice, maxPrice, sort, take, skip. Returns a page + total. */
     search: (qs?: Record<string, string | number | undefined>) => {
       const params = new URLSearchParams();
       for (const [k, v] of Object.entries(qs ?? {})) if (v != null && v !== "") params.set(k, String(v));
       const suffix = params.toString() ? `?${params.toString()}` : "";
-      return request<unknown[]>(`/api/freelancers${suffix}`);
+      return request<{ items: unknown[]; total: number }>(`/api/freelancers${suffix}`);
     },
     getBySlug: (slug: string) => request<unknown>(`/api/freelancers/${slug}`),
+    /** The distinct skills across visible freelancers, for the browse filter. */
+    skills: () => request<string[]>("/api/freelancers/skills"),
     /** Public: a few verified freelancers for the landing page. */
     featured: () => request<unknown[]>("/api/freelancers/featured"),
   },

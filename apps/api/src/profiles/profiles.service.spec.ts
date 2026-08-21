@@ -32,6 +32,7 @@ function prismaDouble() {
         return p;
       }),
       findMany: jest.fn(async ({ where }: any) => profiles.filter((p) => (where.isVisible ? p.isVisible : true))),
+      count: jest.fn(async ({ where }: any) => profiles.filter((p) => (where.isVisible ? p.isVisible : true)).length),
     },
   };
 }
@@ -61,6 +62,8 @@ function seedVisibleProfile(db: ReturnType<typeof prismaDouble>) {
     skills: ["Deep cleaning", "Move-out"],
     hourlyRate: 28,
     isVisible: true,
+    ratingAvg: 4.8,
+    ratingCount: 12,
     contactTelegram: "@marisol",
     contactDiscord: "marisol#1",
     contactWhatsapp: "+1555",
@@ -161,11 +164,13 @@ describe("ProfilesService — visibility", () => {
     seedVisibleProfile(db);
     db.profiles.push({ userId: "f9", slug: "hidden", displayName: "Not verified", category: "x", isVisible: false, contactTelegram: "@x", updatedAt: new Date() });
 
-    const results: any[] = await makeService(db).search({});
-    expect(results).toHaveLength(1);
-    expect(results[0].displayName).toBe("Marisol R.");
-    expect(hasContacts(results[0])).toBe(false);
-    expect(results[0]).toHaveProperty("rating");
+    const { items, total }: any = await makeService(db).search({});
+    expect(total).toBe(1);
+    expect(items).toHaveLength(1);
+    expect(items[0].displayName).toBe("Marisol R.");
+    expect(hasContacts(items[0])).toBe(false);
+    expect(items[0].rating).toBe(4.8);
+    expect(items[0].reviewCount).toBe(12);
   });
 });
 

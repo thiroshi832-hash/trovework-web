@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import type { FreelancerProfile } from "@prisma/client";
+import { Prisma, type FreelancerProfile } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { PermissionService, type Principal } from "../permission/permission.service";
 import { ReviewsService } from "../reviews/reviews.service";
@@ -111,48 +111,65 @@ export class ProfilesService {
     };
   }
 
-  /** Search visible freelancers. Never returns contact handles. */
+  /**
+   * Search visible freelancers — all filtering, sorting and pagination happen in
+   * the database, over the whole roster (not a client-side slice). Never returns
+   * contact handles. Rating uses the denormalised aggregate on the profile.
+   */
   async search(filters: SearchDto) {
-    const take = filters.take ?? 20;
-    const profiles = await this.prisma.freelancerProfile.findMany({
-      where: {
-        isVisible: true,
-        ...(filters.category ? { category: filters.category } : {}),
-        ...(filters.skill ? { skills: { has: filters.skill } } : {}),
-        ...(filters.q
-          ? {
-              OR: [
-                { displayName: { contains: filters.q, mode: "insensitive" } },
-                { headline: { contains: filters.q, mode: "insensitive" } },
-                { bio: { contains: filters.q, mode: "insensitive" } },
-              ],
-            }
-          : {}),
-        ...(filters.minPrice != null || filters.maxPrice != null
-          ? {
-              hourlyRate: {
-                ...(filters.minPrice != null ? { gte: filters.minPrice } : {}),
-                ...(filters.maxPrice != null ? { lte: filters.maxPrice } : {}),
-              },
-            }
-          : {}),
-      },
-      take,
-      skip: filters.skip ?? 0,
-    });
+    const take = Math.min(Math.max(filters.take ?? 20, 1), 50);
+    const skip = Math.max(filters.skip ?? 0, 0);
+    const categories = (filters.categories ?? "")
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean);
 
-    const agg = await this.reviews.aggregateFor(profiles.map((p) => p.userId));
-    const withRatings = profiles.map((p) => ({
+    const where: Prisma.FreelancerProfileWhereInput = {
+      isVisible: true,
+      ...(categories.length ? { category: { in: categories } } : {}),
+      ...(filters.skill ? { skills: { has: filters.skill } } : {}),
+      ...(filters.availability ? { availability: filters.availability } : {}),
+      ...(filters.minRating ? { ratingAvg: { gte: filters.minRating } } : {}),
+      ...(filters.q
+        ? {
+            OR: [
+              { displayName: { contains: filters.q, mode: "insensitive" } },
+              { headline: { contains: filters.q, mode: "insensitive" } },
+              { bio: { contains: filters.q, mode: "insensitive" } },
+              { skills: { has: filters.q } },
+            ],
+          }
+        : {}),
+      ...(filters.minPrice != null || filters.maxPrice != null
+        ? {
+            hourlyRate: {
+              ...(filters.minPrice != null ? { gte: filters.minPrice } : {}),
+              ...(filters.maxPrice != null ? { lte: filters.maxPrice } : {}),
+            },
+          }
+        : {}),
+    };
+
+    const [profiles, total] = await Promise.all([
+      this.prisma.freelancerProfile.findMany({ where, orderBy: sortOrder(filters.sort), take, skip }),
+      this.prisma.freelancerProfile.count({ where }),
+    ]);
+
+    const items = profiles.map((p) => ({
       ...this.shape(p, false),
-      rating: agg.get(p.userId)?.average ?? 0,
-      reviewCount: agg.get(p.userId)?.count ?? 0,
+      rating: Number(p.ratingAvg),
+      reviewCount: p.ratingCount,
     }));
+    return { items, total };
+  }
 
-    // Rating feeds sort order (FR-RV-2); recency breaks ties.
-    withRatings.sort(
-      (a, b) => b.rating - a.rating || +new Date(b.updatedAt) - +new Date(a.updatedAt),
-    );
-    return withRatings;
+  /** Distinct skills across visible freelancers, for the browse filter. */
+  async listSkills(): Promise<string[]> {
+    const rows = await this.prisma.freelancerProfile.findMany({
+      where: { isVisible: true },
+      select: { skills: true },
+    });
+    return [...new Set(rows.flatMap((r) => r.skills))].sort((a, b) => a.localeCompare(b));
   }
 
   /* -------------------------------- internals ------------------------------ */
@@ -181,5 +198,20 @@ export class ProfilesService {
       if (!taken) return candidate;
       candidate = `${base}-${n}`;
     }
+  }
+}
+
+/** Maps the browse sort options to a Prisma orderBy. Default: top-rated. */
+function sortOrder(sort?: string): Prisma.FreelancerProfileOrderByWithRelationInput[] {
+  switch (sort) {
+    case "newest":
+      return [{ createdAt: "desc" }];
+    case "price_asc":
+      return [{ hourlyRate: "asc" }, { updatedAt: "desc" }];
+    case "price_desc":
+      return [{ hourlyRate: "desc" }, { updatedAt: "desc" }];
+    case "rating":
+    default:
+      return [{ ratingAvg: "desc" }, { ratingCount: "desc" }, { updatedAt: "desc" }];
   }
 }

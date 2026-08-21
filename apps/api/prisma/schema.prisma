@@ -214,6 +214,11 @@ model FreelancerProfile {
   resumePath  String?  @map("resume_path")
   isVisible   Boolean  @default(false) @map("is_visible")
 
+  // Denormalised review aggregate, maintained by ReviewsService, so search can
+  // filter and sort by rating in one query with proper pagination.
+  ratingAvg   Decimal @default(0) @db.Decimal(3, 2) @map("rating_avg")
+  ratingCount Int     @default(0) @map("rating_count")
+
   // Gated contact handles — never returned unless the viewer is a verified client.
   contactTelegram String? @map("contact_telegram")
   contactDiscord  String? @map("contact_discord")
@@ -225,6 +230,7 @@ model FreelancerProfile {
 
   @@index([isVisible])
   @@index([category])
+  @@index([ratingAvg])
   @@map("freelancer_profiles")
 }
 

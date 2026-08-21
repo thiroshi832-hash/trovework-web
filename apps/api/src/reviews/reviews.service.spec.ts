@@ -41,6 +41,16 @@ function prismaDouble() {
           })
           .filter(Boolean);
       }),
+      aggregate: jest.fn(async ({ where }: any) => {
+        const mine = reviews.filter((r) => r.toId === where.toId);
+        return {
+          _avg: { rating: mine.length ? mine.reduce((s, r) => s + r.rating, 0) / mine.length : null },
+          _count: { rating: mine.length },
+        };
+      }),
+    },
+    freelancerProfile: {
+      updateMany: jest.fn(async () => ({ count: 0 })),
     },
   };
   return db;

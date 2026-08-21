@@ -77,7 +77,8 @@ export function ClientDashboard() {
         if (!live) return;
         if (convosRes.status === "fulfilled") setConvos(convosRes.value as ApiConversation[]);
         if (recRes.status === "fulfilled") {
-          setRecommended((recRes.value as Record<string, unknown>[]).map(adaptRecommended));
+          const rows = (recRes.value as { items?: Record<string, unknown>[] }).items ?? [];
+          setRecommended(rows.map(adaptRecommended));
         }
       } catch (err) {
         if (err instanceof ApiError && (err.status === 401 || err.status === 0)) router.replace("/login");

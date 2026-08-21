@@ -5,11 +5,22 @@ export class SearchDto {
   @IsOptional() @IsString()
   q?: string;
 
+  /** Comma-separated categories (the browse UI allows several). */
   @IsOptional() @IsString()
-  category?: string;
+  categories?: string;
 
   @IsOptional() @IsString()
   skill?: string;
+
+  @IsOptional() @IsString()
+  availability?: string;
+
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(5)
+  minRating?: number;
+
+  /** newest | rating | price_asc | price_desc */
+  @IsOptional() @IsString()
+  sort?: string;
 
   @IsOptional() @Type(() => Number) @IsInt() @Min(0)
   minPrice?: number;

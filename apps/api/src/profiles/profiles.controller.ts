@@ -80,8 +80,14 @@ export class ProfilesController {
   // Declared before :slug so "featured" isn't matched as a slug.
   @Public()
   @Get("freelancers/featured")
-  featured() {
-    return this.profiles.search({ take: 6 } as SearchDto);
+  async featured() {
+    return (await this.profiles.search({ take: 6 } as SearchDto)).items;
+  }
+
+  // The distinct skills across visible freelancers, for the browse filter.
+  @Get("freelancers/skills")
+  skills() {
+    return this.profiles.listSkills();
   }
 
   @Get("freelancers/:slug")

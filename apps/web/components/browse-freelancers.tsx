@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Portrait } from "@/components/brand";
 import { Checkbox } from "@/components/checkbox";
 import { Close, Search, Star } from "@/components/icons";
@@ -73,6 +73,7 @@ const RATINGS = [
 ];
 
 const SORTS = ["Newest", "Top rated", "Lowest price", "Highest price"] as const;
+const PAGE_SIZE = 12;
 type Sort = (typeof SORTS)[number];
 
 type Filters = {
@@ -122,19 +123,92 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
   const [sort, setSort] = useState<Sort>("Newest");
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // The verified freelancers come from the API. All the filtering below still
-  // runs client-side over this set, so the sidebar stays instant.
-  const [freelancers, setFreelancers] = useState<Freelancer[]>([]);
+  const [results, setResults] = useState<Freelancer[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [skills, setSkills] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const router = useRouter();
 
+  // Any change to a filter/sort/search returns to the first page. Done in the
+  // handlers (not an effect) so it never triggers a cascading render.
+  const set = (patch: Partial<Filters>) => {
+    setFilters((f) => ({ ...f, ...patch }));
+    setPage(0);
+  };
+
+  const toggleCategory = (name: string) => {
+    setFilters((f) => ({
+      ...f,
+      categories: f.categories.includes(name)
+        ? f.categories.filter((c) => c !== name)
+        : [...f.categories, name],
+    }));
+    setPage(0);
+  };
+
+  const changeSort = (value: Sort) => {
+    setSort(value);
+    setPage(0);
+  };
+
+  const changeSearch = (value: string) => {
+    setSearch(value);
+    setPage(0);
+  };
+
+  // The skill list comes from the whole roster (a dedicated endpoint), not just
+  // the current page.
   useEffect(() => {
+    api.freelancers.skills().then(setSkills).catch(() => undefined);
+  }, []);
+
+  // Debounce the free-text search so we don't hit the API on every keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  // Blank price field means "no bound". Kept for input validation only — the
+  // actual filtering happens on the server.
+  const min = filters.min.trim() === "" ? 0 : Number(filters.min);
+  const max = filters.max.trim() === "" ? Infinity : Number(filters.max);
+  const rangeInverted = Number.isFinite(max) && min > max;
+
+  const sortParam =
+    sort === "Top rated"
+      ? "rating"
+      : sort === "Lowest price"
+        ? "price_asc"
+        : sort === "Highest price"
+          ? "price_desc"
+          : "newest";
+
+  // Server-side search: all filtering, sorting and pagination happen in the API,
+  // over the whole roster, so results are correct at any scale.
+  useEffect(() => {
+    if (rangeInverted) return; // an inverted price range would return nothing
     let live = true;
-    api
-      .freelancers.search()
-      .then((rows) => {
-        if (live) setFreelancers((rows as Record<string, unknown>[]).map(adapt));
+    const qs: Record<string, string | number | undefined> = {
+      q: debouncedSearch.trim() || undefined,
+      categories: filters.categories.length ? filters.categories.join(",") : undefined,
+      skill: filters.skill || undefined,
+      availability: filters.availability !== ANY_AVAILABILITY ? filters.availability : undefined,
+      minRating: filters.rating || undefined,
+      minPrice: filters.min.trim() !== "" ? Number(filters.min) : undefined,
+      maxPrice: filters.max.trim() !== "" ? Number(filters.max) : undefined,
+      sort: sortParam,
+      take: PAGE_SIZE,
+      skip: page * PAGE_SIZE,
+    };
+    api.freelancers
+      .search(qs)
+      .then((res) => {
+        if (!live) return;
+        setResults((res.items as Record<string, unknown>[]).map(adapt));
+        setTotal(res.total);
       })
       .catch((err) => {
         if (!live) return;
@@ -151,63 +225,9 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
     return () => {
       live = false;
     };
-  }, [router]);
+  }, [debouncedSearch, filters, sortParam, page, rangeInverted, router]);
 
-  const set = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
-
-  const toggleCategory = (name: string) =>
-    setFilters((f) => ({
-      ...f,
-      categories: f.categories.includes(name)
-        ? f.categories.filter((c) => c !== name)
-        : [...f.categories, name],
-    }));
-
-  const skills = useMemo(
-    () => [...new Set(freelancers.flatMap((f) => f.allSkills))].sort(),
-    [freelancers],
-  );
-
-  /** Per-category totals, so empty categories are visibly empty before you click. */
-  const counts = useMemo(() => {
-    const out: Record<string, number> = {};
-    for (const f of freelancers) out[f.category] = (out[f.category] ?? 0) + 1;
-    return out;
-  }, [freelancers]);
-
-  // A blank field means "no bound" — 0 is a real bound, so `||` would be wrong here.
-  const min = filters.min.trim() === "" ? 0 : Number(filters.min);
-  const max = filters.max.trim() === "" ? Infinity : Number(filters.max);
-  const rangeInverted = Number.isFinite(max) && min > max;
-
-  const results = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const lo = Number.isNaN(min) ? 0 : min;
-    const hi = Number.isNaN(max) ? Infinity : max;
-
-    const matched = freelancers.filter((f) => {
-      // Several categories read as OR — a freelancer in any of them qualifies.
-      if (filters.categories.length && !filters.categories.includes(f.category)) return false;
-      if (filters.skill && !f.allSkills.includes(filters.skill)) return false;
-      if (f.rate < lo || f.rate > hi) return false;
-      if (f.rating < filters.rating) return false;
-      if (filters.availability !== ANY_AVAILABILITY && f.availability !== filters.availability) {
-        return false;
-      }
-      if (q) {
-        const haystack = [f.name, f.title, f.blurb, f.category, ...f.allSkills].join(" ").toLowerCase();
-        if (!haystack.includes(q)) return false;
-      }
-      return true;
-    });
-
-    const ordered = [...matched];
-    if (sort === "Newest") ordered.sort((a, b) => b.joined.localeCompare(a.joined));
-    if (sort === "Top rated") ordered.sort((a, b) => b.rating - a.rating || b.reviews - a.reviews);
-    if (sort === "Lowest price") ordered.sort((a, b) => a.rate - b.rate);
-    if (sort === "Highest price") ordered.sort((a, b) => b.rate - a.rate);
-    return ordered;
-  }, [freelancers, filters, search, sort, min, max]);
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const activeCount =
     filters.categories.length +
@@ -230,7 +250,7 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
             id="browse-search"
             type="search"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => changeSearch(e.target.value)}
             placeholder="Search by keyword, skill or service..."
             className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-navy-800 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
           />
@@ -247,7 +267,7 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
           <Select
             ariaLabel="Sort by"
             value={sort}
-            onChange={(v) => setSort(v as Sort)}
+            onChange={(v) => changeSort(v as Sort)}
             options={SORTS.map((s) => ({ value: s, label: s }))}
             className="sm:w-44"
           />
@@ -261,7 +281,11 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
             <h2 className="text-sm font-bold text-navy-800">Filters</h2>
             <button
               type="button"
-              onClick={() => setFilters(EMPTY)}
+              onClick={() => {
+                setFilters(EMPTY);
+                setSearch("");
+                setPage(0);
+              }}
               disabled={activeCount === 0}
               className="text-xs text-brand-600 transition hover:text-brand-700 disabled:text-slate-300"
             >
@@ -299,13 +323,11 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
                   }`}
                 >
                   <span className="flex-1">All categories</span>
-                  <span className="text-slate-400">{freelancers.length}</span>
                 </button>
               </li>
 
               {shownCategories.map((c) => {
                 const on = filters.categories.includes(c);
-                const count = counts[c] ?? 0;
                 return (
                   <li key={c}>
                     <label
@@ -315,7 +337,6 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
                     >
                       <Checkbox checked={on} onChange={() => toggleCategory(c)} />
                       <span className="flex-1">{c}</span>
-                      <span className={count === 0 ? "text-slate-300" : "text-slate-400"}>{count}</span>
                     </label>
                   </li>
                 );
@@ -431,7 +452,7 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
             onClick={() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
             className="mt-6 w-full rounded-lg bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
           >
-            Show {results.length} {results.length === 1 ? "result" : "results"}
+            Show {total} {total === 1 ? "result" : "results"}
           </button>
         </aside>
 
@@ -442,8 +463,8 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
               "Loading freelancers…"
             ) : (
               <>
-                <span className="font-semibold text-navy-800">{results.length}</span>{" "}
-                {results.length === 1 ? "freelancer" : "freelancers"}
+                <span className="font-semibold text-navy-800">{total}</span>{" "}
+                {total === 1 ? "freelancer" : "freelancers"}
                 {filters.categories.length ? ` in ${describeCategories(filters.categories)}` : ""}
               </>
             )}
@@ -577,6 +598,7 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
                   onClick={() => {
                     setFilters(EMPTY);
                     setSearch("");
+                    setPage(0);
                   }}
                   className="mt-5 rounded-lg border border-brand-200 px-5 py-2.5 text-sm font-semibold text-brand-600 transition hover:bg-brand-50"
                 >
@@ -587,24 +609,35 @@ export function BrowseFreelancers({ initialCategories = [] }: { initialCategorie
           </div>
           )}
 
-          {/* Pagination is presentational until the search API can page results. */}
-          {results.length > 0 ? (
+          {pageCount > 1 ? (
             <nav aria-label="Pagination" className="mt-8 flex items-center justify-center gap-2">
-              <span className="grid h-9 w-9 place-items-center rounded-md text-slate-300">‹</span>
-              <span
-                aria-current="page"
-                className="grid h-9 w-9 place-items-center rounded-md bg-brand-600 text-sm font-semibold text-white"
+              <button
+                type="button"
+                disabled={page === 0}
+                onClick={() => {
+                  setPage((p) => Math.max(0, p - 1));
+                  resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="grid h-9 w-9 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+                aria-label="Previous page"
               >
-                1
+                ‹
+              </button>
+              <span className="px-2 text-sm text-slate-500">
+                Page {page + 1} of {pageCount}
               </span>
-              {[2, 3, 4].map((n) => (
-                <span key={n} className="grid h-9 w-9 place-items-center rounded-md text-sm text-slate-400">
-                  {n}
-                </span>
-              ))}
-              <span className="px-1 text-slate-400">…</span>
-              <span className="grid h-9 w-9 place-items-center rounded-md text-sm text-slate-400">20</span>
-              <span className="grid h-9 w-9 place-items-center rounded-md text-slate-300">›</span>
+              <button
+                type="button"
+                disabled={page + 1 >= pageCount}
+                onClick={() => {
+                  setPage((p) => Math.min(pageCount - 1, p + 1));
+                  resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="grid h-9 w-9 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+                aria-label="Next page"
+              >
+                ›
+              </button>
             </nav>
           ) : null}
         </div>

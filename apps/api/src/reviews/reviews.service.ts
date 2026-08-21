@@ -36,10 +36,32 @@ export class ReviewsService {
     });
     if (!contact) throw new ForbiddenException("You can only review someone you've worked with.");
 
-    return this.prisma.review.upsert({
+    const review = await this.prisma.review.upsert({
       where: { fromId_toId: { fromId: author.id, toId } },
       create: { fromId: author.id, toId, rating, comment: comment ?? null },
       update: { rating, comment: comment ?? null },
+    });
+    await this.syncRating(toId);
+    return review;
+  }
+
+  /**
+   * Recomputes a user's rating aggregate and writes it onto their freelancer
+   * profile, so search can filter and sort by rating in a single paginated
+   * query. updateMany is a no-op if they haven't built a profile.
+   */
+  private async syncRating(userId: string): Promise<void> {
+    const agg = await this.prisma.review.aggregate({
+      where: { toId: userId },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+    await this.prisma.freelancerProfile.updateMany({
+      where: { userId },
+      data: {
+        ratingAvg: Math.round((agg._avg.rating ?? 0) * 100) / 100,
+        ratingCount: agg._count.rating,
+      },
     });
   }
 
