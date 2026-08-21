@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Lock, ShieldCheck } from "@/components/icons";
 import { Select } from "@/components/select";
 import { ApiError, api, type Category, type Page } from "@/lib/api";
@@ -174,8 +174,21 @@ export function AdminPanel() {
   const [loadError, setLoadError] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  // Mirrored in refs so the polling loop reads current values without
+  // re-subscribing the interval on every page change or keystroke.
+  const pagesRef = useRef(pages);
+  const queryRef = useRef(userQuery);
+  const statusRef = useRef(userStatus);
+  const busyRef = useRef(busyId);
+  useEffect(() => {
+    pagesRef.current = pages;
+    queryRef.current = userQuery;
+    statusRef.current = userStatus;
+    busyRef.current = busyId;
+  });
+
   const fetchTab = useCallback(
-    async (t: Tab, page: number, q = userQuery, status = userStatus) => {
+    async (t: Tab, page: number, q = userQuery, status = userStatus, silent = false) => {
       const p = { take: PAGE_SIZE, skip: page * PAGE_SIZE };
       try {
         if (t === "ID review") setQueue((await api.admin.verifications.list(p)) as Paged<Verification>);
@@ -184,7 +197,9 @@ export function AdminPanel() {
         else if (t === "Banned users") setBanned((await api.admin.bannedUsers(p)) as Paged<BannedUser>);
         else if (t === "Users") setUsers((await api.admin.users({ ...p, q, status })) as Paged<AdminUser>);
       } catch {
-        setLoadError(true);
+        // A failed background poll shouldn't blank the whole panel; only a
+        // user-initiated fetch surfaces the error state.
+        if (!silent) setLoadError(true);
       }
     },
     [userQuery, userStatus],
@@ -217,6 +232,35 @@ export function AdminPanel() {
       live = false;
     };
   }, []);
+
+  // Keep every tab live: re-fetch on an interval while the panel is visible and
+  // immediately when the admin returns to it. Each tab refreshes at its current
+  // page/filter. Skipped while an action is in flight (so an optimistic update
+  // isn't briefly reverted) and silent on failure (a dropped poll never blanks
+  // the panel).
+  const refreshAll = useCallback(() => {
+    if (busyRef.current) return;
+    const p = pagesRef.current;
+    void fetchTab("ID review", p["ID review"], undefined, undefined, true);
+    void fetchTab("Violations", p["Violations"], undefined, undefined, true);
+    void fetchTab("Blocked posts", p["Blocked posts"], undefined, undefined, true);
+    void fetchTab("Banned users", p["Banned users"], undefined, undefined, true);
+    void fetchTab("Users", p["Users"], queryRef.current, statusRef.current, true);
+    api.admin.categories.list().then(setCategories).catch(() => {});
+  }, [fetchTab]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const onVisible = () => document.visibilityState === "visible" && refreshAll();
+    const id = window.setInterval(onVisible, 15000);
+    window.addEventListener("focus", refreshAll);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener("focus", refreshAll);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [loaded, refreshAll]);
 
   const counts: Record<Tab, number> = {
     "ID review": queue.total,
