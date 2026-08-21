@@ -1,4 +1,4 @@
-import { ConflictException, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConflictException, Inject, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
@@ -43,6 +43,7 @@ export type GoogleAuthResult =
 
 @Injectable()
 export class AuthService {
+  private readonly log = new Logger(AuthService.name);
   /** Emails that should always be admins, from ADMIN_EMAILS (comma-separated). */
   private readonly adminEmails: Set<string>;
 
@@ -212,7 +213,14 @@ export class AuthService {
     });
 
     const origin = this.config.get<string>("WEB_ORIGIN", "https://trovework.com");
-    await this.email.sendPasswordReset(user.email, `${origin}/reset-password?token=${token}`);
+    // Never let a mail-delivery failure surface to the caller: the endpoint must
+    // stay neutral (a thrown error would 500 and reveal that the address exists).
+    // The token is already stored; the user can retry if the mail didn't arrive.
+    try {
+      await this.email.sendPasswordReset(user.email, `${origin}/reset-password?token=${token}`);
+    } catch (err) {
+      this.log.error(`Failed to send password-reset email to ${user.email}: ${(err as Error)?.message}`);
+    }
   }
 
   /**

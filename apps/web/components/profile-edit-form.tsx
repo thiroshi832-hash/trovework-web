@@ -39,11 +39,29 @@ export function ProfileEditForm() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [photo, setPhoto] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [slug, setSlug] = useState<string | null>(null);
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [idVerified, setIdVerified] = useState(false);
   const resumeInput = useRef<HTMLInputElement>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  /** Uploads the chosen photo straight away and swaps in the returned URL. */
+  async function changePhoto(file: File | undefined) {
+    if (!file) return;
+    setPhotoError(null);
+    setPhotoBusy(true);
+    try {
+      const { photoPath } = await api.profile.uploadPhoto(file);
+      setPhoto(photoPath);
+    } catch (err) {
+      setPhotoError(err instanceof ApiError ? err.message : "Couldn't upload the photo. Try again.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
 
   useEffect(() => {
     let live = true;
@@ -255,13 +273,27 @@ export function ProfileEditForm() {
           )}
           <div>
             <p className="text-sm font-medium text-navy-800">Profile photo</p>
-            <p className="mt-1 text-sm text-slate-500">JPG or PNG, at least 200×200.</p>
+            <p className="mt-1 text-sm text-slate-500">JPG, PNG or WebP, up to 8MB.</p>
             <button
               type="button"
-              className="mt-3 rounded-lg border border-slate-200 px-5 py-2.5 text-sm font-semibold text-navy-800 transition hover:bg-slate-50"
+              disabled={photoBusy}
+              onClick={() => photoInput.current?.click()}
+              className="mt-3 rounded-lg border border-slate-200 px-5 py-2.5 text-sm font-semibold text-navy-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Change photo
+              {photoBusy ? "Uploading…" : photo ? "Change photo" : "Upload photo"}
             </button>
+            <input
+              ref={photoInput}
+              type="file"
+              aria-label="Upload a profile photo"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              onChange={(e) => {
+                void changePhoto(e.target.files?.[0]);
+                e.target.value = ""; // allow re-selecting the same file
+              }}
+            />
+            {photoError ? <p className="mt-2 text-sm text-red-600">{photoError}</p> : null}
           </div>
         </div>
 
