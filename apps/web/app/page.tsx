@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Portrait } from "@/components/brand";
-import { VISIBLE_FREELANCERS as FREELANCERS } from "@/lib/freelancers";
+import { FeaturedFreelancers } from "@/components/featured-freelancers";
 import { CATEGORIES as ALL_CATEGORIES, type Category } from "@/lib/categories";
 import { BLOG_POSTS as POSTS } from "@/lib/blog";
 
@@ -57,14 +57,6 @@ function Check({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
       <path d="m5 12.5 4.5 4.5L19 7" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function Star({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M12 3.6l2.5 5.1 5.6.8-4.1 4 1 5.6-5-2.6-5 2.6 1-5.6-4.1-4 5.6-.8L12 3.6Z" />
     </svg>
   );
 }
@@ -179,18 +171,6 @@ function Briefcase({ className }: IconProps) {
   );
 }
 
-function Crown({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path
-        d="M2.9 8.3a.85.85 0 0 1 1.35-.68L7.7 10.2l3.55-5.55a.9.9 0 0 1 1.5 0L16.3 10.2l3.45-2.58a.85.85 0 0 1 1.35.68l-1.5 8.1H4.4Z"
-        fill="currentColor"
-      />
-      <rect x="4.2" y="18" width="15.6" height="2.5" rx="1.25" fill="currentColor" />
-    </svg>
-  );
-}
-
 function Dots({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
@@ -202,28 +182,6 @@ function Dots({ className }: IconProps) {
 }
 
 /* ============================== primitives ============================== */
-
-function Stars({ rating, className = "" }: { rating: number; className?: string }) {
-  return (
-    <span className={`flex items-center gap-0.5 text-amber-400 ${className}`} aria-label={`${rating} out of 5`}>
-      {[0, 1, 2, 3, 4].map((i) => (
-        <Star key={i} className={`h-4.5 w-4.5 ${i < Math.round(rating) ? "" : "text-slate-200"}`} />
-      ))}
-    </span>
-  );
-}
-
-function VerifiedTick({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <span
-      title="Identity verified"
-      className={`grid shrink-0 place-items-center rounded-full bg-brand-600 text-white ${className}`}
-    >
-      <span className="sr-only">Identity verified</span>
-      <Check className="h-[60%] w-[60%]" />
-    </span>
-  );
-}
 
 function SectionHeading({
   title,
@@ -638,50 +596,9 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ------------------------ featured freelancers -------------------- */}
-        <section className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-10">
-          <SectionHeading title="Featured Freelancers" action="View all freelancers" href="/freelancers" />
-          <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {FREELANCERS.map((f) => (
-              <article key={f.slug} className={`relative flex flex-col p-6 text-center transition hover:shadow-md ${CARD}`}>
-                {/* The section is "Featured", and the verified tick already sits
-                    beside the name — so this badge says something different. */}
-                <span
-                  title="Featured freelancer"
-                  className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-white shadow-sm shadow-amber-500/30"
-                >
-                  <span className="sr-only">Featured freelancer</span>
-                  <Crown className="h-5 w-5" />
-                </span>
-                <Portrait src={f.photo} className="mx-auto h-28 w-28" sizes="112px" />
-                <div className="mt-4 flex items-center justify-center gap-1.5">
-                  <h3 className="font-semibold text-navy-800">{f.name}</h3>
-                  {f.idVerified ? <VerifiedTick /> : null}
-                </div>
-                <p className="mt-1 text-xs text-slate-500">{f.title}</p>
-                <div className="mt-2.5 flex items-center justify-center gap-1.5">
-                  <Stars rating={f.rating} />
-                  <span className="text-xs text-slate-500">
-                    {f.rating.toFixed(1)} ({f.reviews})
-                  </span>
-                </div>
-                <div className="mt-3.5 flex flex-wrap justify-center gap-1.5">
-                  {f.skills.map((s) => (
-                    <span key={s} className="rounded bg-slate-100 px-2 py-1 text-[0.625rem] font-medium text-slate-600">
-                      {s}
-                    </span>
-                  ))}
-                </div>
-                {/* mt-auto: one freelancer lists three skills, another four, so
-                    without this the rate sits at a different height per card. */}
-                <p className="mt-auto pt-5 text-left text-lg font-bold text-navy-800">
-                  ${f.rate}
-                  <span className="text-xs font-medium text-slate-400"> /hr</span>
-                </p>
-              </article>
-            ))}
-          </div>
-        </section>
+        {/* Real verified freelancers from the API; the section hides itself
+            until there are some, so we never show fabricated people. */}
+        <FeaturedFreelancers />
 
         {/* ---------------------------- why trovework ----------------------- */}
         <section className="mx-auto max-w-page px-6 lg:px-10 xl:px-16 py-14">
@@ -745,7 +662,7 @@ export default function Home() {
           <SectionHeading title="Latest from the Blog" action="View all articles" href="/blog" />
           <div className="mt-7 grid gap-6 md:grid-cols-3">
             {POSTS.map((p) => (
-              <article key={p.title} className={`group flex flex-col overflow-hidden ${CARD}`}>
+              <Link key={p.title} href={`/blog/${p.slug}`} className={`group flex flex-col overflow-hidden transition hover:shadow-md ${CARD}`}>
                 <div className="relative aspect-[203/102]">
                   <Image
                     src={p.image}
@@ -773,7 +690,7 @@ export default function Home() {
                     </p>
                   </div>
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
         </section>

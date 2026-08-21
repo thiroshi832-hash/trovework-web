@@ -16,6 +16,7 @@ import { PublicStorageService } from "../storage/public-storage.service";
 import { UpsertProfileDto } from "./dto/upsert-profile.dto";
 import { SearchDto } from "./dto/search.dto";
 import { Roles } from "../auth/decorators/roles.decorator";
+import { Public } from "../auth/decorators/public.decorator";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import type { AuthedUser } from "../auth/strategies/jwt.strategy";
 
@@ -72,6 +73,15 @@ export class ProfilesController {
   @Get("freelancers")
   search(@Query() query: SearchDto) {
     return this.profiles.search(query);
+  }
+
+  // Public so the marketing landing page can show real verified freelancers.
+  // Returns the same contact-stripped shape as search — no gated data leaks.
+  // Declared before :slug so "featured" isn't matched as a slug.
+  @Public()
+  @Get("freelancers/featured")
+  featured() {
+    return this.profiles.search({ take: 6 } as SearchDto);
   }
 
   @Get("freelancers/:slug")

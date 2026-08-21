@@ -253,6 +253,8 @@ export const api = {
       return request<unknown[]>(`/api/freelancers${suffix}`);
     },
     getBySlug: (slug: string) => request<unknown>(`/api/freelancers/${slug}`),
+    /** Public: a few verified freelancers for the landing page. */
+    featured: () => request<unknown[]>("/api/freelancers/featured"),
   },
 
   /* ------------------------------- posts --------------------------------- */

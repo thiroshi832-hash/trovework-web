@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { BLOG_POSTS } from "@/lib/blog";
 
 export const metadata: Metadata = {
@@ -19,9 +20,10 @@ export default function BlogPage() {
 
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             {BLOG_POSTS.map((p) => (
-              <article
+              <Link
                 key={p.slug}
-                className="group flex flex-col overflow-hidden rounded-xl bg-white shadow-[0_1px_2px_rgba(11,28,56,0.04),0_10px_28px_-16px_rgba(11,28,56,0.18)] ring-1 ring-slate-200/70"
+                href={`/blog/${p.slug}`}
+                className="group flex flex-col overflow-hidden rounded-xl bg-white shadow-[0_1px_2px_rgba(11,28,56,0.04),0_10px_28px_-16px_rgba(11,28,56,0.18)] ring-1 ring-slate-200/70 transition hover:shadow-md"
               >
                 <div className="relative aspect-[203/102]">
                   <Image src={p.image} alt="" fill sizes="(min-width: 768px) 33vw, 100vw" className="object-cover" />
@@ -42,7 +44,7 @@ export default function BlogPage() {
                     </p>
                   </div>
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
         </div>
