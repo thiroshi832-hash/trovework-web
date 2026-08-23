@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, Post, Req, Res } from "@nestjs/common";
+import { Controller, Get, HttpCode, Post, Query, Req, Res } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
@@ -7,6 +7,19 @@ import { Public } from "../auth/decorators/public.decorator";
 import { Roles } from "../auth/decorators/roles.decorator";
 
 const VISITOR_COOKIE = "visitor_id";
+
+/** The visitor's real IP behind nginx — the first hop in X-Forwarded-For. */
+function clientIp(req: Request): string | null {
+  const xff = req.headers["x-forwarded-for"];
+  const first = Array.isArray(xff) ? xff[0] : xff?.split(",")[0];
+  return (first?.trim() || req.ip || req.socket?.remoteAddress || null) ?? null;
+}
+
+/** Parses ?take/?skip into numbers, ignoring junk. */
+function num(v?: string): number | undefined {
+  const n = Number(v);
+  return v != null && Number.isFinite(n) ? n : undefined;
+}
 
 @Controller()
 export class AnalyticsController {
@@ -35,7 +48,8 @@ export class AnalyticsController {
         maxAge: 365 * 24 * 60 * 60 * 1000,
       });
     }
-    await this.analytics.recordVisit(visitorId);
+    const userAgent = (req.headers["user-agent"] ?? null)?.slice(0, 512) ?? null;
+    await this.analytics.recordVisit(visitorId, clientIp(req), userAgent);
   }
 
   /** Admin-only: visitor totals for the dashboard. */
@@ -43,5 +57,12 @@ export class AnalyticsController {
   @Get("admin/analytics")
   stats() {
     return this.analytics.stats();
+  }
+
+  /** Admin-only: paginated visitor history with IP intelligence. */
+  @Roles("admin")
+  @Get("admin/analytics/visits")
+  visits(@Query("take") take?: string, @Query("skip") skip?: string) {
+    return this.analytics.listVisits({ take: num(take), skip: num(skip) });
   }
 }

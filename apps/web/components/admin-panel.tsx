@@ -5,7 +5,7 @@ import { Check, Lock, ShieldCheck } from "@/components/icons";
 import { Select } from "@/components/select";
 import { ApiError, api, type Category, type Page } from "@/lib/api";
 
-const TABS = ["ID review", "Users", "Categories", "Violations", "Blocked posts", "Banned users"] as const;
+const TABS = ["ID review", "Users", "Analytics", "Categories", "Violations", "Blocked posts", "Banned users"] as const;
 type Tab = (typeof TABS)[number];
 
 const CARD = "rounded-2xl border border-slate-200 bg-white";
@@ -82,12 +82,49 @@ interface UserDetail extends AdminUser {
   } | null;
 }
 
+/** Absolute date + time for the visitor history (visits are rare enough that a
+ *  relative "2h ago" hides the detail an admin wants). */
+function fmtDateTime(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/** Flags an IP as datacentre/VPS or VPN/proxy, or plain "Direct" once checked. */
+function IpTypeBadges({ v }: { v: VisitRow }) {
+  const badge = "rounded-full px-2 py-0.5 text-[0.625rem] font-medium";
+  if (!v.ip) return <span className="text-slate-400">—</span>;
+  if (!v.classified) return <span className={`${badge} bg-slate-100 text-slate-500`}>checking…</span>;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {v.hosting ? <span className={`${badge} bg-amber-100 text-amber-700`}>VPS / hosting</span> : null}
+      {v.proxy ? <span className={`${badge} bg-red-100 text-red-700`}>VPN / proxy</span> : null}
+      {!v.hosting && !v.proxy ? <span className={`${badge} bg-emerald-100 text-emerald-700`}>Direct</span> : null}
+    </div>
+  );
+}
+
 type Paged<T> = Page<T>;
 
 interface VisitorStats {
   today: number;
   total: number;
   daily: { day: string; count: number }[];
+}
+
+interface VisitRow {
+  id: string;
+  at: string;
+  ip: string | null;
+  userAgent: string | null;
+  country: string | null;
+  hosting: boolean | null;
+  proxy: boolean | null;
+  classified: boolean;
 }
 
 /**
@@ -227,6 +264,7 @@ export function AdminPanel() {
   const [users, setUsers] = useState<Paged<AdminUser>>(emptyPage);
   const [categories, setCategories] = useState<Category[]>([]);
   const [visitors, setVisitors] = useState<VisitorStats | null>(null);
+  const [visits, setVisits] = useState<Paged<VisitRow>>(emptyPage);
 
   const [userQuery, setUserQuery] = useState("");
   const [userStatus, setUserStatus] = useState("");
@@ -243,11 +281,13 @@ export function AdminPanel() {
   const queryRef = useRef(userQuery);
   const statusRef = useRef(userStatus);
   const busyRef = useRef(busyId);
+  const tabRef = useRef(tab);
   useEffect(() => {
     pagesRef.current = pages;
     queryRef.current = userQuery;
     statusRef.current = userStatus;
     busyRef.current = busyId;
+    tabRef.current = tab;
   });
 
   const fetchTab = useCallback(
@@ -259,6 +299,7 @@ export function AdminPanel() {
         else if (t === "Blocked posts") setBlocked((await api.admin.blockedPosts(p)) as Paged<BlockedPost>);
         else if (t === "Banned users") setBanned((await api.admin.bannedUsers(p)) as Paged<BannedUser>);
         else if (t === "Users") setUsers((await api.admin.users({ ...p, q, status })) as Paged<AdminUser>);
+        else if (t === "Analytics") setVisits((await api.admin.analyticsVisits(p)) as Paged<VisitRow>);
       } catch {
         // A failed background poll shouldn't blank the whole panel; only a
         // user-initiated fetch surfaces the error state.
@@ -291,9 +332,14 @@ export function AdminPanel() {
       .catch(() => {
         if (live) setLoadError(true);
       });
-    // Visitor stats are non-critical: fetch separately so a failure (e.g. the
-    // migration not yet applied) never blanks the whole panel.
+    // Visitor stats and history are non-critical (and the history hits an
+    // external IP lookup): fetch them separately so a failure never blanks the
+    // whole panel.
     api.admin.analytics().then((v) => live && setVisitors(v as VisitorStats)).catch(() => undefined);
+    api.admin
+      .analyticsVisits({ take: PAGE_SIZE, skip: 0 })
+      .then((v) => live && setVisits(v as Paged<VisitRow>))
+      .catch(() => undefined);
     return () => {
       live = false;
     };
@@ -314,6 +360,9 @@ export function AdminPanel() {
     void fetchTab("Users", p["Users"], queryRef.current, statusRef.current, true);
     api.admin.categories.list().then(setCategories).catch(() => {});
     api.admin.analytics().then(setVisitors).catch(() => {});
+    // The visit history is only worth polling while its tab is open (each poll
+    // may hit the IP-intel lookup), so it's refreshed here only when active.
+    if (tabRef.current === "Analytics") void fetchTab("Analytics", p["Analytics"], undefined, undefined, true);
   }, [fetchTab]);
 
   useEffect(() => {
@@ -332,6 +381,7 @@ export function AdminPanel() {
   const counts: Record<Tab, number> = {
     "ID review": queue.total,
     Users: users.total,
+    Analytics: visitors?.total ?? 0,
     Categories: categories.length,
     Violations: violations.total,
     "Blocked posts": blocked.total,
@@ -404,20 +454,6 @@ export function AdminPanel() {
 
   return (
     <div>
-      {visitors ? (
-        <div className="mb-6 grid gap-4 sm:grid-cols-2">
-          <div className={`${CARD} p-5`}>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Visitors today</p>
-            <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.today.toLocaleString()}</p>
-          </div>
-          <div className={`${CARD} p-5`}>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">All-time visitors</p>
-            <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.total.toLocaleString()}</p>
-          </div>
-          <VisitorsChart daily={visitors.daily} />
-        </div>
-      ) : null}
-
       <div className="flex flex-wrap gap-1 border-b border-slate-200">
         {TABS.map((t) => (
           <button
@@ -674,6 +710,69 @@ export function AdminPanel() {
           </ul>
           <Pager page={pages.Users} total={users.total} onPage={(p) => goToPage("Users", p)} />
         </>
+      ) : null}
+
+      {/* ----------------------------- analytics ----------------------------- */}
+      {loaded && tab === "Analytics" ? (
+        <div className="mt-6 space-y-6">
+          {visitors ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className={`${CARD} p-5`}>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Visitors today</p>
+                <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.today.toLocaleString()}</p>
+              </div>
+              <div className={`${CARD} p-5`}>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">All-time visitors</p>
+                <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.total.toLocaleString()}</p>
+              </div>
+              <VisitorsChart daily={visitors.daily} />
+            </div>
+          ) : (
+            <div className={`${CARD} p-6 text-sm text-slate-500`}>Visitor stats aren&apos;t available yet.</div>
+          )}
+
+          <div>
+            <h3 className="mb-1 text-sm font-semibold text-navy-800">Visitor history</h3>
+            <p className="mb-3 text-xs text-slate-500">
+              One row per visitor per day, newest first. IP type (VPS / VPN / proxy) is looked up the first
+              time you view a row, then cached.
+            </p>
+            <div className={`${CARD} overflow-hidden`}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+                      <th className="px-4 py-3 font-medium">When</th>
+                      <th className="px-4 py-3 font-medium">IP address</th>
+                      <th className="px-4 py-3 font-medium">Type</th>
+                      <th className="px-4 py-3 font-medium">Country</th>
+                      <th className="px-4 py-3 font-medium">Device</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visits.items.map((v) => (
+                      <tr key={v.id} className="border-b border-slate-50 align-top last:border-0">
+                        <td className="whitespace-nowrap px-4 py-3 text-slate-600">{fmtDateTime(v.at)}</td>
+                        <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-navy-800">{v.ip ?? "—"}</td>
+                        <td className="px-4 py-3"><IpTypeBadges v={v} /></td>
+                        <td className="whitespace-nowrap px-4 py-3 text-slate-600">{v.country ?? "—"}</td>
+                        <td className="max-w-[16rem] truncate px-4 py-3 text-slate-500" title={v.userAgent ?? undefined}>
+                          {v.userAgent ?? "—"}
+                        </td>
+                      </tr>
+                    ))}
+                    {visits.items.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-10 text-center text-slate-500">No visits recorded yet.</td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <Pager page={pages.Analytics} total={visits.total} onPage={(p) => goToPage("Analytics", p)} />
+          </div>
+        </div>
       ) : null}
 
       {/* ----------------------------- violations ---------------------------- */}

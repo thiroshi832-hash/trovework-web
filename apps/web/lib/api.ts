@@ -327,6 +327,19 @@ export const api = {
     },
     analytics: () =>
       request<{ today: number; total: number; daily: { day: string; count: number }[] }>("/api/admin/analytics"),
+    analyticsVisits: (p?: PageQuery) =>
+      request<
+        Page<{
+          id: string;
+          at: string;
+          ip: string | null;
+          userAgent: string | null;
+          country: string | null;
+          hosting: boolean | null;
+          proxy: boolean | null;
+          classified: boolean;
+        }>
+      >(`/api/admin/analytics/visits${qs(p)}`),
   },
 
   /* ------------------------------ analytics ------------------------------ */

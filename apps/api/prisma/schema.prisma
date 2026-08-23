@@ -330,9 +330,22 @@ model Visit {
   id        String   @id @default(uuid()) @db.Uuid
   visitorId String   @map("visitor_id")
   day       DateTime @db.Date
+
+  // Captured on the first hit of the day for this visitor, for the admin
+  // visitor-history view. The IP-intelligence fields below are filled in lazily
+  // the first time an admin views the row, then cached (classifiedAt marks it
+  // done, so we don't re-query an unchanging fact).
+  ip           String?
+  userAgent    String?   @map("user_agent")
+  ipCountry    String?   @map("ip_country")
+  ipHosting    Boolean?  @map("ip_hosting") // datacentre / VPS
+  ipProxy      Boolean?  @map("ip_proxy") // VPN / proxy / Tor
+  classifiedAt DateTime? @map("classified_at")
+
   createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([visitorId, day])
   @@index([day])
+  @@index([createdAt])
   @@map("visits")
 }
