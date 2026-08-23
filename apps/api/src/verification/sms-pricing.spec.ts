@@ -10,12 +10,16 @@ import {
 import { parsePhone } from "./phone-number";
 
 describe("SMS destination pricing", () => {
-  it("blocks the countries at or above the threshold, plus the policy list", () => {
+  it("blocks exactly the countries the two rules select (price ceiling now off)", () => {
     for (const [iso, price] of Object.entries(SMS_PRICE_EUR)) {
       const expected =
         !ALWAYS_ALLOWED.has(iso) && (price >= BLOCK_AT_OR_ABOVE_EUR || ALWAYS_BLOCKED.has(iso));
       expect(isCountryBlocked(iso)).toBe(expected);
     }
+  });
+
+  it("has price-based blocking turned off", () => {
+    expect(BLOCK_AT_OR_ABOVE_EUR).toBe(Infinity);
   });
 
   it("blocks the policy list even though the price would allow it", () => {
@@ -28,18 +32,13 @@ describe("SMS destination pricing", () => {
     expect(isCountryBlocked("in")).toBe(true);
   });
 
-  it("treats the threshold as inclusive", () => {
-    // French Polynesia sits exactly on 0.1 and must be refused.
-    expect(SMS_PRICE_EUR.PF).toBe(0.1);
-    expect(isCountryBlocked("PF")).toBe(true);
+  it("now sends to what used to be the expensive destinations", () => {
+    // Previously refused on price; with the ceiling lifted these all go through.
+    const nowAllowed = ["MG", "RU", "BA", "RS", "PK", "ID", "NG", "BD", "IR", "EG", "SA", "UA", "PH", "MY", "PF"];
+    for (const iso of nowAllowed) expect(isCountryBlocked(iso)).toBe(false);
   });
 
-  it("blocks the expensive destinations", () => {
-    const expected = ["MG", "RU", "BA", "RS", "PK", "ID", "NG", "BD", "IR", "EG", "SA", "UA", "PH"];
-    for (const iso of expected) expect(isCountryBlocked(iso)).toBe(true);
-  });
-
-  it("allows the cheap destinations", () => {
+  it("still sends to the cheap destinations", () => {
     const expected = ["DE", "GB", "US", "CA", "FR", "JP", "KR", "BR", "ZA", "AU", "CN"];
     for (const iso of expected) expect(isCountryBlocked(iso)).toBe(false);
   });
@@ -52,7 +51,7 @@ describe("SMS destination pricing", () => {
   });
 
   it("is case-insensitive", () => {
-    expect(isCountryBlocked("pk")).toBe(true);
+    expect(isCountryBlocked("in")).toBe(true); // policy-blocked
     expect(isCountryBlocked("de")).toBe(false);
   });
 
@@ -64,8 +63,8 @@ describe("SMS destination pricing", () => {
 
   it("covers the whole quoted price list", () => {
     expect(Object.keys(SMS_PRICE_EUR)).toHaveLength(231);
-    // 142 priced at or above the threshold, plus India on the policy list.
-    expect(BLOCKED_COUNTRIES.size).toBe(143);
+    // Price blocking is off; only India remains, on the policy list.
+    expect(BLOCKED_COUNTRIES.size).toBe(1);
   });
 });
 
@@ -85,14 +84,16 @@ describe("phone number parsing", () => {
 
   /**
    * The reason country resolution can't be done on the dial prefix: these all
-   * start +1, and half of them are six times the price of the other half.
+   * start +1 but resolve to six different countries. None are blocked now that
+   * the price ceiling is lifted, but the resolution still has to be exact for
+   * per-send pricing and logging.
    */
   it.each([
     ["+1 212 555 0123", "US", false],
     ["+1 416 555 0123", "CA", false],
-    ["+1 876 555 0123", "JM", true],
-    ["+1 246 555 0123", "BB", true],
-    ["+1 868 555 0123", "TT", true],
+    ["+1 876 555 0123", "JM", false],
+    ["+1 246 555 0123", "BB", false],
+    ["+1 868 555 0123", "TT", false],
     ["+1 787 555 0123", "PR", false],
   ])("resolves %s to %s (blocked: %s)", (input, iso, blocked) => {
     const parsed = parsePhone(input);
@@ -100,7 +101,7 @@ describe("phone number parsing", () => {
     expect(isCountryBlocked(parsed?.country)).toBe(blocked);
   });
 
-  it("splits +7 between Russia and Kazakhstan (both blocked, for different rates)", () => {
+  it("splits +7 between Russia and Kazakhstan (different rates, both now sendable)", () => {
     expect(parsePhone("+7 916 123 4567")?.country).toBe("RU");
     expect(parsePhone("+7 701 123 4567")?.country).toBe("KZ");
     expect(priceFor("RU")).toBe(0.39);

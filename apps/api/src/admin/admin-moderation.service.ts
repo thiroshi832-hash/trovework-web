@@ -135,6 +135,38 @@ export class AdminModerationService {
     await this.prisma.user.update({ where: { id: userId }, data: { status: "active", strikeCount: 0 } });
   }
 
+  /**
+   * Manually marks a user phone- and ID-verified — for when an admin has vetted
+   * their identity out of band, or an SMS/auto-check path failed them. Also
+   * resolves the latest outstanding ID check to approved (stamping the admin as
+   * reviewer) so the record leaves the review queue and matches the user's flags.
+   */
+  async markVerified(actingAdminId: string, userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, phoneVerified: true, idVerified: true },
+    });
+    if (!user) throw new NotFoundException("User not found.");
+    if (user.phoneVerified && user.idVerified) {
+      throw new BadRequestException("That account is already phone- and ID-verified.");
+    }
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { phoneVerified: true, idVerified: true },
+      }),
+      this.prisma.idVerification.updateMany({
+        where: { userId, status: { not: "approved" } },
+        data: {
+          status: "approved",
+          reviewedById: actingAdminId,
+          reviewedAt: new Date(),
+          reviewNote: "Manually verified by an administrator.",
+        },
+      }),
+    ]);
+  }
+
   /** Clears a user's strike count without touching their status. */
   async resetStrikes(userId: string): Promise<void> {
     const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });

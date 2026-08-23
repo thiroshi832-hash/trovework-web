@@ -63,6 +63,12 @@ export class AdminModerationController {
     return this.moderation.reinstate(id);
   }
 
+  @Post("users/:id/verify")
+  @HttpCode(200)
+  markVerified(@CurrentUser() admin: AuthedUser, @Param("id") id: string) {
+    return this.moderation.markVerified(admin.id, id);
+  }
+
   @Post("users/:id/reset-strikes")
   @HttpCode(200)
   resetStrikes(@Param("id") id: string) {

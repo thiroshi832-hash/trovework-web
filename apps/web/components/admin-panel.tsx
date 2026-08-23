@@ -389,6 +389,8 @@ export function AdminPanel() {
     "rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-navy-800 transition hover:bg-slate-50 disabled:opacity-50";
   const dangerBtn =
     "rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50";
+  const verifyBtn =
+    "rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50";
 
   return (
     <div>
@@ -555,6 +557,9 @@ export function AdminPanel() {
                         {u.status !== "active" ? (
                           <span className="rounded-full bg-red-100 px-2 py-0.5 text-[0.625rem] font-medium text-red-700">{u.status === "banned" ? "suspended" : u.status}</span>
                         ) : null}
+                        {u.phoneVerified ? (
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[0.625rem] font-medium text-emerald-700">Phone ✓</span>
+                        ) : null}
                         {u.idVerified ? (
                           <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[0.625rem] font-medium text-emerald-700">ID ✓</span>
                         ) : null}
@@ -573,6 +578,11 @@ export function AdminPanel() {
                       <button type="button" className={smallBtn} onClick={() => viewDetail(u.id)}>
                         {detailId === u.id ? "Hide" : "View"}
                       </button>
+                      {!(u.phoneVerified && u.idVerified) ? (
+                        <button type="button" className={verifyBtn} disabled={busyId === u.id} onClick={() => runAction(u.id, () => api.admin.verifyUser(u.id), tab)}>
+                          Mark verified
+                        </button>
+                      ) : null}
                       {u.strikeCount > 0 ? (
                         <button type="button" className={smallBtn} disabled={busyId === u.id} onClick={() => runAction(u.id, () => api.admin.resetStrikes(u.id), tab)}>
                           Reset strikes

@@ -242,12 +242,14 @@ export const SMS_PRICE_EUR: Readonly<Record<string, number>> = {
 /**
  * Countries at or above this price per SMS are refused outright.
  *
- * Verification SMS is a cost centre with no revenue attached to it, and the
- * expensive destinations are also where number-farm abuse concentrates: at
- * EUR 0.468 a message, Madagascar costs 6x Germany, so a script that pumps
- * codes at it burns real money for nothing.
+ * Set to Infinity: price-based blocking is OFF. We now send verification codes
+ * to every destination seven.io quotes, regardless of rate, so a freelancer
+ * anywhere can complete phone verification rather than hit a dead-end. The
+ * price table above is retained for the admin cost view and per-send logging,
+ * and the constant is kept (rather than deleted) so a ceiling can be reinstated
+ * with a one-number edit if SMS spend or number-farm abuse becomes a problem.
  */
-export const BLOCK_AT_OR_ABOVE_EUR = 0.1;
+export const BLOCK_AT_OR_ABOVE_EUR = Infinity;
 
 /**
  * Countries refused regardless of price, so a block for a reason that is not

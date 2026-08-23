@@ -9,12 +9,17 @@ function prismaDouble() {
   const posts: any[] = [];
   const violations: any[] = [];
   const profiles: any[] = [];
+  const idverifs: any[] = [];
   const byStatus = (arr: any[], where: any) => (where?.status ? arr.filter((x) => x.status === where.status) : [...arr]);
   return {
     users,
     posts,
     violations,
     profiles,
+    idverifs,
+    // Runs the batched writes just like Prisma: the operations are already
+    // in-flight promises by the time they reach here, so await them together.
+    $transaction: jest.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
     violation: {
       findMany: jest.fn(async () => violations),
       count: jest.fn(async () => violations.length),
@@ -31,6 +36,13 @@ function prismaDouble() {
     },
     idVerification: {
       findFirst: jest.fn(async () => null),
+      updateMany: jest.fn(async ({ where, data }: any) => {
+        const affected = idverifs.filter(
+          (v) => v.userId === where.userId && (where.status?.not === undefined || v.status !== where.status.not),
+        );
+        affected.forEach((v) => Object.assign(v, data));
+        return { count: affected.length };
+      }),
     },
     user: {
       findMany: jest.fn(async ({ where }: any = {}) => byStatus(users, where)),
@@ -131,6 +143,24 @@ describe("AdminModerationService", () => {
     await svc(db).resetStrikes("u1");
     expect(db.users[0].strikeCount).toBe(0);
     expect(db.users[0].status).toBe("active");
+  });
+
+  it("marks a user phone- and ID-verified and approves their pending ID check", async () => {
+    const db = prismaDouble();
+    db.users.push({ id: "u1", phoneVerified: false, idVerified: false });
+    db.idverifs.push({ id: "v1", userId: "u1", status: "pending" });
+    await svc(db).markVerified("admin1", "u1");
+    expect(db.users[0].phoneVerified).toBe(true);
+    expect(db.users[0].idVerified).toBe(true);
+    expect(db.idverifs[0].status).toBe("approved");
+    expect(db.idverifs[0].reviewedById).toBe("admin1");
+  });
+
+  it("won't re-verify an already fully-verified user, and 404s an unknown one", async () => {
+    const db = prismaDouble();
+    db.users.push({ id: "u1", phoneVerified: true, idVerified: true });
+    await expect(svc(db).markVerified("admin1", "u1")).rejects.toThrow(BadRequestException);
+    await expect(svc(db).markVerified("admin1", "nope")).rejects.toThrow(NotFoundException);
   });
 
   it("returns user detail with counts", async () => {

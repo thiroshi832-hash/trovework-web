@@ -315,6 +315,7 @@ export const api = {
     reinstate: (userId: string) => request<void>(`/api/admin/users/${userId}/reinstate`, { method: "POST" }),
     ban: (userId: string) => request<void>(`/api/admin/users/${userId}/ban`, { method: "POST" }),
     resetStrikes: (userId: string) => request<void>(`/api/admin/users/${userId}/reset-strikes`, { method: "POST" }),
+    verifyUser: (userId: string) => request<void>(`/api/admin/users/${userId}/verify`, { method: "POST" }),
     deleteUser: (userId: string) => request<void>(`/api/admin/users/${userId}`, { method: "DELETE" }),
     categories: {
       list: () => request<Category[]>("/api/admin/categories"),
