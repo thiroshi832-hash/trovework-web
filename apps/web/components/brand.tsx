@@ -67,7 +67,10 @@ export function Portrait({
 }) {
   return (
     <span className={`relative block shrink-0 overflow-hidden rounded-full bg-slate-100 ${className}`}>
-      <Image src={src} alt="" fill sizes={sizes} className="object-cover" />
+      {/* unoptimized: user photos live at /uploads (served by nginx off a
+          separate volume), which Next's image optimizer can't reach — so load
+          them directly. */}
+      <Image src={src} alt="" fill sizes={sizes} unoptimized className="object-cover" />
     </span>
   );
 }
