@@ -20,6 +20,8 @@ export interface SessionUser {
   idVerified: boolean;
   strikeCount?: number;
   country?: string;
+  /** The freelancer's profile photo, for the header avatar. */
+  photoPath?: string | null;
   /** Global: false when no SMS provider is linked, so the UI hides the phone step. */
   phoneVerificationRequired?: boolean;
 }

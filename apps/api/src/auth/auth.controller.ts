@@ -209,10 +209,15 @@ export class AuthController {
   /** Who am I — the frontend's session check. */
   @Get("me")
   async me(@CurrentUser() user: AuthedUser) {
-    const me = await this.auth.findById(user.id);
-    // Per-user: whether this account must verify a phone. Off for US accounts
-    // (US A2P SMS needs 10DLC) and when no provider is linked, so the client
-    // hides the phone step accordingly.
-    return { ...me, phoneVerificationRequired: phoneRequiredFor(this.config, me?.country) };
+    const record = await this.auth.findById(user.id);
+    if (!record) return null;
+    // Flatten the freelancer photo onto the session and add the per-user phone
+    // flag (off for US, and when no provider is linked).
+    const { profile, ...rest } = record;
+    return {
+      ...rest,
+      photoPath: profile?.photoPath ?? null,
+      phoneVerificationRequired: phoneRequiredFor(this.config, rest.country),
+    };
   }
 }

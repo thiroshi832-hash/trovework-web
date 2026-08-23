@@ -365,6 +365,8 @@ export class AuthService {
         country: true,
         state: true,
         createdAt: true,
+        // A freelancer's profile photo, so the header avatar can show it.
+        profile: { select: { photoPath: true } },
       },
     });
   }

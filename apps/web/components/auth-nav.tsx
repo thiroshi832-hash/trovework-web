@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "@/components/icons";
+import { Portrait } from "@/components/brand";
 import { api, homeFor } from "@/lib/api";
 import { useDict } from "@/lib/i18n/provider";
 import { useSession } from "@/lib/use-session";
@@ -69,9 +70,13 @@ export function AuthNav() {
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-xs font-semibold text-white">
-          {initials}
-        </span>
+        {user.photoPath ? (
+          <Portrait src={user.photoPath} sizes="32px" className="h-8 w-8" />
+        ) : (
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-400 to-brand-700 text-xs font-semibold text-white">
+            {initials}
+          </span>
+        )}
         <span className="hidden sm:block">{first}</span>
         <ChevronDown className="h-4 w-4 text-slate-400" />
       </button>
