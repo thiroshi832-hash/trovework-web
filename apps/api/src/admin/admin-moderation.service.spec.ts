@@ -63,16 +63,20 @@ function prismaDouble() {
 
 const publicStorage = () => ({ removeUserDir: jest.fn(async () => undefined) });
 const securedStorage = () => ({ removeUserDir: jest.fn(async () => undefined) });
+const ipIntel = () => ({ classifyMany: jest.fn(async () => new Map()) });
 
 function makeService(db: ReturnType<typeof prismaDouble>, pub = publicStorage(), sec = securedStorage()) {
+  const ip = ipIntel();
   return {
     service: new AdminModerationService(
       db as unknown as PrismaService,
       pub as unknown as PublicStorageService,
       sec as unknown as SecuredStorageService,
+      ip as unknown as import("../analytics/ip-intel.service").IpIntelService,
     ),
     pub,
     sec,
+    ip,
   };
 }
 

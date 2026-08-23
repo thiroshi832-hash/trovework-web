@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { PublicStorageService } from "../storage/public-storage.service";
 import { SecuredStorageService } from "../storage/secured-storage.service";
+import { IpIntelService } from "../analytics/ip-intel.service";
 
 export interface PageOpts {
   take?: number;
@@ -46,6 +47,7 @@ export class AdminModerationService {
     private readonly prisma: PrismaService,
     private readonly publicStorage: PublicStorageService,
     private readonly securedStorage: SecuredStorageService,
+    private readonly ipIntel: IpIntelService,
   ) {}
 
   /* --------------------------------- users --------------------------------- */
@@ -83,6 +85,9 @@ export class AdminModerationService {
         phone: true,
         country: true,
         state: true,
+        signupIp: true,
+        lastLoginIp: true,
+        lastLoginAt: true,
       },
     });
     if (!user) throw new NotFoundException("User not found.");
@@ -126,7 +131,13 @@ export class AdminModerationService {
         }
       : null;
 
-    return { ...user, profile, postCount, conversationCount, latestVerification };
+    // Classify the sign-up and last-login IPs (VPS/VPN/proxy), best-effort. One
+    // deduplicated lookup; a failure just leaves ipIntel empty.
+    const ips = [user.signupIp, user.lastLoginIp].filter((v): v is string => !!v);
+    const classes = ips.length ? await this.ipIntel.classifyMany(ips) : new Map();
+    const ipIntel = Object.fromEntries(classes);
+
+    return { ...user, profile, postCount, conversationCount, latestVerification, ipIntel };
   }
 
   /** Suspends an active account. Guarded against self and other admins. */

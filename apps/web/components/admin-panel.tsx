@@ -70,6 +70,10 @@ interface UserDetail extends AdminUser {
     contactWhatsapp?: string | null;
     contactLinkedin?: string | null;
   } | null;
+  signupIp?: string | null;
+  lastLoginIp?: string | null;
+  lastLoginAt?: string | null;
+  ipIntel?: Record<string, { hosting: boolean; proxy: boolean; country: string | null }>;
   postCount: number;
   conversationCount: number;
   latestVerification?: {
@@ -105,6 +109,35 @@ function IpTypeBadges({ v }: { v: VisitRow }) {
       {v.proxy ? <span className={`${badge} bg-red-100 text-red-700`}>VPN / proxy</span> : null}
       {!v.hosting && !v.proxy ? <span className={`${badge} bg-emerald-100 text-emerald-700`}>Direct</span> : null}
     </div>
+  );
+}
+
+/** An IP plus its VPS/VPN/proxy flags and country, for the user detail view. */
+function IpWithFlags({
+  ip,
+  intel,
+}: {
+  ip: string | null | undefined;
+  intel?: { hosting: boolean; proxy: boolean; country: string | null };
+}) {
+  const badge = "rounded-full px-2 py-0.5 text-[0.625rem] font-medium";
+  if (!ip) return <span className="text-slate-400">—</span>;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1.5">
+      <span className="font-mono text-xs text-navy-800">{ip}</span>
+      {intel ? (
+        <>
+          {intel.hosting ? <span className={`${badge} bg-amber-100 text-amber-700`}>VPS</span> : null}
+          {intel.proxy ? <span className={`${badge} bg-red-100 text-red-700`}>VPN / proxy</span> : null}
+          {!intel.hosting && !intel.proxy ? (
+            <span className={`${badge} bg-emerald-100 text-emerald-700`}>Direct</span>
+          ) : null}
+          {intel.country ? <span className="text-xs text-slate-500">{intel.country}</span> : null}
+        </>
+      ) : (
+        <span className="text-xs text-slate-400">unclassified</span>
+      )}
+    </span>
   );
 }
 
@@ -672,6 +705,21 @@ export function AdminPanel() {
                             <span>WhatsApp: <span className="text-navy-800">{detailData.profile?.contactWhatsapp ?? "—"}</span></span>
                             <span>Discord: <span className="text-navy-800">{detailData.profile?.contactDiscord ?? "—"}</span></span>
                             <span>LinkedIn: <span className="text-navy-800">{detailData.profile?.contactLinkedin ?? "—"}</span></span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="mb-2 text-xs font-semibold text-slate-500">IP &amp; sign-in</p>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <span className="flex flex-wrap items-center gap-2">
+                              Sign-up IP:
+                              <IpWithFlags ip={detailData.signupIp} intel={detailData.signupIp ? detailData.ipIntel?.[detailData.signupIp] : undefined} />
+                            </span>
+                            <span className="flex flex-wrap items-center gap-2">
+                              Last login IP:
+                              <IpWithFlags ip={detailData.lastLoginIp} intel={detailData.lastLoginIp ? detailData.ipIntel?.[detailData.lastLoginIp] : undefined} />
+                            </span>
+                            <span>Last login: {detailData.lastLoginAt ? fmtDateTime(detailData.lastLoginAt) : "—"}</span>
                           </div>
                         </div>
 

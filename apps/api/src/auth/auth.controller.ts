@@ -18,6 +18,7 @@ import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
+import { clientIp } from "../common/client-ip";
 import { CompleteGoogleDto } from "./dto/complete-google.dto";
 import { phoneRequiredFor } from "../verification/phone-policy";
 import { Public } from "./decorators/public.decorator";
@@ -81,8 +82,8 @@ export class AuthController {
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post("register")
-  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
-    const { userId, ...tokens } = await this.auth.register(dto);
+  async register(@Body() dto: RegisterDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const { userId, ...tokens } = await this.auth.register(dto, clientIp(req));
     this.setCookies(res, tokens);
     return { userId };
   }
@@ -91,8 +92,8 @@ export class AuthController {
   @HttpCode(200)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post("login")
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const { userId, ...tokens } = await this.auth.login(dto);
+  async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const { userId, ...tokens } = await this.auth.login(dto, clientIp(req));
     this.setCookies(res, tokens);
     return { userId };
   }

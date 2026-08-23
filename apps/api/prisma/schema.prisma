@@ -59,6 +59,12 @@ model User {
 
   strikeCount Int @default(0) @map("strike_count")
 
+  // Sign-in provenance, for admin oversight (fraud / ban-evasion checks). The
+  // IPs are classified (VPS/VPN/proxy) on demand when an admin views the user.
+  signupIp    String?   @map("signup_ip")
+  lastLoginIp String?   @map("last_login_ip")
+  lastLoginAt DateTime? @map("last_login_at")
+
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
   posts            Post[]

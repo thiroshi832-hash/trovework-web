@@ -51,6 +51,11 @@ function prismaDouble() {
         users.push(u);
         return u;
       }),
+      update: jest.fn(async ({ where, data }: any) => {
+        const u = users.find((x) => x.id === where.id);
+        if (u) Object.assign(u, data);
+        return u;
+      }),
     },
     refreshToken: {
       create: jest.fn(async ({ data }: any) => {

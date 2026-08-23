@@ -5,15 +5,9 @@ import type { Request, Response } from "express";
 import { AnalyticsService } from "./analytics.service";
 import { Public } from "../auth/decorators/public.decorator";
 import { Roles } from "../auth/decorators/roles.decorator";
+import { clientIp } from "../common/client-ip";
 
 const VISITOR_COOKIE = "visitor_id";
-
-/** The visitor's real IP behind nginx — the first hop in X-Forwarded-For. */
-function clientIp(req: Request): string | null {
-  const xff = req.headers["x-forwarded-for"];
-  const first = Array.isArray(xff) ? xff[0] : xff?.split(",")[0];
-  return (first?.trim() || req.ip || req.socket?.remoteAddress || null) ?? null;
-}
 
 /** Parses ?take/?skip into numbers, ignoring junk. */
 function num(v?: string): number | undefined {

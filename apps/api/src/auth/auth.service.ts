@@ -76,7 +76,7 @@ export class AuthService {
 
   /* ------------------------------ registration ----------------------------- */
 
-  async register(dto: RegisterDto): Promise<{ userId: string } & TokenPair> {
+  async register(dto: RegisterDto, ip?: string | null): Promise<{ userId: string } & TokenPair> {
     const email = dto.email.trim().toLowerCase();
 
     const existing = await this.prisma.user.findUnique({ where: { email } });
@@ -95,6 +95,10 @@ export class AuthService {
         country: dto.country.trim(),
         state: dto.state.trim(),
         postalCode: dto.postalCode.trim(),
+        // Sign-up is also the first login — record both from the same request.
+        signupIp: ip ?? null,
+        lastLoginIp: ip ?? null,
+        lastLoginAt: new Date(),
       },
     });
 
@@ -104,7 +108,7 @@ export class AuthService {
 
   /* --------------------------------- login --------------------------------- */
 
-  async login(dto: LoginDto): Promise<{ userId: string } & TokenPair> {
+  async login(dto: LoginDto, ip?: string | null): Promise<{ userId: string } & TokenPair> {
     const email = dto.email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({ where: { email } });
 
@@ -116,6 +120,12 @@ export class AuthService {
 
     if (!user || !ok) throw new UnauthorizedException("Email or password is incorrect.");
     if (user.status === "banned") throw new UnauthorizedException("This account has been suspended.");
+
+    // Record where this successful login came from, for admin oversight.
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginIp: ip ?? null, lastLoginAt: new Date() },
+    });
 
     const role = await this.ensureAdminRole(user.id, user.email, user.role);
     return {
