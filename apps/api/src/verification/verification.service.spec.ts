@@ -159,34 +159,42 @@ describe("VerificationService — phone send limits", () => {
     expect(db.challenges.f1).toBeUndefined();
   });
 
-  it("refuses a country priced at or above the block threshold, without sending", async () => {
+  it("sends to a country that used to be over the price ceiling", async () => {
     const db = prismaDouble();
     db.users.f1 = { ...freelancer, phoneVerified: false };
     const { svc, sms } = makeService(db);
 
-    // Pakistan, EUR 0.2952.
-    await expect(svc.requestPhoneCode(freelancer, "+923001234567")).rejects.toThrow(
+    // Pakistan, EUR 0.2952 — formerly blocked on price, now sendable.
+    await expect(svc.requestPhoneCode(freelancer, "+923001234567")).resolves.toMatchObject({
+      sent: true,
+    });
+    expect(sms.sendCode).toHaveBeenCalledTimes(1);
+  });
+
+  it("still refuses a policy-blocked country, without sending", async () => {
+    const db = prismaDouble();
+    db.users.f1 = { ...freelancer, phoneVerified: false };
+    const { svc, sms } = makeService(db);
+
+    // India (+91) is on the explicit policy blocklist regardless of price.
+    await expect(svc.requestPhoneCode(freelancer, "+919812345678")).rejects.toThrow(
       BadRequestException,
     );
     expect(sms.sendCode).not.toHaveBeenCalled();
     expect(db.challenges.f1).toBeUndefined();
   });
 
-  it("refuses an expensive NANP territory while allowing the US", async () => {
-    const db = prismaDouble();
-    db.users.f1 = { ...freelancer, phoneVerified: false };
-    const { svc, sms } = makeService(db);
-
-    // Jamaica (+1 876) is EUR 0.2358; both start "+1".
-    await expect(svc.requestPhoneCode(freelancer, "+18765550123")).rejects.toThrow(
-      BadRequestException,
-    );
-    expect(sms.sendCode).not.toHaveBeenCalled();
-
-    await expect(svc.requestPhoneCode(freelancer, "+12125550123")).resolves.toMatchObject({
-      sent: true,
-    });
-    expect(sms.sendCode).toHaveBeenCalledTimes(1);
+  it("sends to both the US and a formerly-expensive NANP territory (both +1)", async () => {
+    // Jamaica (+1 876) was EUR 0.2358 and refused; the US (+1 212) was allowed.
+    // With the ceiling lifted both now send. Separate instances so neither call
+    // trips the other's resend cooldown.
+    for (const num of ["+12125550123", "+18765550123"]) {
+      const db = prismaDouble();
+      db.users.f1 = { ...freelancer, phoneVerified: false };
+      const { svc, sms } = makeService(db);
+      await expect(svc.requestPhoneCode(freelancer, num)).resolves.toMatchObject({ sent: true });
+      expect(sms.sendCode).toHaveBeenCalledTimes(1);
+    }
   });
 
   it("rejects an unparseable number before spending anything", async () => {
