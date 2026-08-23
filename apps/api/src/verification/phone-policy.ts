@@ -30,3 +30,21 @@ export function phoneVerificationRequired(config: ConfigService): boolean {
   if (override === "false") return false;
   return smsConfigured(config);
 }
+
+/** Whether a stored country string is the United States (a few spellings). */
+export function isUnitedStates(country?: string | null): boolean {
+  const c = (country ?? "").trim().toLowerCase();
+  return c === "united states" || c === "united states of america" || c === "usa" || c === "us";
+}
+
+/**
+ * Per-user phone requirement. Phone verification is required as usual, EXCEPT
+ * for US users: A2P SMS to US numbers isn't deliverable without 10DLC
+ * registration, so requiring it would lock them out. Everyone else keeps the
+ * requirement (subject to the global config).
+ */
+export function phoneRequiredFor(config: ConfigService, country?: string | null): boolean {
+  if (!phoneVerificationRequired(config)) return false;
+  if (isUnitedStates(country)) return false;
+  return true;
+}

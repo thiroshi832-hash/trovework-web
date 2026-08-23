@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand";
-import { SOCIALS } from "@/components/icons";
 
 // Only real, working destinations — no placeholder links to pages that don't exist.
 const COLUMNS: { heading: string; links: { label: string; href: string }[] }[] = [
@@ -29,20 +28,6 @@ const COLUMNS: { heading: string; links: { label: string; href: string }[] }[] =
   },
 ];
 
-function SocialLink({ path, label }: { path: string; label: string }) {
-  return (
-    <a
-      href="#"
-      aria-label={label}
-      className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white"
-    >
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden>
-        <path d={path} />
-      </svg>
-    </a>
-  );
-}
-
 export function SiteFooter({ newsletter = false }: { newsletter?: boolean }) {
   // navy-900 stays dark in both themes, so the body text has to be pinned to a
   // light slate rather than following the ramp, which inverts.
@@ -60,11 +45,6 @@ export function SiteFooter({ newsletter = false }: { newsletter?: boolean }) {
               A trust-first global freelance marketplace. Connect, collaborate, and get work done
               with confidence.
             </p>
-            <div className="mt-5 flex gap-2.5">
-              {SOCIALS.map((s) => (
-                <SocialLink key={s.label} path={s.path} label={s.label} />
-              ))}
-            </div>
           </div>
 
           {COLUMNS.map((col) => (

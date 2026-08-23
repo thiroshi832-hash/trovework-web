@@ -14,6 +14,7 @@ export interface AuthedUser {
   status: "active" | "banned" | "pending";
   phoneVerified: boolean;
   idVerified: boolean;
+  country: string;
 }
 
 @Injectable()
@@ -46,6 +47,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
         status: true,
         phoneVerified: true,
         idVerified: true,
+        country: true,
       },
     });
 

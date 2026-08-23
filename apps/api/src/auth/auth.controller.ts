@@ -19,7 +19,7 @@ import { LoginDto } from "./dto/login.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { CompleteGoogleDto } from "./dto/complete-google.dto";
-import { phoneVerificationRequired } from "../verification/phone-policy";
+import { phoneRequiredFor } from "../verification/phone-policy";
 import { Public } from "./decorators/public.decorator";
 import { GoogleAuthGuard } from "./guards/google-auth.guard";
 import { GoogleOAuthExceptionFilter } from "./filters/google-oauth-exception.filter";
@@ -210,8 +210,9 @@ export class AuthController {
   @Get("me")
   async me(@CurrentUser() user: AuthedUser) {
     const me = await this.auth.findById(user.id);
-    // A global flag, not a per-user one: the client uses it to stop presenting
-    // phone verification as a required step when no SMS provider is linked.
-    return { ...me, phoneVerificationRequired: phoneVerificationRequired(this.config) };
+    // Per-user: whether this account must verify a phone. Off for US accounts
+    // (US A2P SMS needs 10DLC) and when no provider is linked, so the client
+    // hides the phone step accordingly.
+    return { ...me, phoneVerificationRequired: phoneRequiredFor(this.config, me?.country) };
   }
 }

@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { Prisma, type Post, type PostStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { scanPost } from "../moderation/contact-scan";
-import { phoneVerificationRequired } from "../verification/phone-policy";
+import { phoneRequiredFor } from "../verification/phone-policy";
 import { CreatePostDto } from "./dto/create-post.dto";
 import { UpdatePostDto } from "./dto/update-post.dto";
 
@@ -15,6 +15,7 @@ export interface PostAuthor {
   status: string;
   phoneVerified: boolean;
   idVerified: boolean;
+  country?: string;
 }
 
 export interface WriteResult {
@@ -161,7 +162,7 @@ export class PostsService {
    * phoneVerificationRequired — otherwise publishing would be impossible).
    */
   private assertCanPublish(author: PostAuthor) {
-    if (phoneVerificationRequired(this.config) && !author.phoneVerified) {
+    if (phoneRequiredFor(this.config, author.country) && !author.phoneVerified) {
       throw new ForbiddenException("Verify your phone number before publishing.");
     }
     if (!author.idVerified) throw new ForbiddenException("Verify your identity before publishing.");

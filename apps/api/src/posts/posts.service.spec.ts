@@ -111,6 +111,25 @@ describe("PostsService", () => {
       await expect(makeService(db).create(author, CLEAN)).rejects.toThrow(/identity/i);
     });
 
+    it("allows a US freelancer to publish without phone (US SMS can't be delivered)", async () => {
+      const db = prismaDouble();
+      db.users.u1 = { strikeCount: 0 };
+      const author: PostAuthor = {
+        ...verifiedFreelancer,
+        phoneVerified: false,
+        idVerified: true,
+        country: "United States",
+      };
+      const res = await makeService(db).create(author, CLEAN);
+      expect(res.post.status).toBe("active");
+    });
+
+    it("still requires phone for a non-US freelancer", async () => {
+      const db = prismaDouble();
+      const author: PostAuthor = { ...verifiedFreelancer, phoneVerified: false, country: "Germany" };
+      await expect(makeService(db).create(author, CLEAN)).rejects.toThrow(/phone/i);
+    });
+
     it("allows publishing without phone when phone verification is turned off", async () => {
       const db = prismaDouble();
       db.users.u1 = { strikeCount: 0 };
