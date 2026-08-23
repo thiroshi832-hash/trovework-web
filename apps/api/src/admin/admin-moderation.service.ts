@@ -90,7 +90,19 @@ export class AdminModerationService {
     const [profile, postCount, conversationCount, verification] = await Promise.all([
       this.prisma.freelancerProfile.findUnique({
         where: { userId },
-        select: { slug: true, displayName: true, category: true, isVisible: true, photoPath: true },
+        select: {
+          slug: true,
+          displayName: true,
+          category: true,
+          isVisible: true,
+          photoPath: true,
+          // Gated contact handles — hidden from clients until they're verified,
+          // but an admin doing account oversight can always see them.
+          contactTelegram: true,
+          contactDiscord: true,
+          contactWhatsapp: true,
+          contactLinkedin: true,
+        },
       }),
       this.prisma.post.count({ where: { authorId: userId } }),
       this.prisma.conversation.count({ where: { OR: [{ clientId: userId }, { freelancerId: userId }] } }),

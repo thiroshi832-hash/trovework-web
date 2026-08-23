@@ -59,7 +59,17 @@ interface UserDetail extends AdminUser {
   phone?: string | null;
   country?: string;
   state?: string;
-  profile?: { slug: string; displayName: string; category: string; isVisible: boolean; photoPath?: string | null } | null;
+  profile?: {
+    slug: string;
+    displayName: string;
+    category: string;
+    isVisible: boolean;
+    photoPath?: string | null;
+    contactTelegram?: string | null;
+    contactDiscord?: string | null;
+    contactWhatsapp?: string | null;
+    contactLinkedin?: string | null;
+  } | null;
   postCount: number;
   conversationCount: number;
   latestVerification?: {
@@ -615,6 +625,18 @@ export function AdminPanel() {
                           <span>Posts: {detailData.postCount} · Conversations: {detailData.conversationCount}</span>
                           <span>Profile: {detailData.profile ? `/${detailData.profile.slug} (${detailData.profile.isVisible ? "visible" : "hidden"})` : "none"}</span>
                           <span>Latest ID check: {detailData.latestVerification?.status ?? "none"}</span>
+                        </div>
+
+                        <div>
+                          <p className="mb-2 text-xs font-semibold text-slate-500">Contact info</p>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <span>Email: <span className="text-navy-800">{detailData.email}</span></span>
+                            <span>Phone: <span className="text-navy-800">{detailData.phone ?? "—"}</span></span>
+                            <span>Telegram: <span className="text-navy-800">{detailData.profile?.contactTelegram ?? "—"}</span></span>
+                            <span>WhatsApp: <span className="text-navy-800">{detailData.profile?.contactWhatsapp ?? "—"}</span></span>
+                            <span>Discord: <span className="text-navy-800">{detailData.profile?.contactDiscord ?? "—"}</span></span>
+                            <span>LinkedIn: <span className="text-navy-800">{detailData.profile?.contactLinkedin ?? "—"}</span></span>
+                          </div>
                         </div>
 
                         {detailData.latestVerification ? (
