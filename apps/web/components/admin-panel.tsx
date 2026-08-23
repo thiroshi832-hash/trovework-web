@@ -108,11 +108,11 @@ function VisitorsChart({ daily }: { daily: { day: string; count: number }[] }) {
         {series.map((d) => (
           <div
             key={d.day}
-            className="group relative flex-1"
+            className="group flex h-full flex-1 items-end"
             title={`${fmt(d.day)}: ${d.count.toLocaleString()} visitor${d.count === 1 ? "" : "s"}`}
           >
             <div
-              className="w-full rounded-t bg-brand-500/80 transition group-hover:bg-brand-600"
+              className="w-full rounded-t bg-brand-500 transition group-hover:bg-brand-600"
               style={{ height: `${Math.max(d.count === 0 ? 0 : 4, Math.round((d.count / max) * 100))}%` }}
             />
           </div>
