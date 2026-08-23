@@ -12,6 +12,7 @@ import { ChatModule } from "./chat/chat.module";
 import { ReviewsModule } from "./reviews/reviews.module";
 import { CategoriesModule } from "./categories/categories.module";
 import { AdminModule } from "./admin/admin.module";
+import { AnalyticsModule } from "./analytics/analytics.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { RolesGuard } from "./auth/guards/roles.guard";
 import { VerifiedGuard } from "./auth/guards/verified.guard";
@@ -31,6 +32,7 @@ import { VerifiedGuard } from "./auth/guards/verified.guard";
     ReviewsModule,
     CategoriesModule,
     AdminModule,
+    AnalyticsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { VisitTracker } from "@/components/visit-tracker";
 import { THEME_SCRIPT } from "@/lib/theme";
 import { getLocale } from "@/lib/i18n/server";
 import { dir } from "@/lib/i18n/config";
@@ -45,6 +46,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             paints, so there is no white flash on the way into dark mode. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <I18nProvider locale={locale}>
+          <VisitTracker />
           <SiteHeader />
           {children}
           <SiteFooter />

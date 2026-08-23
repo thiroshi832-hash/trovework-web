@@ -73,6 +73,12 @@ interface UserDetail extends AdminUser {
 }
 
 type Paged<T> = Page<T>;
+
+interface VisitorStats {
+  today: number;
+  total: number;
+  daily: { day: string; count: number }[];
+}
 const emptyPage = <T,>(): Paged<T> => ({ items: [], total: 0 });
 
 function initialsOf(name: string): string {
@@ -164,6 +170,7 @@ export function AdminPanel() {
   const [banned, setBanned] = useState<Paged<BannedUser>>(emptyPage);
   const [users, setUsers] = useState<Paged<AdminUser>>(emptyPage);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [visitors, setVisitors] = useState<VisitorStats | null>(null);
 
   const [userQuery, setUserQuery] = useState("");
   const [userStatus, setUserStatus] = useState("");
@@ -214,8 +221,9 @@ export function AdminPanel() {
       api.admin.bannedUsers({ take: PAGE_SIZE, skip: 0 }),
       api.admin.users({ take: PAGE_SIZE, skip: 0 }),
       api.admin.categories.list(),
+      api.admin.analytics(),
     ])
-      .then(([v, vi, bp, bu, us, cats]) => {
+      .then(([v, vi, bp, bu, us, cats, vis]) => {
         if (!live) return;
         setQueue(v as Paged<Verification>);
         setViolations(vi as Paged<Violation>);
@@ -223,6 +231,7 @@ export function AdminPanel() {
         setBanned(bu as Paged<BannedUser>);
         setUsers(us as Paged<AdminUser>);
         setCategories(cats);
+        setVisitors(vis as VisitorStats);
         setLoaded(true);
       })
       .catch(() => {
@@ -247,6 +256,7 @@ export function AdminPanel() {
     void fetchTab("Banned users", p["Banned users"], undefined, undefined, true);
     void fetchTab("Users", p["Users"], queryRef.current, statusRef.current, true);
     api.admin.categories.list().then(setCategories).catch(() => {});
+    api.admin.analytics().then(setVisitors).catch(() => {});
   }, [fetchTab]);
 
   useEffect(() => {
@@ -335,6 +345,19 @@ export function AdminPanel() {
 
   return (
     <div>
+      {visitors ? (
+        <div className="mb-6 grid gap-4 sm:grid-cols-2">
+          <div className={`${CARD} p-5`}>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Visitors today</p>
+            <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.today.toLocaleString()}</p>
+          </div>
+          <div className={`${CARD} p-5`}>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">All-time visitors</p>
+            <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.total.toLocaleString()}</p>
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap gap-1 border-b border-slate-200">
         {TABS.map((t) => (
           <button

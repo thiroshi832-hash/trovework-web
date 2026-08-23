@@ -322,3 +322,17 @@ model RefreshToken {
   @@index([userId])
   @@map("refresh_tokens")
 }
+
+/// One row per unique visitor per day, so daily and all-time visitor totals can
+/// be computed without storing any personal data — just a random visitor id
+/// (from a cookie) and the date.
+model Visit {
+  id        String   @id @default(uuid()) @db.Uuid
+  visitorId String   @map("visitor_id")
+  day       DateTime @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([visitorId, day])
+  @@index([day])
+  @@map("visits")
+}

@@ -322,7 +322,13 @@ export const api = {
         request<Category>(`/api/admin/categories/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
       remove: (id: string) => request<void>(`/api/admin/categories/${id}`, { method: "DELETE" }),
     },
+    analytics: () =>
+      request<{ today: number; total: number; daily: { day: string; count: number }[] }>("/api/admin/analytics"),
   },
+
+  /* ------------------------------ analytics ------------------------------ */
+  /** Public visit ping, fire-and-forget on page load. */
+  recordVisit: () => request<void>("/api/analytics/visit", { method: "POST" }),
 
   /* -------------------------------- chat --------------------------------- */
   chat: {
