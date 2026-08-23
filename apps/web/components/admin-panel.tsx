@@ -79,6 +79,52 @@ interface VisitorStats {
   total: number;
   daily: { day: string; count: number }[];
 }
+
+/**
+ * Daily visitors as a bar chart. The API only returns days that had visits, so
+ * we fill the last 30 days with zeros to get a continuous axis (a launching
+ * site has sparse data, and gaps would misread as "no data" rather than "none").
+ */
+function VisitorsChart({ daily }: { daily: { day: string; count: number }[] }) {
+  const counts = new Map(daily.map((d) => [d.day, d.count]));
+  const now = new Date();
+  const series: { day: string; count: number }[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const dt = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
+    const key = dt.toISOString().slice(0, 10);
+    series.push({ day: key, count: counts.get(key) ?? 0 });
+  }
+  const max = Math.max(1, ...series.map((d) => d.count));
+  const fmt = (day: string) =>
+    new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+
+  return (
+    <div className={`${CARD} p-5 sm:col-span-2`}>
+      <div className="mb-3 flex items-baseline justify-between">
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Visitors — last 30 days</p>
+        <p className="text-xs text-slate-400">Peak {max.toLocaleString()}/day</p>
+      </div>
+      <div className="flex h-32 items-end gap-[3px]">
+        {series.map((d) => (
+          <div
+            key={d.day}
+            className="group relative flex-1"
+            title={`${fmt(d.day)}: ${d.count.toLocaleString()} visitor${d.count === 1 ? "" : "s"}`}
+          >
+            <div
+              className="w-full rounded-t bg-brand-500/80 transition group-hover:bg-brand-600"
+              style={{ height: `${Math.max(d.count === 0 ? 0 : 4, Math.round((d.count / max) * 100))}%` }}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 flex justify-between text-[0.65rem] text-slate-400">
+        <span>{fmt(series[0].day)}</span>
+        <span>{fmt(series[series.length - 1].day)}</span>
+      </div>
+    </div>
+  );
+}
 const emptyPage = <T,>(): Paged<T> => ({ items: [], total: 0 });
 
 function initialsOf(name: string): string {
@@ -221,9 +267,8 @@ export function AdminPanel() {
       api.admin.bannedUsers({ take: PAGE_SIZE, skip: 0 }),
       api.admin.users({ take: PAGE_SIZE, skip: 0 }),
       api.admin.categories.list(),
-      api.admin.analytics(),
     ])
-      .then(([v, vi, bp, bu, us, cats, vis]) => {
+      .then(([v, vi, bp, bu, us, cats]) => {
         if (!live) return;
         setQueue(v as Paged<Verification>);
         setViolations(vi as Paged<Violation>);
@@ -231,12 +276,14 @@ export function AdminPanel() {
         setBanned(bu as Paged<BannedUser>);
         setUsers(us as Paged<AdminUser>);
         setCategories(cats);
-        setVisitors(vis as VisitorStats);
         setLoaded(true);
       })
       .catch(() => {
         if (live) setLoadError(true);
       });
+    // Visitor stats are non-critical: fetch separately so a failure (e.g. the
+    // migration not yet applied) never blanks the whole panel.
+    api.admin.analytics().then((v) => live && setVisitors(v as VisitorStats)).catch(() => undefined);
     return () => {
       live = false;
     };
@@ -355,6 +402,7 @@ export function AdminPanel() {
             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">All-time visitors</p>
             <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.total.toLocaleString()}</p>
           </div>
+          <VisitorsChart daily={visitors.daily} />
         </div>
       ) : null}
 
