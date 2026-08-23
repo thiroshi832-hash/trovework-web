@@ -15,6 +15,7 @@ import {
   type Role,
 } from "@/components/auth-fields";
 import { Checkbox } from "@/components/checkbox";
+import { Select } from "@/components/select";
 import { Globe, Hash, Lock, Mail, MapPin, UserIcon } from "@/components/icons";
 import { subdivisionsFor } from "@/lib/subdivisions";
 import { ApiError, api, homeFor } from "@/lib/api";
@@ -186,26 +187,20 @@ export function RegisterForm({ defaultRole = "client" }: { defaultRole?: Role })
       </div>
 
       <Field label="Country / Region" error={errors.country}>
-        <SelectInput
+        <Select
           name="country"
-          required
+          searchable
           value={country}
-          onChange={(e) => {
-            setCountry(e.target.value);
+          onChange={(v) => {
+            setCountry(v);
             setStateValue("");
           }}
+          options={COUNTRIES.map((c) => ({ value: c, label: c }))}
+          placeholder="Select your country or region"
+          ariaLabel="Country / Region"
           invalid={!!errors.country}
           icon={<Globe className="h-5 w-5" />}
-        >
-          <option value="" disabled>
-            Select your country or region
-          </option>
-          {COUNTRIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </SelectInput>
+        />
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-[6fr_4fr]">

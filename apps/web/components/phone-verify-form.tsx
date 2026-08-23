@@ -4,14 +4,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { DIAL_CODES, Field } from "@/components/auth-fields";
-import { ArrowLeft, ChevronDown } from "@/components/icons";
+import { Select } from "@/components/select";
+import { ArrowLeft } from "@/components/icons";
 import { ApiError, api } from "@/lib/api";
 import { useSession } from "@/lib/use-session";
 
 export function PhoneVerifyForm() {
   const { user, ready } = useSession();
   const [step, setStep] = useState<"phone" | "code">("phone");
-  const [dial, setDial] = useState(DIAL_CODES[0].code);
+  // Track the chosen country (unique) and derive its dial code — several
+  // countries share a code (+1), so keying on the code alone can't tell them
+  // apart. Defaults to the United States.
+  const [dialCountry, setDialCountry] = useState("United States");
+  const dial = DIAL_CODES.find((d) => d.label === dialCountry)?.code ?? "+1";
   const [number, setNumber] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -200,20 +205,14 @@ export function PhoneVerifyForm() {
       <div className="mt-7">
         <Field label="Phone Number" error={phoneTooShort ? "Enter a valid phone number." : undefined}>
           <div className="flex gap-3">
-            <span className="relative">
-              <label className="sr-only" htmlFor="dial-code">Country dialling code</label>
-              <select
-                id="dial-code"
-                value={dial}
-                onChange={(e) => setDial(e.target.value)}
-                className="h-full appearance-none rounded-lg border border-slate-200 bg-white py-3 pl-3.5 pr-9 text-base text-navy-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-              >
-                {DIAL_CODES.map((d) => (
-                  <option key={`${d.label}${d.code}`} value={d.code}>{d.flag} {d.code}</option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-            </span>
+            <Select
+              ariaLabel="Country dialling code"
+              searchable
+              value={dialCountry}
+              onChange={setDialCountry}
+              options={DIAL_CODES.map((d) => ({ value: d.label, label: `${d.flag} ${d.label} (${d.code})` }))}
+              className="w-44 shrink-0"
+            />
 
             <input
               type="tel"
