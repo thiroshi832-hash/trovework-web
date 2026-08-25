@@ -394,7 +394,7 @@ export class VerificationService {
         where: { id: verificationId },
         data: { status: "approved", reviewedById: adminId, reviewedAt: new Date(), reviewNote: note },
       });
-      await tx.user.update({ where: { id: userId }, data: { idVerified: true } });
+      await tx.user.update({ where: { id: userId }, data: { idVerified: true, verifiedAt: new Date() } });
       // No error if the freelancer hasn't built a profile yet.
       await tx.freelancerProfile.updateMany({ where: { userId }, data: { isVisible: true } });
     });

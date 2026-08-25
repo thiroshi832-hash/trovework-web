@@ -176,7 +176,7 @@ export class AdminModerationService {
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: userId },
-        data: { phoneVerified: true, idVerified: true },
+        data: { phoneVerified: true, idVerified: true, verifiedAt: new Date() },
       }),
       this.prisma.idVerification.updateMany({
         where: { userId, status: { not: "approved" } },

@@ -7,12 +7,29 @@ function startOfDayUTC(d = new Date()): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
 
-export interface VisitorStats {
+export interface DailyPoint {
+  day: string;
+  count: number;
+}
+
+/** A metric shown as a "today" card, an "all-time" card, and a 30-day graph. */
+export interface MetricSeries {
   today: number;
   total: number;
-  daily: { day: string; count: number }[];
-  /** Registered accounts: all-time total and how many logged in today. */
-  users: { total: number; activeToday: number };
+  daily: DailyPoint[];
+}
+
+export interface VisitorStats {
+  visitors: MetricSeries;
+  /** New registrations. */
+  registered: MetricSeries;
+  /** Identity-verified users (idVerified). `today`/`daily` count when they were
+   *  verified; accounts verified before tracking began have no verifiedAt and
+   *  so appear only in `total`. */
+  verified: MetricSeries;
+  /** Distinct users who logged in — daily active users. No meaningful "all-time
+   *  total", so `total` mirrors `today`. */
+  logins: MetricSeries;
 }
 
 /** One row of the admin visitor-history view. */
@@ -124,13 +141,29 @@ export class AnalyticsService {
     };
   }
 
-  /** Today's unique visitors, all-time unique visitors, and a daily series. */
+  /**
+   * The admin dashboard metrics: visitors, registrations, verifications and
+   * daily active users — each as a today count, an all-time total, and a
+   * `days`-long daily series. All queries run in parallel.
+   */
   async stats(days = 30): Promise<VisitorStats> {
     const today = startOfDayUTC();
     const since = new Date(today);
     since.setUTCDate(since.getUTCDate() - (days - 1));
 
-    const [todayCount, totalRows, daily, userTotal, activeToday] = await Promise.all([
+    const [
+      visitorToday,
+      visitorTotalRows,
+      visitorDaily,
+      registeredTotal,
+      registeredToday,
+      registeredDaily,
+      verifiedTotal,
+      verifiedToday,
+      verifiedDaily,
+      loginToday,
+      loginDaily,
+    ] = await Promise.all([
       this.prisma.visit.count({ where: { day: today } }),
       this.prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(DISTINCT "visitor_id") AS count FROM "visits"`,
       this.prisma.visit.groupBy({
@@ -140,15 +173,41 @@ export class AnalyticsService {
         orderBy: { day: "asc" },
       }),
       this.prisma.user.count(),
-      // Logged in today — includes registration, which stamps lastLoginAt too.
-      this.prisma.user.count({ where: { lastLoginAt: { gte: today } } }),
+      this.prisma.user.count({ where: { createdAt: { gte: today } } }),
+      this.prisma.$queryRaw<DailyPoint[]>`
+        SELECT to_char(date_trunc('day', "created_at"), 'YYYY-MM-DD') AS day, COUNT(*)::int AS count
+        FROM "users" WHERE "created_at" >= ${since} GROUP BY 1 ORDER BY 1
+      `,
+      this.prisma.user.count({ where: { idVerified: true } }),
+      this.prisma.user.count({ where: { verifiedAt: { gte: today } } }),
+      this.prisma.$queryRaw<DailyPoint[]>`
+        SELECT to_char(date_trunc('day', "verified_at"), 'YYYY-MM-DD') AS day, COUNT(*)::int AS count
+        FROM "users" WHERE "verified_at" >= ${since} GROUP BY 1 ORDER BY 1
+      `,
+      this.prisma.$queryRaw<{ count: number }[]>`
+        SELECT COUNT(DISTINCT "user_id")::int AS count FROM "login_events" WHERE "created_at" >= ${today}
+      `,
+      this.prisma.$queryRaw<{ day: string; count: number }[]>`
+        SELECT to_char(date_trunc('day', "created_at"), 'YYYY-MM-DD') AS day, COUNT(DISTINCT "user_id")::int AS count
+        FROM "login_events"
+        WHERE "created_at" >= ${since}
+        GROUP BY 1
+        ORDER BY 1
+      `,
     ]);
 
+    const mapDaily = (rows: DailyPoint[]) => rows.map((r) => ({ day: r.day, count: Number(r.count) }));
+    const loginTodayCount = Number(loginToday[0]?.count ?? 0);
+
     return {
-      today: todayCount,
-      total: Number(totalRows[0]?.count ?? 0),
-      daily: daily.map((d) => ({ day: d.day.toISOString().slice(0, 10), count: d._count._all })),
-      users: { total: userTotal, activeToday },
+      visitors: {
+        today: visitorToday,
+        total: Number(visitorTotalRows[0]?.count ?? 0),
+        daily: visitorDaily.map((d) => ({ day: d.day.toISOString().slice(0, 10), count: d._count._all })),
+      },
+      registered: { today: registeredToday, total: registeredTotal, daily: mapDaily(registeredDaily) },
+      verified: { today: verifiedToday, total: verifiedTotal, daily: mapDaily(verifiedDaily) },
+      logins: { today: loginTodayCount, total: loginTodayCount, daily: mapDaily(loginDaily) },
     };
   }
 }

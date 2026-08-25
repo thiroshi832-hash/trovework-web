@@ -95,10 +95,12 @@ export class AuthService {
         country: dto.country.trim(),
         state: dto.state.trim(),
         postalCode: dto.postalCode.trim(),
-        // Sign-up is also the first login — record both from the same request.
+        // Sign-up is also the first login — record both from the same request,
+        // and log the login event so it counts toward daily active users.
         signupIp: ip ?? null,
         lastLoginIp: ip ?? null,
         lastLoginAt: new Date(),
+        loginEvents: { create: {} },
       },
     });
 
@@ -121,10 +123,11 @@ export class AuthService {
     if (!user || !ok) throw new UnauthorizedException("Email or password is incorrect.");
     if (user.status === "banned") throw new UnauthorizedException("This account has been suspended.");
 
-    // Record where this successful login came from, for admin oversight.
+    // Record where this successful login came from, for admin oversight, and
+    // log the event so it counts toward daily active users.
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { lastLoginIp: ip ?? null, lastLoginAt: new Date() },
+      data: { lastLoginIp: ip ?? null, lastLoginAt: new Date(), loginEvents: { create: {} } },
     });
 
     const role = await this.ensureAdminRole(user.id, user.email, user.role);

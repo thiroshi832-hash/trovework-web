@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Lock, ShieldCheck } from "@/components/icons";
 import { Select } from "@/components/select";
-import { ApiError, api, type Category, type Page } from "@/lib/api";
+import { ApiError, api, type AnalyticsStats, type Category, type Page } from "@/lib/api";
 
 const TABS = ["ID review", "Users", "Analytics", "Categories", "Violations", "Blocked posts", "Banned users"] as const;
 type Tab = (typeof TABS)[number];
@@ -141,14 +141,19 @@ function IpWithFlags({
   );
 }
 
+/** A labelled metric tile for the Analytics tab. */
+function StatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className={`${CARD} p-5`}>
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-1 text-3xl font-bold text-navy-800">{value.toLocaleString()}</p>
+    </div>
+  );
+}
+
 type Paged<T> = Page<T>;
 
-interface VisitorStats {
-  today: number;
-  total: number;
-  daily: { day: string; count: number }[];
-  users: { total: number; activeToday: number };
-}
+type VisitorStats = AnalyticsStats;
 
 interface VisitRow {
   id: string;
@@ -162,11 +167,22 @@ interface VisitRow {
 }
 
 /**
- * Daily visitors as a bar chart. The API only returns days that had visits, so
- * we fill the last 30 days with zeros to get a continuous axis (a launching
- * site has sparse data, and gaps would misread as "no data" rather than "none").
+ * A daily bar chart over the last 30 days. The API only returns days that had
+ * activity, so we fill the window with zeros to get a continuous axis (a
+ * launching site has sparse data, and gaps would misread as "no data" rather
+ * than "none"). Reused for visitors and for new signups.
  */
-function VisitorsChart({ daily }: { daily: { day: string; count: number }[] }) {
+function DailyBarChart({
+  title,
+  daily,
+  unit,
+  barClass = "bg-brand-500 group-hover:bg-brand-600",
+}: {
+  title: string;
+  daily: { day: string; count: number }[];
+  unit: string;
+  barClass?: string;
+}) {
   const counts = new Map(daily.map((d) => [d.day, d.count]));
   const now = new Date();
   const series: { day: string; count: number }[] = [];
@@ -180,9 +196,9 @@ function VisitorsChart({ daily }: { daily: { day: string; count: number }[] }) {
     new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
 
   return (
-    <div className={`${CARD} p-5 sm:col-span-2`}>
+    <div className={`${CARD} p-5`}>
       <div className="mb-3 flex items-baseline justify-between">
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Visitors — last 30 days</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{title}</p>
         <p className="text-xs text-slate-400">Peak {max.toLocaleString()}/day</p>
       </div>
       <div className="flex h-32 items-end gap-[3px]">
@@ -190,10 +206,10 @@ function VisitorsChart({ daily }: { daily: { day: string; count: number }[] }) {
           <div
             key={d.day}
             className="group flex h-full flex-1 items-end"
-            title={`${fmt(d.day)}: ${d.count.toLocaleString()} visitor${d.count === 1 ? "" : "s"}`}
+            title={`${fmt(d.day)}: ${d.count.toLocaleString()} ${unit}${d.count === 1 ? "" : "s"}`}
           >
             <div
-              className="w-full rounded-t bg-brand-500 transition group-hover:bg-brand-600"
+              className={`w-full rounded-t transition ${barClass}`}
               style={{ height: `${Math.max(d.count === 0 ? 0 : 4, Math.round((d.count / max) * 100))}%` }}
             />
           </div>
@@ -415,7 +431,7 @@ export function AdminPanel() {
   const counts: Record<Tab, number> = {
     "ID review": queue.total,
     Users: users.total,
-    Analytics: visitors?.total ?? 0,
+    Analytics: visitors?.visitors.total ?? 0,
     Categories: categories.length,
     Violations: violations.total,
     "Blocked posts": blocked.total,
@@ -767,27 +783,38 @@ export function AdminPanel() {
           {visitors ? (
             <>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className={`${CARD} p-5`}>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Visitors today</p>
-                  <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.today.toLocaleString()}</p>
-                </div>
-                <div className={`${CARD} p-5`}>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">All-time visitors</p>
-                  <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.total.toLocaleString()}</p>
-                </div>
-                <div className={`${CARD} p-5`}>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Registered users</p>
-                  <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.users.total.toLocaleString()}</p>
-                </div>
-                <div className={`${CARD} p-5`}>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Logged in today</p>
-                  <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.users.activeToday.toLocaleString()}</p>
-                </div>
+                <StatCard label="Visitors today" value={visitors.visitors.today} />
+                <StatCard label="All-time visitors" value={visitors.visitors.total} />
+                <StatCard label="Registered today" value={visitors.registered.today} />
+                <StatCard label="All-time registered" value={visitors.registered.total} />
+                <StatCard label="Verified today" value={visitors.verified.today} />
+                <StatCard label="All-time verified" value={visitors.verified.total} />
+                <StatCard label="Logged in today" value={visitors.logins.today} />
               </div>
-              <VisitorsChart daily={visitors.daily} />
+              <div className="grid gap-4 lg:grid-cols-2">
+                <DailyBarChart title="Visitors — last 30 days" daily={visitors.visitors.daily} unit="visitor" />
+                <DailyBarChart
+                  title="New signups — last 30 days"
+                  daily={visitors.registered.daily}
+                  unit="signup"
+                  barClass="bg-emerald-500 group-hover:bg-emerald-600"
+                />
+                <DailyBarChart
+                  title="Verifications — last 30 days"
+                  daily={visitors.verified.daily}
+                  unit="verification"
+                  barClass="bg-violet-500 group-hover:bg-violet-600"
+                />
+                <DailyBarChart
+                  title="Logins — last 30 days"
+                  daily={visitors.logins.daily}
+                  unit="login"
+                  barClass="bg-amber-500 group-hover:bg-amber-600"
+                />
+              </div>
             </>
           ) : (
-            <div className={`${CARD} p-6 text-sm text-slate-500`}>Visitor stats aren&apos;t available yet.</div>
+            <div className={`${CARD} p-6 text-sm text-slate-500`}>Analytics aren&apos;t available yet.</div>
           )}
 
           <div>

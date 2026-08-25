@@ -60,6 +60,18 @@ export interface Page<T> {
   items: T[];
   total: number;
 }
+
+export interface MetricSeries {
+  today: number;
+  total: number;
+  daily: { day: string; count: number }[];
+}
+export interface AnalyticsStats {
+  visitors: MetricSeries;
+  registered: MetricSeries;
+  verified: MetricSeries;
+  logins: MetricSeries;
+}
 export interface PageQuery {
   take?: number;
   skip?: number;
@@ -325,13 +337,7 @@ export const api = {
         request<Category>(`/api/admin/categories/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
       remove: (id: string) => request<void>(`/api/admin/categories/${id}`, { method: "DELETE" }),
     },
-    analytics: () =>
-      request<{
-        today: number;
-        total: number;
-        daily: { day: string; count: number }[];
-        users: { total: number; activeToday: number };
-      }>("/api/admin/analytics"),
+    analytics: () => request<AnalyticsStats>("/api/admin/analytics"),
     analyticsVisits: (p?: PageQuery) =>
       request<
         Page<{

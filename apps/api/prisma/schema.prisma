@@ -53,6 +53,10 @@ model User {
   phone         String?
   phoneVerified Boolean @default(false) @map("phone_verified")
   idVerified    Boolean @default(false) @map("id_verified")
+  // When idVerified last flipped true — for the admin "verified today" metric
+  // and the verifications-over-time graph. Null for accounts verified before
+  // this was tracked.
+  verifiedAt    DateTime? @map("verified_at")
   idCardPath    String? @map("id_card_path")
   selfiePath    String? @map("selfie_path")
   idMatchScore  Decimal? @map("id_match_score") @db.Decimal(5, 4)
@@ -78,6 +82,7 @@ model User {
   messages         Message[]
   reviewsWritten   Review[]          @relation("author")
   reviewsReceived  Review[]          @relation("subject")
+  loginEvents      LoginEvent[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -332,6 +337,20 @@ model RefreshToken {
 /// One row per unique visitor per day, so daily and all-time visitor totals can
 /// be computed without storing any personal data — just a random visitor id
 /// (from a cookie) and the date.
+/// One row per successful login (and per registration, which is a first login),
+/// so the admin dashboard can show daily active users. lastLoginAt on User only
+/// holds the most recent login and can't reconstruct a per-day series.
+model LoginEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([userId])
+  @@map("login_events")
+}
+
 model Visit {
   id        String   @id @default(uuid()) @db.Uuid
   visitorId String   @map("visitor_id")

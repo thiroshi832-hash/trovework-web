@@ -13,7 +13,17 @@ function makeService(opts: { visits?: any[]; classes?: Map<string, IpClass> } = 
     { day: new Date("2026-08-22"), _count: { _all: 3 } },
     { day: new Date("2026-08-23"), _count: { _all: 5 } },
   ]);
-  const queryRaw = jest.fn(async () => [{ count: BigInt(42) }]);
+  // stats() runs several raw queries; distinguish them by their SQL text.
+  const queryRaw = jest.fn(async (strings: TemplateStringsArray) => {
+    const sql = Array.from(strings).join(" ");
+    if (sql.includes("visitor_id")) return [{ count: BigInt(42) }];
+    if (sql.includes("verified_at")) return [{ day: "2026-08-23", count: 2 }];
+    if (sql.includes("login_events")) {
+      return sql.includes("date_trunc") ? [{ day: "2026-08-23", count: 3 }] : [{ count: 3 }];
+    }
+    // signups daily (users + created_at)
+    return [{ day: "2026-08-23", count: 4 }];
+  });
 
   const visits: any[] = opts.visits ?? [];
   const findMany = jest.fn(async () => visits);
@@ -26,9 +36,14 @@ function makeService(opts: { visits?: any[]; classes?: Map<string, IpClass> } = 
   // an empty visits list means the stats test, which expects 5.
   const count = jest.fn(async () => visits.length || 5);
 
-  // user.count is called twice by stats(): no-args = registered total, with a
-  // lastLoginAt filter = active today.
-  const userCount = jest.fn(async ({ where }: any = {}) => (where?.lastLoginAt ? 2 : 7));
+  // user.count is called four times by stats(), distinguished by the filter.
+  const userCount = jest.fn(async ({ where }: any = {}) => {
+    if (!where) return 7; // registered total
+    if (where.createdAt) return 1; // registered today
+    if (where.idVerified) return 5; // verified total
+    if (where.verifiedAt) return 2; // verified today
+    return 0;
+  });
 
   const db = {
     visit: { upsert, count, groupBy, findMany, updateMany },
@@ -60,16 +75,21 @@ describe("AnalyticsService", () => {
     expect(getLastUpsert()?.update).toEqual({}); // no-op on repeat
   });
 
-  it("returns today's count, all-time total, and a daily series", async () => {
+  it("returns visitors, registrations, verifications and logins as today/total/daily", async () => {
     const { svc } = makeService();
     const s = await svc.stats();
-    expect(s.today).toBe(5);
-    expect(s.total).toBe(42);
-    expect(s.daily).toEqual([
-      { day: "2026-08-22", count: 3 },
-      { day: "2026-08-23", count: 5 },
-    ]);
-    expect(s.users).toEqual({ total: 7, activeToday: 2 });
+    expect(s.visitors).toEqual({
+      today: 5,
+      total: 42,
+      daily: [
+        { day: "2026-08-22", count: 3 },
+        { day: "2026-08-23", count: 5 },
+      ],
+    });
+    expect(s.registered).toEqual({ today: 1, total: 7, daily: [{ day: "2026-08-23", count: 4 }] });
+    expect(s.verified).toEqual({ today: 2, total: 5, daily: [{ day: "2026-08-23", count: 2 }] });
+    // Logins have no all-time total, so total mirrors today.
+    expect(s.logins).toEqual({ today: 3, total: 3, daily: [{ day: "2026-08-23", count: 3 }] });
   });
 
   it("classifies unclassified IPs on the page and caches the result on the row", async () => {
