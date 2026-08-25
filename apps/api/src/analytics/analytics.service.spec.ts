@@ -26,8 +26,13 @@ function makeService(opts: { visits?: any[]; classes?: Map<string, IpClass> } = 
   // an empty visits list means the stats test, which expects 5.
   const count = jest.fn(async () => visits.length || 5);
 
+  // user.count is called twice by stats(): no-args = registered total, with a
+  // lastLoginAt filter = active today.
+  const userCount = jest.fn(async ({ where }: any = {}) => (where?.lastLoginAt ? 2 : 7));
+
   const db = {
     visit: { upsert, count, groupBy, findMany, updateMany },
+    user: { count: userCount },
     $queryRaw: queryRaw,
   };
   const ipIntel = {
@@ -64,6 +69,7 @@ describe("AnalyticsService", () => {
       { day: "2026-08-22", count: 3 },
       { day: "2026-08-23", count: 5 },
     ]);
+    expect(s.users).toEqual({ total: 7, activeToday: 2 });
   });
 
   it("classifies unclassified IPs on the page and caches the result on the row", async () => {

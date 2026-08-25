@@ -326,7 +326,12 @@ export const api = {
       remove: (id: string) => request<void>(`/api/admin/categories/${id}`, { method: "DELETE" }),
     },
     analytics: () =>
-      request<{ today: number; total: number; daily: { day: string; count: number }[] }>("/api/admin/analytics"),
+      request<{
+        today: number;
+        total: number;
+        daily: { day: string; count: number }[];
+        users: { total: number; activeToday: number };
+      }>("/api/admin/analytics"),
     analyticsVisits: (p?: PageQuery) =>
       request<
         Page<{

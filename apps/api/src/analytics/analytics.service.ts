@@ -11,6 +11,8 @@ export interface VisitorStats {
   today: number;
   total: number;
   daily: { day: string; count: number }[];
+  /** Registered accounts: all-time total and how many logged in today. */
+  users: { total: number; activeToday: number };
 }
 
 /** One row of the admin visitor-history view. */
@@ -128,7 +130,7 @@ export class AnalyticsService {
     const since = new Date(today);
     since.setUTCDate(since.getUTCDate() - (days - 1));
 
-    const [todayCount, totalRows, daily] = await Promise.all([
+    const [todayCount, totalRows, daily, userTotal, activeToday] = await Promise.all([
       this.prisma.visit.count({ where: { day: today } }),
       this.prisma.$queryRaw<{ count: bigint }[]>`SELECT COUNT(DISTINCT "visitor_id") AS count FROM "visits"`,
       this.prisma.visit.groupBy({
@@ -137,12 +139,16 @@ export class AnalyticsService {
         _count: { _all: true },
         orderBy: { day: "asc" },
       }),
+      this.prisma.user.count(),
+      // Logged in today — includes registration, which stamps lastLoginAt too.
+      this.prisma.user.count({ where: { lastLoginAt: { gte: today } } }),
     ]);
 
     return {
       today: todayCount,
       total: Number(totalRows[0]?.count ?? 0),
       daily: daily.map((d) => ({ day: d.day.toISOString().slice(0, 10), count: d._count._all })),
+      users: { total: userTotal, activeToday },
     };
   }
 }

@@ -147,6 +147,7 @@ interface VisitorStats {
   today: number;
   total: number;
   daily: { day: string; count: number }[];
+  users: { total: number; activeToday: number };
 }
 
 interface VisitRow {
@@ -764,17 +765,27 @@ export function AdminPanel() {
       {loaded && tab === "Analytics" ? (
         <div className="mt-6 space-y-6">
           {visitors ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className={`${CARD} p-5`}>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Visitors today</p>
-                <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.today.toLocaleString()}</p>
-              </div>
-              <div className={`${CARD} p-5`}>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">All-time visitors</p>
-                <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.total.toLocaleString()}</p>
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className={`${CARD} p-5`}>
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Visitors today</p>
+                  <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.today.toLocaleString()}</p>
+                </div>
+                <div className={`${CARD} p-5`}>
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">All-time visitors</p>
+                  <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.total.toLocaleString()}</p>
+                </div>
+                <div className={`${CARD} p-5`}>
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Registered users</p>
+                  <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.users.total.toLocaleString()}</p>
+                </div>
+                <div className={`${CARD} p-5`}>
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Logged in today</p>
+                  <p className="mt-1 text-3xl font-bold text-navy-800">{visitors.users.activeToday.toLocaleString()}</p>
+                </div>
               </div>
               <VisitorsChart daily={visitors.daily} />
-            </div>
+            </>
           ) : (
             <div className={`${CARD} p-6 text-sm text-slate-500`}>Visitor stats aren&apos;t available yet.</div>
           )}
